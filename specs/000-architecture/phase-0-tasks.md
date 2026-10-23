@@ -86,7 +86,7 @@ Each task lists its **Done when** check. Tasks that set up tooling are tested by
   - `make migrate-neon-dev`, for rehearsing migrations on the Neon `dev` branch (overview A2).
   - **Done when:** `make migrations-check` passes.
 
-- [ ] **P0-T9: Test infrastructure**
+- [x] **P0-T9: Test infrastructure**
   - `tests/conftest.py` with: a session-scoped migrated test database; a rollback-per-test session; a `committing_db` fixture (truncates after each test) for concurrency tests; an `httpx.AsyncClient` against the ASGI app; and a frozen clock.
   - `tests/unit` and `tests/integration` folders, so `make api-test-unit` runs without Docker.
   - **Done when:** a sample integration test proves that data from one test isn't visible in the next.
