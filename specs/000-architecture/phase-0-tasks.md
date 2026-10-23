@@ -39,7 +39,7 @@ Each task lists its **Done when** check. Tasks that set up tooling are tested by
     - `test_env_example_lists_every_setting` (a parity check between `Settings` fields and `.env.example`)
   - **Done when:** `make api-lint api-test` passes.
 
-- [ ] **P0-T4: Core cross-cutting behaviour (logging, request ID, errors)**
+- [x] **P0-T4: Core cross-cutting behaviour (logging, request ID, errors)**
   - JSON logs with `structlog`, with a processor that redacts sensitive keys (`authorization`, `email`, `token`, `password`, and so on).
   - Request-ID middleware (accepts or generates `X-Request-ID` and echoes it back).
   - Problem+json handlers for validation errors, `HTTPException`, our own `AppError` hierarchy and unhandled exceptions.
