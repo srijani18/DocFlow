@@ -1,0 +1,94 @@
+[project]
+name = "docflow-api"
+version = "0.1.0"
+description = "DocFlow backend: FastAPI API, job worker and MCP server"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "alembic>=1.20.1",
+    "fastapi>=0.162.0",
+    "httpx>=0.28.1",
+    "psycopg[binary]>=3.3.6",
+    "pydantic-settings>=2.16.1",
+    "sqlalchemy[asyncio]>=2.1.6",
+    "structlog>=26.1.0",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[dependency-groups]
+dev = [
+    "import-linter>=2.15",
+    "mypy>=2.4.0",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "pytest-cov>=7.1.0",
+    "respx>=0.23.1",
+    "ruff>=0.17.2",
+]
+
+[tool.uv]
+package = false
+
+# ---------------------------------------------------------------- ruff
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["app/generated"]
+
+[tool.ruff.lint]
+select = [
+  "E", "W", "F", "I", "B", "UP", "N", "S", "ASYNC", "C4", "SIM", "RUF", "PT", "TID", "DTZ", "PL",
+]
+ignore = [
+  "PLR0913",  # FastAPI dependencies make long signatures normal
+  "PLR2004",  # magic values are fine in tests and HTTP status checks
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106", "PLR2004"]
+"migrations/**" = ["N999"]
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+# Constitution §5.1: provider SDKs only inside app/llm/providers/ (exempted per-file when added).
+"google.genai".msg = "LLM providers are called only through app.llm (the gateway)."
+"google.generativeai".msg = "LLM providers are called only through app.llm (the gateway)."
+"groq".msg = "LLM providers are called only through app.llm (the gateway)."
+"openai".msg = "LLM providers are called only through app.llm (the gateway)."
+
+# ---------------------------------------------------------------- mypy
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+exclude = ["^app/generated/"]
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+
+# ---------------------------------------------------------------- pytest
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+markers = [
+  "integration: needs a real Postgres (make db-up)",
+]
+addopts = "-ra --strict-markers"
+filterwarnings = ["error"]
+
+[tool.coverage.run]
+source = ["app"]
+omit = ["app/generated/*"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+skip_covered = true
+exclude_also = ["if TYPE_CHECKING:", "raise NotImplementedError", "\\.\\.\\."]

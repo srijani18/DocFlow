@@ -29,7 +29,7 @@ Each task lists its **Done when** check. Tasks that set up tooling are tested by
   - Targets `make db-up`, `make db-down` and `make db-reset`.
   - **Done when:** `make db-up` makes the container healthy, and `SELECT extversion FROM pg_extension WHERE extname='vector'` returns a row in both databases.
 
-- [ ] **P0-T3: API project scaffold and settings**
+- [x] **P0-T3: API project scaffold and settings**
   - `apps/api` as a uv project pinned to Python 3.12.
   - `pyproject.toml` configuring ruff (lint and format), `mypy --strict` (with the pydantic plugin), and pytest (`asyncio_mode=auto`, markers `unit` and `integration`, coverage floor 80%).
   - `app/core/config.py` using `pydantic-settings`, with typed and validated settings, failing fast with a list of missing variables.
