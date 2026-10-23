@@ -144,14 +144,16 @@ Each task lists its **Done when** check. Tasks that set up tooling are tested by
     - `secrets`: gitleaks, always runs
   - A final **`ci-ok`** job depends on all the others and succeeds when each one either succeeded or was skipped. Branch protection and Render's "after CI checks pass" use this job.
   - uv and pnpm caches are turned on.
+  - `api-docker` runs `make api-docker-smoke`: it builds the image, starts it next to a throwaway Postgres, and checks that the migrations ran and `/healthz` and `/readyz` answer.
   - **Done when:** the first PR shows a green `ci-ok`, and a PR that only changes `apps/web` skips the `api-*` jobs.
+  - Local pre-check (before a GitHub repo exists): `actionlint` passes, and every job's `make` target passes locally.
 
-- [ ] **P0-T15: Dockerfile and start script (`apps/api`)**
+- [x] **P0-T15: Dockerfile and start script (`apps/api`)**
   - A multi-stage build: the uv builder image installs `--frozen --no-dev` into `/app/.venv`; the runtime image is `python:3.12-slim`, running as a non-root user.
   - The build copies the needed `schemas/` files into the image; the build context is the repo root.
   - `start.sh` runs `alembic upgrade head` and then `exec python -m app`. Uvicorn uses one worker, the `$PORT` variable, proxy headers and the `ROLE` variable.
   - **Done when:**
-    - `make api-docker` builds and runs the image, and `/healthz` returns 200;
+    - `make api-docker-smoke` builds and runs the image against Postgres, and `/healthz` and `/readyz` return 200;
     - the image is under 250 MB;
     - idle memory is under 200 MB (`docker stats`), leaving room within Render's 512 MB.
 

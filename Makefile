@@ -33,7 +33,7 @@ db-psql: ## Open psql on the local dev database
 
 # ---------------------------------------------------------------- api
 
-.PHONY: api-lint api-fmt api-test api-test-unit
+.PHONY: api-lint api-fmt api-test api-test-unit api-docker api-docker-smoke
 api-lint: ## Lint + type-check the API (ruff, mypy, import-linter)
 	cd $(API) && uv run ruff check . && uv run ruff format --check . && uv run mypy . && uv run lint-imports
 
@@ -41,10 +41,16 @@ api-fmt: ## Auto-format the API code
 	cd $(API) && uv run ruff check --fix . && uv run ruff format .
 
 api-test: ## Run all API tests with coverage (needs `make db-up`)
-	cd $(API) && uv run pytest --cov --cov-report=term-missing
+	cd $(API) && TEST_DATABASE_URL=$(TEST_DATABASE_URL) uv run pytest --cov --cov-report=term-missing
 
 api-test-unit: ## Run API unit tests only (no Docker needed)
 	cd $(API) && uv run pytest tests/unit
+
+api-docker: ## Build the API Docker image (docflow-api:local)
+	docker build -f $(API)/Dockerfile -t docflow-api:local .
+
+api-docker-smoke: ## Build the image, run it against a throwaway Postgres, check health
+	$(API)/scripts/docker-smoke.sh
 
 # ---------------------------------------------------------------- migrations
 
