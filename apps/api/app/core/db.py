@@ -5,6 +5,10 @@ The app connects through Neon's *pooled* connection string; migrations use the d
 sleeping Neon compute.
 """
 
+from collections.abc import AsyncIterator
+from typing import Annotated
+
+from fastapi import Depends, Request
 from sqlalchemy import MetaData
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -48,3 +52,25 @@ def create_engine(settings: Settings) -> AsyncEngine:
 
 def create_sessionmaker(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
     return async_sessionmaker(engine, expire_on_commit=False)
+
+
+async def get_session(request: Request) -> AsyncIterator[AsyncSession]:
+    """FastAPI dependency: one session (unit of work) per request.
+
+    Commits when the endpoint returns normally, rolls back when it raises. Always use it
+    through `DbSession`, never `Depends(get_session)` directly: see below.
+    """
+    sessionmaker: async_sessionmaker[AsyncSession] = request.app.state.sessionmaker
+    async with sessionmaker() as session:
+        try:
+            yield session
+        except Exception:
+            await session.rollback()
+            raise
+        await session.commit()
+
+
+# scope="function" makes FastAPI run the commit above *before* sending the response. With
+# the default scope the exit code runs after the response is sent, so a failed commit
+# would still reach the client as 200 OK.
+DbSession = Annotated[AsyncSession, Depends(get_session, scope="function")]

@@ -12,6 +12,7 @@ import structlog
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import InterfaceError, OperationalError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 PROBLEM_TYPE_BASE = "https://docflow.dev/problems/"
@@ -137,6 +138,13 @@ async def _handle_http_exception(request: Request, exc: Exception) -> JSONRespon
     )
 
 
+async def _handle_database_connection_error(request: Request, exc: Exception) -> JSONResponse:
+    # Connection-level failures (Neon waking, network blips) are transient: answer 503 with
+    # Retry-After and let the client retry (F1 AC20), instead of retrying hidden in here.
+    structlog.get_logger(__name__).warning("database_unavailable", error_type=type(exc).__name__)
+    return await _handle_app_error(request, DatabaseUnavailableError())
+
+
 def internal_error_response(request_id: str | None) -> JSONResponse:
     """The last-resort 500. Never includes exception text: that goes to the logs only."""
     structlog.get_logger(__name__).exception("unhandled_error")
@@ -149,3 +157,5 @@ def install_error_handlers(app: FastAPI) -> None:
     app.add_exception_handler(AppError, _handle_app_error)
     app.add_exception_handler(RequestValidationError, _handle_validation_error)
     app.add_exception_handler(StarletteHTTPException, _handle_http_exception)
+    app.add_exception_handler(OperationalError, _handle_database_connection_error)
+    app.add_exception_handler(InterfaceError, _handle_database_connection_error)

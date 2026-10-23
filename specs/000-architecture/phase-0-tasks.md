@@ -71,11 +71,12 @@ Each task lists its **Done when** check. Tasks that set up tooling are tested by
     - `test_invalid_role_fails_fast`
   - **Done when:** the tests pass.
 
-- [ ] **P0-T7: Database layer**
+- [x] **P0-T7: Database layer**
   - SQLAlchemy 2.1 async engine using **psycopg 3**, a session-per-request dependency, and a naming convention for constraints.
-  - Pool settings for Neon's pooler: `pool_size=5`, `max_overflow=0`, `pool_pre_ping=True`, `pool_recycle=300`, `connect_timeout=10`, and one retry when connecting while Neon wakes.
+  - Pool settings for Neon's pooler: `pool_size=5`, `max_overflow=0`, `pool_pre_ping=True`, `pool_recycle=300`, `connect_timeout=10`. Connection failures (Neon waking, network blips) become `503 database-unavailable` with `Retry-After: 5`, and the client retries (F1 AC20). There is no hidden retry on the server, so all retrying happens in one place.
   - Why psycopg 3: one driver serves both the async app and synchronous Alembic, and it works with Neon's pooled connection string.
-  - Test: `test_session_dependency_commits_and_rolls_back` (integration).
+  - Sessions are injected through the `DbSession` alias (`Depends(get_session, scope="function")`), so the commit runs *before* the response is sent. With FastAPI's default scope, a failed commit would still return 200.
+  - Tests: `test_session_dependency_commits_and_rolls_back`, `test_failed_commit_is_an_error_response_not_200` (integration), `test_unreachable_database_maps_to_503` (unit).
   - **Done when:** the test passes.
 
 - [ ] **P0-T8: Alembic setup and baseline migration**
