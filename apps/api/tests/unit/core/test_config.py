@@ -33,23 +33,15 @@ def test_config_error_never_echoes_values(monkeypatch: pytest.MonkeyPatch) -> No
 @pytest.mark.parametrize(
     "raw",
     [
-        "postgres://u:p@host:5432/db?sslmode=require",
-        "postgresql://u:p@host:5432/db?sslmode=require",
-        "postgresql+psycopg://u:p@host:5432/db?sslmode=require",
+        "postgres://u:p@host:5432/postgres?sslmode=require",
+        "postgresql://u:p@host:5432/postgres?sslmode=require",
+        "postgresql+psycopg://u:p@host:5432/postgres?sslmode=require",
     ],
 )
-def test_database_urls_use_the_psycopg_driver(raw: str) -> None:
-    settings = Settings(_env_file=None, database_url=raw, database_url_direct=raw)
+def test_database_url_uses_the_psycopg_driver(raw: str) -> None:
+    settings = Settings(_env_file=None, database_url=raw)
 
-    expected = "postgresql+psycopg://u:p@host:5432/db?sslmode=require"
-    assert settings.database_url == expected
-    assert settings.database_url_direct == expected
-
-
-def test_migrations_fall_back_to_pooled_url_when_no_direct_url() -> None:
-    settings = Settings(_env_file=None, database_url="postgresql://u:p@h/db")
-
-    assert settings.migrations_database_url == "postgresql+psycopg://u:p@h/db"
+    assert settings.database_url == "postgresql+psycopg://u:p@host:5432/postgres?sslmode=require"
 
 
 def test_cors_origins_parse_from_comma_separated_string(monkeypatch: pytest.MonkeyPatch) -> None:

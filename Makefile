@@ -4,7 +4,7 @@
 SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
-# Local values (e.g. NEON_DEV_DATABASE_URL) come from the repo-root .env when present.
+# Local values come from the repo-root .env when present.
 -include .env
 
 API := apps/api
@@ -57,7 +57,7 @@ api-docker-smoke: ## Build the image, run it against a throwaway Postgres, check
 TEST_DATABASE_URL ?= postgresql://docflow:docflow@localhost:54320/docflow_test
 ALEMBIC := cd $(API) && uv run alembic
 
-.PHONY: migrate migration migrations-check migrate-neon-dev
+.PHONY: migrate migration migrations-check
 migrate: ## Apply migrations to the local dev database (reads .env)
 	$(ALEMBIC) upgrade head
 
@@ -67,13 +67,10 @@ migration: ## Create a migration: make migration name=add_documents
 		--rev-id $$(printf "%04d" $$(( $$(ls $(API)/migrations/versions | grep -cE '^[0-9]{4}_') + 1 )))
 
 migrations-check: ## upgrade -> downgrade base -> upgrade on the test DB, then check for model drift
-	cd $(API) && export DATABASE_URL=$(TEST_DATABASE_URL) DATABASE_URL_DIRECT= && \
+	cd $(API) && export DATABASE_URL=$(TEST_DATABASE_URL) && \
 		uv run alembic upgrade head && uv run alembic downgrade base && \
 		uv run alembic upgrade head && uv run alembic check
 
-migrate-neon-dev: ## Rehearse migrations on the Neon dev branch (needs NEON_DEV_DATABASE_URL)
-	@test -n "$(NEON_DEV_DATABASE_URL)" || (echo "Set NEON_DEV_DATABASE_URL (direct connection)" && exit 1)
-	cd $(API) && DATABASE_URL=$(NEON_DEV_DATABASE_URL) DATABASE_URL_DIRECT= uv run alembic upgrade head
 
 # ---------------------------------------------------------------- web
 

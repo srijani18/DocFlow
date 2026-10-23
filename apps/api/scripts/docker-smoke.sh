@@ -35,7 +35,7 @@ done
 
 echo "healthz: $(curl -fsS "http://localhost:$PORT/healthz")"
 echo "readyz:  $(curl -fsS "http://localhost:$PORT/readyz")"
-echo "migrations: $(docker exec "$DB" psql -U docflow -tAc 'SELECT version_num FROM alembic_version')"
+echo "migrations: $(docker exec "$DB" psql -U docflow -tAc 'SELECT version_num FROM docflow.alembic_version')"
 echo "image size: $(docker image inspect "$IMAGE" -f '{{.Size}}' | awk '{printf "%.0f MB", $1/1000/1000}')"
 sleep 3
 echo "idle memory: $(docker stats --no-stream --format '{{.MemUsage}}' "$API")"

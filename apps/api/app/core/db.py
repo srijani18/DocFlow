@@ -1,15 +1,16 @@
 """Database engine and sessions (SQLAlchemy 2 async, psycopg 3).
 
-The app connects through Neon's *pooled* connection string; migrations use the direct one
-(constitution §7.3). Creating the engine does not connect, so startup never waits on a
-sleeping Neon compute.
+Production is Supabase Postgres through the shared pooler in session mode (ADR-0007): one
+connection string for the app and for Alembic. Every DocFlow table lives in the `docflow`
+schema, never in Supabase's `public` schema. Creating the engine does not connect.
 """
 
 from collections.abc import AsyncIterator
 from typing import Annotated
 
 from fastapi import Depends, Request
-from sqlalchemy import MetaData
+from sqlalchemy import MetaData, event
+from sqlalchemy.engine.interfaces import DBAPIConnection
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -17,6 +18,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.pool import ConnectionPoolEntry
 
 from app.core.config import Settings
 
@@ -30,24 +32,43 @@ NAMING_CONVENTION = {
 }
 
 
+DB_SCHEMA = "docflow"
+# `extensions` is where Supabase installs pgvector; `public` stays last for anything else.
+SEARCH_PATH = f"{DB_SCHEMA}, extensions, public"
+
+
 class Base(DeclarativeBase):
-    metadata = MetaData(naming_convention=NAMING_CONVENTION)
+    metadata = MetaData(naming_convention=NAMING_CONVENTION, schema=DB_SCHEMA)
 
 
 CONNECT_TIMEOUT_SECONDS = 10
 
 
+def _set_search_path(dbapi_connection: DBAPIConnection, _record: ConnectionPoolEntry) -> None:
+    # Autocommit, so the setting is not undone when the first transaction rolls back.
+    # A plain SET (not a startup option) works through Supavisor's session mode.
+    previous = dbapi_connection.autocommit
+    dbapi_connection.autocommit = True
+    cursor = dbapi_connection.cursor()
+    cursor.execute(f"SET SESSION search_path TO {SEARCH_PATH}")
+    cursor.close()
+    dbapi_connection.autocommit = previous
+
+
 def create_engine(settings: Settings) -> AsyncEngine:
-    return create_async_engine(
+    engine = create_async_engine(
         settings.database_url,
-        # Small pool: one instance, and Neon's pooler multiplexes behind it.
+        # Small pool: one instance. In session mode each client connection holds one
+        # pooler connection, so this is also our share of Supabase's connection limit.
         pool_size=5,
         max_overflow=0,
-        # Neon may have suspended the compute or closed idle connections.
+        # The pooler or the network may have dropped idle connections.
         pool_pre_ping=True,
         pool_recycle=300,
         connect_args={"connect_timeout": CONNECT_TIMEOUT_SECONDS},
     )
+    event.listen(engine.sync_engine, "connect", _set_search_path)
+    return engine
 
 
 def create_sessionmaker(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:

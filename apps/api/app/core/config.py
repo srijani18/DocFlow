@@ -50,19 +50,17 @@ class Settings(BaseSettings):
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     port: int = 8000
 
+    # Supabase shared pooler, session mode (ADR-0007). Used by the app and by Alembic.
     database_url: str
-    database_url_direct: str | None = None
 
     cors_allowed_origins: Annotated[list[str], NoDecode] = []
     cors_allowed_origin_regex: str | None = None
 
-    @field_validator("database_url", "database_url_direct")
+    @field_validator("database_url")
     @classmethod
-    def _use_psycopg_driver(cls, value: str | None) -> str | None:
-        # Neon and Docker hand out `postgres://` / `postgresql://` URLs; SQLAlchemy needs
-        # the driver named explicitly.
-        if not value:  # unset or empty (e.g. `DATABASE_URL_DIRECT=` in .env)
-            return None
+    def _use_psycopg_driver(cls, value: str) -> str:
+        # Supabase and Docker hand out `postgres://` / `postgresql://` URLs; SQLAlchemy
+        # needs the driver named explicitly.
         for prefix in ("postgres://", "postgresql://"):
             if value.startswith(prefix):
                 return "postgresql+psycopg://" + value.removeprefix(prefix)
@@ -74,11 +72,6 @@ class Settings(BaseSettings):
         if isinstance(value, str):
             return [origin.strip() for origin in value.split(",") if origin.strip()]
         return value
-
-    @property
-    def migrations_database_url(self) -> str:
-        """Migrations use the direct (non-pooled) connection when one is configured."""
-        return self.database_url_direct or self.database_url
 
 
 def load_settings(env_file: Path | None = REPO_ROOT_ENV_FILE) -> Settings:

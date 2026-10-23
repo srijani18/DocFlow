@@ -1,18 +1,19 @@
 """Alembic environment.
 
-The URL comes from app settings: DATABASE_URL_DIRECT when set (Neon's non-pooled
-endpoint), otherwise DATABASE_URL (constitution §7.3). Never from alembic.ini.
+The URL comes from app settings (DATABASE_URL, the Supabase session pooler), never from
+alembic.ini. Everything, including `alembic_version`, lives in the `docflow` schema
+(ADR-0007), and connections get the app's search_path.
 """
 
 import asyncio
 from logging.config import fileConfig
 
 from alembic import context
+from sqlalchemy import text
 from sqlalchemy.engine import Connection
-from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.core.config import load_settings
-from app.core.db import Base
+from app.core.db import DB_SCHEMA, Base, create_engine
 from app.models import import_all_models
 
 config = context.config
@@ -23,14 +24,16 @@ import_all_models()
 target_metadata = Base.metadata
 
 
-def _url() -> str:
-    return load_settings().migrations_database_url
+def _include_name(name: str | None, type_: str, _parent: object) -> bool:
+    # Autogenerate and `alembic check` look only at our schema, never at Supabase's.
+    return name == DB_SCHEMA if type_ == "schema" else True
 
 
 def run_migrations_offline() -> None:
     context.configure(
-        url=_url(),
+        url=load_settings().database_url,
         target_metadata=target_metadata,
+        version_table_schema=DB_SCHEMA,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
     )
@@ -42,6 +45,9 @@ def _run_sync(connection: Connection) -> None:
     context.configure(
         connection=connection,
         target_metadata=target_metadata,
+        version_table_schema=DB_SCHEMA,
+        include_schemas=True,
+        include_name=_include_name,
         transaction_per_migration=True,
         compare_type=True,
     )
@@ -50,7 +56,11 @@ def _run_sync(connection: Connection) -> None:
 
 
 async def run_migrations_online() -> None:
-    engine = create_async_engine(_url(), connect_args={"connect_timeout": 10})
+    engine = create_engine(load_settings())
+    # The version table lives in our schema, so the schema must exist before Alembic
+    # reads or creates it. Idempotent; never dropped by a downgrade.
+    async with engine.begin() as connection:
+        await connection.execute(text(f"CREATE SCHEMA IF NOT EXISTS {DB_SCHEMA}"))
     async with engine.connect() as connection:
         await connection.run_sync(_run_sync)
     await engine.dispose()

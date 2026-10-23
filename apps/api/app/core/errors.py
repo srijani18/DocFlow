@@ -139,7 +139,7 @@ async def _handle_http_exception(request: Request, exc: Exception) -> JSONRespon
 
 
 async def _handle_database_connection_error(request: Request, exc: Exception) -> JSONResponse:
-    # Connection-level failures (Neon waking, network blips) are transient: answer 503 with
+    # Connection-level failures (pooler restarts, network blips) are transient: answer 503 with
     # Retry-After and let the client retry (F1 AC20), instead of retrying hidden in here.
     structlog.get_logger(__name__).warning("database_unavailable", error_type=type(exc).__name__)
     return await _handle_app_error(request, DatabaseUnavailableError())

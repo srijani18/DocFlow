@@ -1,7 +1,9 @@
 """Liveness and readiness endpoints (overview §10).
 
-`/healthz` deliberately checks nothing: Render health checks and the cron keep-alive hit
-it every few minutes, and touching the database would stop Neon from ever suspending.
+`/healthz` is liveness and deliberately checks nothing: if it depended on the database,
+a database blip would make Render restart a perfectly healthy process.
+`/readyz` checks the database. The cron keep-alive calls it, which keeps both the Render
+service and the Supabase project active (ADR-0007).
 """
 
 import asyncio

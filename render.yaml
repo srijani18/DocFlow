@@ -5,10 +5,10 @@ services:
     name: docflow-api
     runtime: docker
     plan: free
-    region: singapore  # next to Neon aws-ap-southeast-1 and Supabase ap-southeast-1 (overview A5)
+    region: singapore  # next to Supabase ap-southeast-1 (overview A5)
     dockerfilePath: ./apps/api/Dockerfile
     dockerContext: .
-    healthCheckPath: /healthz  # touches no dependency, so Neon can still suspend
+    healthCheckPath: /healthz  # liveness only: a database blip must not restart the service
     autoDeployTrigger: checksPass  # waits for the `ci-ok` check
     buildFilter:
       paths:
@@ -22,9 +22,7 @@ services:
       - key: LOG_LEVEL
         value: INFO
       # Secrets and per-deployment values: entered in the dashboard, never committed.
-      - key: DATABASE_URL
-        sync: false
-      - key: DATABASE_URL_DIRECT
+      - key: DATABASE_URL  # Supabase session pooler (ADR-0007)
         sync: false
       - key: CORS_ALLOWED_ORIGINS
         sync: false

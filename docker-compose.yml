@@ -1,4 +1,4 @@
-# Local Postgres + pgvector. Same image as CI; major version matches Neon (overview A7).
+# Local Postgres + pgvector. Same image as CI; major version matches Supabase (ADR-0007).
 services:
   postgres:
     image: pgvector/pgvector:pg17

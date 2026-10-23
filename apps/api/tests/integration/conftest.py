@@ -39,7 +39,7 @@ def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
 @pytest.fixture(scope="session", autouse=True)
 def migrated_database() -> None:
     """Bring the test database to the latest migration once per run."""
-    env = {**os.environ, "DATABASE_URL": TEST_DATABASE_URL, "DATABASE_URL_DIRECT": ""}
+    env = {**os.environ, "DATABASE_URL": TEST_DATABASE_URL}
     subprocess.run(  # fixed argv, our own tool
         [sys.executable, "-m", "alembic", "upgrade", "head"],
         cwd=API_DIR,
@@ -82,7 +82,7 @@ async def db_session(db_connection: AsyncConnection) -> AsyncIterator[AsyncSessi
 @pytest.fixture
 async def committing_engine(db_engine: AsyncEngine) -> AsyncIterator[AsyncEngine]:
     yield db_engine
-    tables = ", ".join(table.name for table in Base.metadata.sorted_tables)
+    tables = ", ".join(table.fullname for table in Base.metadata.sorted_tables)
     if tables:
         async with db_engine.begin() as connection:
             await connection.execute(text(f"TRUNCATE {tables} CASCADE"))

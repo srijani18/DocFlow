@@ -62,7 +62,7 @@ def test_role_capabilities(role: Role, http: bool, worker: bool) -> None:
 
 async def test_worker_wakes_on_signal_and_never_needs_the_database() -> None:
     # Phase 0 placeholder: the worker idles on its wake event (overview §5) and runs no
-    # queries, so an idle deployment lets Neon suspend.
+    # queries.
     worker = Worker(heartbeat_seconds=3600)
     task = asyncio.create_task(worker.run())
     await asyncio.sleep(0)

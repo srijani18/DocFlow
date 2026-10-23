@@ -3,8 +3,8 @@
 Phase 0 placeholder: it only idles. F3 replaces the body of `_drain` with job claiming.
 
 The idle strategy is fixed now (overview §5): wait on an in-process wake event, with a
-long timeout, instead of polling the database every few seconds. Polling would keep the
-Neon compute awake and burn the free plan's compute hours.
+timeout as a safety net, instead of polling the database every few seconds. Jobs start
+immediately and the idle process costs nothing. F3 sets the sweep interval.
 """
 
 import asyncio
