@@ -79,7 +79,7 @@ Each task lists its **Done when** check. Tasks that set up tooling are tested by
   - Tests: `test_session_dependency_commits_and_rolls_back`, `test_failed_commit_is_an_error_response_not_200` (integration), `test_unreachable_database_maps_to_503` (unit).
   - **Done when:** the test passes.
 
-- [ ] **P0-T8: Alembic setup and baseline migration**
+- [x] **P0-T8: Alembic setup and baseline migration**
   - Async `env.py`, which reads **`DATABASE_URL_DIRECT`** (falling back to `DATABASE_URL` locally), and revision IDs of the form `NNNN_<name>`.
   - `0001_baseline`: `CREATE EXTENSION IF NOT EXISTS vector`; the downgrade drops it.
   - `make migrations-check`: upgrade head → downgrade base → upgrade head on a fresh `docflow_test`, plus `alembic check` to catch model drift.

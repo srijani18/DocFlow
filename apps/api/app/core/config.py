@@ -61,7 +61,7 @@ class Settings(BaseSettings):
     def _use_psycopg_driver(cls, value: str | None) -> str | None:
         # Neon and Docker hand out `postgres://` / `postgresql://` URLs; SQLAlchemy needs
         # the driver named explicitly.
-        if value is None:
+        if not value:  # unset or empty (e.g. `DATABASE_URL_DIRECT=` in .env)
             return None
         for prefix in ("postgres://", "postgresql://"):
             if value.startswith(prefix):
