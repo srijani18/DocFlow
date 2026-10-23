@@ -50,7 +50,7 @@ Each task lists its **Done when** check. Tasks that set up tooling are tested by
     - `test_redaction_processor_masks_sensitive_keys`
   - **Done when:** the tests pass.
 
-- [ ] **P0-T5: `/healthz` and `/readyz`**
+- [x] **P0-T5: `/healthz` and `/readyz`**
   - `/healthz` returns 200 `{"status":"ok"}` without touching any dependency.
   - `/readyz` runs `SELECT 1` with a 5 s timeout, returning 200, or 503 problem+json.
   - Tests:
