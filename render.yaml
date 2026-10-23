@@ -1,0 +1,32 @@
+# Render Blueprint: the production API (infrastructure as code).
+# First-time setup and every secret value: see docs/deploy.md.
+services:
+  - type: web
+    name: docflow-api
+    runtime: docker
+    plan: free
+    region: singapore  # next to Neon aws-ap-southeast-1 and Supabase ap-southeast-1 (overview A5)
+    dockerfilePath: ./apps/api/Dockerfile
+    dockerContext: .
+    healthCheckPath: /healthz  # touches no dependency, so Neon can still suspend
+    autoDeployTrigger: checksPass  # waits for the `ci-ok` check
+    buildFilter:
+      paths:
+        - apps/api/**
+        - schemas/**
+    envVars:
+      - key: ROLE
+        value: all
+      - key: ENVIRONMENT
+        value: production
+      - key: LOG_LEVEL
+        value: INFO
+      # Secrets and per-deployment values: entered in the dashboard, never committed.
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_URL_DIRECT
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: CORS_ALLOWED_ORIGIN_REGEX
+        sync: false
