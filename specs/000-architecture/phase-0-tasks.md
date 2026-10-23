@@ -100,7 +100,7 @@ Each task lists its **Done when** check. Tasks that set up tooling are tested by
   - Contracts are added with each module, because import-linter can only name modules that exist. Phase 0 has two: `app.core` is the bottom layer, and the worker doesn't import the HTTP framework. F1 adds the `service.py`-only rule for `app.identity` and `app.auth`, and F10 adds the `app.llm.providers` rule.
   - **Done when:** `lint-imports` passes in `make api-lint`, and a deliberately bad import (tried locally) fails it.
 
-- [ ] **P0-T11: Next.js app scaffold**
+- [x] **P0-T11: Next.js app scaffold**
   - `apps/web` created by `create-next-app`, with: App Router, TypeScript `strict` and `noUncheckedIndexedAccess`, Tailwind v4, ESLint, and the `src/` directory.
   - Prettier, `shadcn` init (button, card, input, label, tabs, sonner), and a TanStack Query provider.
   - Vitest with Testing Library and jsdom; a Playwright config with an empty test folder.

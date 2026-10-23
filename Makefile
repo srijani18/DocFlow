@@ -68,3 +68,39 @@ migrations-check: ## upgrade -> downgrade base -> upgrade on the test DB, then c
 migrate-neon-dev: ## Rehearse migrations on the Neon dev branch (needs NEON_DEV_DATABASE_URL)
 	@test -n "$(NEON_DEV_DATABASE_URL)" || (echo "Set NEON_DEV_DATABASE_URL (direct connection)" && exit 1)
 	cd $(API) && DATABASE_URL=$(NEON_DEV_DATABASE_URL) DATABASE_URL_DIRECT= uv run alembic upgrade head
+
+# ---------------------------------------------------------------- web
+
+.PHONY: web-install web-lint web-test web-build
+web-install: ## Install web dependencies
+	cd $(WEB) && pnpm install --frozen-lockfile
+
+web-lint: ## Lint, format-check and type-check the web app
+	cd $(WEB) && pnpm lint && pnpm format:check && pnpm typecheck
+
+web-test: ## Run web unit tests (Vitest)
+	cd $(WEB) && pnpm test
+
+web-build: ## Production build of the web app
+	cd $(WEB) && pnpm build
+
+# ---------------------------------------------------------------- everyday
+
+.PHONY: setup dev dev-api dev-web lint test
+setup: ## Install everything and the git hooks (first-time setup)
+	cd $(API) && uv sync
+	$(MAKE) web-install
+	@test -f .env || (cp .env.example .env && echo "Created .env from .env.example")
+
+dev: ## Run API (:8000) and web (:3000) together; needs `make db-up migrate` first
+	$(MAKE) -j2 dev-api dev-web
+
+dev-api:
+	cd $(API) && uv run uvicorn app.main:create_app --factory --reload --port 8000
+
+dev-web:
+	cd $(WEB) && pnpm dev
+
+lint: api-lint web-lint ## Lint everything
+
+test: api-test web-test ## Test everything

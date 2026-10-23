@@ -169,7 +169,7 @@ All services go in **Singapore**: Render `singapore`, Neon `aws-ap-southeast-1` 
 | Groq free | Classification and the agent | No card needed. Limits are **per model and per day** (for example about 1,000 requests a day on 70B-class models), applied per organization. | Fine for classification and the agent at portfolio volume. |
 | OpenRouter `:free` | Fallback | 20 requests a minute, and **only 50 requests a day** unless the account has ever bought $10 of credit. | It works as a last-resort fallback, but 50 a day is too few to use OpenRouter for evals. Evals use Gemini and Groq. See A6. |
 
-Library versions checked on the same date: FastAPI 0.162, Pydantic 2.14, **SQLAlchemy 2.1** (the brief says 2.0; 2.1 is compatible), Alembic 1.20, psycopg 3.3, **MCP Python SDK 2.3** (a major version newer than most tutorials, so the FastMCP API is re-checked in F12), Next.js 16.4, React 19.3, **TypeScript 7.0** (the new native compiler; we pin whatever version `typescript-eslint` supports at scaffold time), Tailwind 4.3, pnpm 12, Langfuse SDK 5. Exact versions are pinned by the lockfiles when the project is scaffolded.
+Library versions checked on the same date: FastAPI 0.162, Pydantic 2.14, **SQLAlchemy 2.1** (the brief says 2.0; 2.1 is compatible), Alembic 1.20, psycopg 3.3, **MCP Python SDK 2.3** (a major version newer than most tutorials, so the FastMCP API is re-checked in F12), Next.js 16.4, React 19.3, **TypeScript 7.0** is the newest, but `create-next-app` 16.4 pins **TypeScript 5.9** and ESLint 9, so we keep those until Next.js supports 7, Tailwind 4.3, pnpm 12, Langfuse SDK 5. Exact versions are pinned by the lockfiles when the project is scaffolded.
 
 ## 9. Configuration and secrets
 
