@@ -47,7 +47,7 @@ make api-docker-smoke  # build the production image and smoke-test it
 
 ## Deploying
 
-See [docs/deploy.md](docs/deploy.md): GitHub, Neon, Supabase, Render, Vercel and cron-job.org, all on free tiers.
+See [docs/deploy.md](docs/deploy.md): GitHub, Supabase (database, auth, storage), Render, Vercel and cron-job.org, all on free tiers.
 
 ## Licence
 

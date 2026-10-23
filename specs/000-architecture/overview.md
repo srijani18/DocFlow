@@ -32,8 +32,8 @@ flowchart LR
   subgraph Supabase
     auth[Auth]
     store[(Storage<br/>private bucket)]
+    db[(Postgres + pgvector<br/>schema docflow)]
   end
-  neon[(Neon Postgres<br/>+ pgvector)]
   llm[Gemini · Groq · OpenRouter]
   obs[Langfuse · Sentry]
   cron([cron-job.org])
@@ -45,10 +45,10 @@ flowchart LR
   mcpc -- streamable HTTP /mcp --> api
   api -- JWKS --> auth
   api -- secret key: sign URLs, read bytes --> store
-  api -- pooled connection --> neon
+  api -- session pooler --> db
   api --> llm
   api --> obs
-  cron -- /healthz every 10 min --> api
+  cron -- /readyz every 10 min --> api
 ```
 
 ## 3. Components
@@ -60,7 +60,7 @@ flowchart LR
 | **Worker** (`app/worker`) | Claims jobs from Postgres and runs `classify → extract → validate` | Runs in the same process as the API when `ROLE=all`. See §5. |
 | **LLM gateway** (`app/llm`) | One interface over all providers: routing per task, fallback, circuit breaker, cache, logging to `llm_calls` | The only code allowed to call LLM providers. |
 | **MCP server** (`app/mcp`) | `search_documents`, `get_document`, `list_vendors`, `spend_summary` | Mounted at `/mcp`. Authentication is decided in F12. |
-| **Postgres** (Neon) | All metadata, versioned extraction JSONB, the job queue, embeddings, LLM call logs, eval runs | Stores no file bytes. |
+| **Postgres** (Supabase, `docflow` schema) | All metadata, versioned extraction JSONB, the job queue, embeddings, LLM call logs, eval runs | Stores no file bytes. Reached through the session pooler. The Data API is off (ADR-0007). |
 | **Storage** (Supabase) | Original files in the private `documents` bucket | No storage access policies; only the backend can grant access. |
 | **Auth** (Supabase) | Users and sessions, and issuing JWTs | The backend verifies JWTs against the project's JWKS endpoint. |
 
@@ -130,15 +130,15 @@ Both roles are built by the same `create_app` and settings, so splitting them la
 **How the worker wakes up (the detail is designed in F3, the constraint is fixed here):**
 
 - When the worker runs in the same process as the API, the API signals it in memory after committing a new job.
-- While idle, the worker sleeps until the earliest `run_after` of a pending retry, or until a slow sweep interval of **15 minutes or more** has passed, whichever is sooner.
-- It does **not** poll every few seconds. Neon compute suspends after 5 minutes without queries, and the free plan has only 100 compute-unit-hours a month. A 2-second poll would keep Neon awake permanently: about 180 CU-hours a month even at the smallest 0.25 CU size.
-- `LISTEN/NOTIFY` is not available through Neon's transaction-mode pooler, so it is not used.
+- While idle, the worker sleeps until the earliest `run_after` of a pending retry, or until a sweep interval has passed (a safety net for missed signals; the value is set in F3), whichever is sooner.
+- It does **not** poll every few seconds. With jobs signalled in memory, a tight poll finds nothing and only adds load on a shared-CPU database. Supabase has no compute-hour budget, so the sweep interval is a latency trade-off, not a cost limit (ADR-0007).
+- The session-mode pooler supports `LISTEN/NOTIFY`. After a split, F3 can use it to wake a separate `ROLE=worker` process.
 
 ## 6. Multi-tenancy model
 
 - `workspaces` is the tenant root. `users` are global, linked to the Supabase Auth subject. `memberships(workspace_id, user_id, role)` has roles `admin` and `reviewer`.
 - Tenant-scoped URLs: `/v1/workspaces/{workspace_id}/...`. A dependency resolves the caller's membership and returns a `WorkspaceScope`, which every repository for tenant data requires (constitution §4).
-- Isolation is enforced at the application layer now. Postgres row-level security as a second layer is considered in F14 ([open question](#13-open-questions) A3).
+- Isolation is enforced at the application layer now. Postgres row-level security as a second layer is added in F14 (decision A3).
 
 ## 7. Environments
 
@@ -146,24 +146,24 @@ Both roles are built by the same `create_app` and settings, so splitting them la
 |---|---|---|---|---|
 | Web | `localhost:3000` (`pnpm dev`) | build + Vitest | Vercel preview per PR | Vercel production |
 | API | `localhost:8000` (`uv run`), `ROLE=all` | pytest | none; previews call the production API (A1) | Render free web service |
-| Postgres | Docker `pgvector/pgvector:pg17` (A2) | service container, same image | production | Neon `main` branch, pooled connection |
+| Postgres | Docker `pgvector/pgvector:pg17` (A2) | service container, same image | production | Supabase Postgres, `docflow` schema, session pooler |
 | Storage | Supabase project, bucket `documents-dev` (A4) | faked | production bucket | Supabase bucket `documents` |
 | Auth | Supabase project (shared) | locally generated test keys | Supabase project | Supabase project |
 | LLMs | real free tiers, with your own keys | fake provider | n/a | real free tiers |
 
-The **Neon `dev` branch** is used to rehearse migrations against real Neon before a production deploy (see A2).
+There is **no staging database**, because Supabase's free plan has no branching. Migrations are proven by `make migrations-check` in CI on the same major version, and follow expand/contract (ADR-0007).
 
 ### Regions
 
-All services go in **Singapore**: Render `singapore`, Neon `aws-ap-southeast-1` and Supabase `ap-southeast-1`. That keeps the API, database and storage close to each other and to users in India. (Supabase also offers Mumbai, but Neon and Render don't, and the API-to-database hop matters most.) See A5.
+All services go in **Singapore**: Render `singapore` and Supabase `ap-southeast-1` (Postgres, Auth and Storage). That keeps the API close to its database and storage, and close to users in India. (Supabase also offers Mumbai, but Render doesn't, and the API-to-database hop matters most.) See A5.
 
 ## 8. Platform limits (checked 2026-10-24)
 
 | Platform | What the brief says | What I found | Effect on the design |
 |---|---|---|---|
 | Render free | Sleeps after about 15 min; 30–60 s cold start; about 512 MB; no workers; ephemeral disk | Confirmed: 15 min, **512 MB RAM and 0.1 CPU**, ephemeral disk. **Waking takes about 1 minute**, per Render's docs. 750 instance hours a month per workspace. **No pre-deploy command on free instances.** Since the plan change on 1 Aug 2026, Hobby workspaces include **5 GB of outbound bandwidth** (down from 100 GB) and 500 build minutes. | 0.1 CPU makes startup slow, so imports stay light and there are no heavy libraries. Migrations run in the start command, as the brief says. Keep-alive pings use about 720 of the 750 hours, so **no other Render free services** (and no preview environments) in this workspace. Files are never proxied through Render, to save bandwidth. The UI tolerates cold starts of up to 90 s. |
-| Neon free | 0.5 GB; suspends when idle | Confirmed: 0.5 GB per project, **100 CU-hours per month per project**, suspends after 5 min idle (can't be turned off), 10 branches, 5 GB transfer. | Worker idle behavior (§5). `/healthz` never touches the database. Embeddings use a reduced dimension (decided in F8). Two connection strings are needed: pooled for the app, direct for migrations. |
-| Supabase free | 1 GB storage; 50 MB file max; pauses after 7 days | Confirmed: 1 GB, 50 MB global maximum (bucket limits can be lower), pauses after 1 week inactive, 2 active projects, 50k MAU. **The built-in email sender only delivers to members of your Supabase organization, at 2 emails an hour.** | **Email confirmation, magic links and password reset don't work for outside users without custom SMTP.** This shapes the F1 sign-in method (see F1, Q1). The weekly keep-alive request stays. |
+| Supabase Postgres (replaces Neon, ADR-0007) | (Neon in the brief) | **500 MB** database, shared CPU with 500 MB RAM, no compute-hour budget. **No branching and no automatic backups** on Free. The **direct connection is IPv6-only**; the shared pooler is IPv4 (session mode on 5432, transaction mode on 6543). Tables in `public` are **exposed over the Data API by default**. | One `DATABASE_URL` (session pooler) for the app and migrations. Tables live in the `docflow` schema, the Data API is turned off, and client roles are revoked. Embeddings use a reduced dimension (decided in F8). No staging database (§7). |
+| Supabase free | 1 GB storage; 50 MB file max; pauses after 7 days | Confirmed: 1 GB, 50 MB global maximum (bucket limits can be lower), pauses after 1 week inactive, 2 active projects, 50k MAU. **The built-in email sender only delivers to members of your Supabase organization, at 2 emails an hour.** | **Email confirmation, magic links and password reset don't work for outside users without custom SMTP.** This shapes the F1 sign-in method (see F1, Q1). Now that the database lives here too, a pause would take everything down: the keep-alive calls `/readyz` (a real query) every 10 minutes, with a weekly storage request as backup. |
 | Supabase JWTs | Verify via JWKS | New projects issue **asymmetric** JWTs (RS256 or ES256) published at `/auth/v1/.well-known/jwks.json`. The legacy HS256 secret is "no longer recommended". The `anon` and `service_role` keys are being retired by the end of 2026 in favour of `sb_publishable_…` and `sb_secret_…` keys. | The verifier accepts only ES256 and RS256. A manual step confirms the project uses asymmetric signing keys. The new key names are used everywhere. |
 | Gemini free | Use for extraction and embeddings | Free-tier limits are shown **only in AI Studio**, per project; third-party figures disagree. Free-tier data **may be used to improve Google's products** (consistent with the brief). Gemini 2.0 Flash models shut down 1 Jun 2026. **Gemini 2.5 is only available to accounts that used it before**; new projects should use the 3.x Flash / Flash-Lite models. `text-embedding-004` is gone; use `gemini-embedding-001` or `gemini-embedding-2`. | Model IDs are config. In Phase 1 we read the real limits from AI Studio and record them. |
 | Groq free | Classification and the agent | No card needed. Limits are **per model and per day** (for example about 1,000 requests a day on 70B-class models), applied per organization. | Fine for classification and the agent at portfolio volume. |
@@ -176,8 +176,7 @@ Library versions checked on the same date: FastAPI 0.162, Pydantic 2.14, **SQLAl
 | Variable | Used by | Lives on | Secret |
 |---|---|---|---|
 | `ROLE` | api | Render, local | no |
-| `DATABASE_URL` (pooled) | api | Render, local | **yes** |
-| `DATABASE_URL_DIRECT` (migrations) | api (Alembic) | Render, local | **yes** |
+| `DATABASE_URL` (Supabase session pooler; app and Alembic) | api | Render, local | **yes** |
 | `SUPABASE_URL` | api | Render, local | no |
 | `SUPABASE_SECRET_KEY` (`sb_secret_…`) | api (Storage) | Render, local | **yes** |
 | `SUPABASE_STORAGE_BUCKET` | api | Render, local | no |
@@ -193,7 +192,7 @@ GitHub Actions secrets: none in Phase 0, apart from the optional test-user crede
 - **Errors:** RFC 9457 problem+json, with a stable `type`, for example `https://docflow.dev/problems/not-found`. The URI is only an identifier and is never fetched.
 - **IDs:** UUIDs generated by the database (`gen_random_uuid()`). **Time:** `timestamptz`, UTC, ISO 8601 in the API.
 - **Request ID:** taken from the incoming `X-Request-ID` header or generated, echoed in the response, and bound to every log line.
-- **Health:** `/healthz` returns `{"status":"ok"}` and checks nothing, so it's used for Render health checks and keep-alive. `/readyz` checks the database with a 5 s timeout, and is used for diagnostics and deploy verification.
+- **Health:** `/healthz` returns `{"status":"ok"}` and checks nothing. It's the Render health check, so a database blip never restarts the process. `/readyz` checks the database with a 5 s timeout. The cron keep-alive calls it, which keeps both Render and the Supabase project active, and it's also used to verify deploys.
 
 ## 11. Measurement plan (built in, reported later)
 
@@ -212,14 +211,16 @@ GitHub Actions secrets: none in Phase 0, apart from the optional test-user crede
 - Direct-to-storage upload: file bytes never pass through a 512 MB / 0.1 CPU instance (ADR-0004).
 - Versioned JSONB extractions: the schema changes per document type, and history is kept for review and evals (ADR-0005).
 - Monorepo: atomic changes across the schema, backend, frontend and generated types (ADR-0006).
+- Supabase for data, auth and storage: one vendor, isolated in its own schema with the Data API off (ADR-0007).
 
 ## 13. Decisions (formerly open questions, resolved 2026-10-24)
 
 - **A1. Preview environments:** Vercel previews call the production API. CORS allows this project's Vercel preview URL pattern. All data is synthetic.
-- **A2. Local database:** Docker Postgres is the everyday local and test database. The Neon `dev` branch is used only to rehearse migrations (`make migrate-neon-dev`).
+- **A2. Local database:** Docker Postgres is the everyday local and test database. (The Neon `dev` branch for rehearsing migrations was dropped with ADR-0007.)
 - **A3. Row-level security:** isolation is enforced in the application now. Postgres RLS is added as defense in depth in F14.
 - **A4. Dev storage:** a second bucket, `documents-dev`, in the same Supabase project.
-- **A5. Regions:** everything in Singapore (Render `singapore`, Neon `aws-ap-southeast-1`, Supabase `ap-southeast-1`).
+- **A5. Regions:** everything in Singapore (Render `singapore`, Supabase `ap-southeast-1`).
 - **A6. OpenRouter:** 50 free requests a day is accepted, since OpenRouter is only the last-resort fallback. No credit purchase.
-- **A7. Postgres version:** 17 on both Neon and Docker. If Neon defaults to a newer major version when the project is created, match it in `docker-compose.yml` and CI.
+- **A7. Postgres version:** match Supabase's major version (17 expected) in `docker-compose.yml` and CI. Check it in the Supabase dashboard when the project is created.
 - **A8. Licence:** MIT.
+- **A9. Database host (2026-10-24):** everything moves to Supabase; nothing stays in Neon (ADR-0007).

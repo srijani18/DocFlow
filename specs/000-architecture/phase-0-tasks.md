@@ -23,11 +23,11 @@ Each task lists its **Done when** check. Tasks that set up tooling are tested by
   - **Done when:** `make help` lists the targets, and `git status` is clean after the first commit.
 
 - [x] **P0-T2: `docker-compose.yml` with Postgres and pgvector**
-  - Image `pgvector/pgvector:pg17`, with the same major version as Neon (overview A7). Host port `54320` by default (override with `DOCFLOW_PG_PORT`), so it does not clash with other local Postgres instances.
+  - Image `pgvector/pgvector:pg17`, with the same major version as Supabase Postgres (overview A7). Host port `54320` by default (override with `DOCFLOW_PG_PORT`), so it does not clash with other local Postgres instances.
   - A named volume, port `5432`, and a health check (`pg_isready`).
-  - An init script that creates the `docflow` and `docflow_test` databases and enables `vector` in both.
+  - An init script that creates the `docflow_test` database. Extensions and schemas come only from migrations, as on Supabase (ADR-0007).
   - Targets `make db-up`, `make db-down` and `make db-reset`.
-  - **Done when:** `make db-up` makes the container healthy, and `SELECT extversion FROM pg_extension WHERE extname='vector'` returns a row in both databases.
+  - **Done when:** `make db-up` makes the container healthy, and both databases accept connections. (After ADR-0007, `vector` comes from the baseline migration.)
 
 - [x] **P0-T3: API project scaffold and settings**
   - `apps/api` as a uv project pinned to Python 3.12.
@@ -73,17 +73,16 @@ Each task lists its **Done when** check. Tasks that set up tooling are tested by
 
 - [x] **P0-T7: Database layer**
   - SQLAlchemy 2.1 async engine using **psycopg 3**, a session-per-request dependency, and a naming convention for constraints.
-  - Pool settings for Neon's pooler: `pool_size=5`, `max_overflow=0`, `pool_pre_ping=True`, `pool_recycle=300`, `connect_timeout=10`. Connection failures (Neon waking, network blips) become `503 database-unavailable` with `Retry-After: 5`, and the client retries (F1 AC20). There is no hidden retry on the server, so all retrying happens in one place.
-  - Why psycopg 3: one driver serves both the async app and synchronous Alembic, and it works with Neon's pooled connection string.
+  - Pool settings for the Supabase session pooler: `pool_size=5`, `max_overflow=0`, `pool_pre_ping=True`, `pool_recycle=300`, `connect_timeout=10`. Every connection sets `search_path` to `docflow, extensions, public` (ADR-0007). Connection failures (pooler restarts, network blips) become `503 database-unavailable` with `Retry-After: 5`, and the client retries (F1 AC20). There is no hidden retry on the server, so all retrying happens in one place.
+  - Why psycopg 3: one driver serves both the async app and Alembic, and it works with the Supabase session pooler.
   - Sessions are injected through the `DbSession` alias (`Depends(get_session, scope="function")`), so the commit runs *before* the response is sent. With FastAPI's default scope, a failed commit would still return 200.
   - Tests: `test_session_dependency_commits_and_rolls_back`, `test_failed_commit_is_an_error_response_not_200` (integration), `test_unreachable_database_maps_to_503` (unit).
   - **Done when:** the test passes.
 
 - [x] **P0-T8: Alembic setup and baseline migration**
-  - Async `env.py`, which reads **`DATABASE_URL_DIRECT`** (falling back to `DATABASE_URL` locally), and revision IDs of the form `NNNN_<name>`.
-  - `0001_baseline`: `CREATE EXTENSION IF NOT EXISTS vector`; the downgrade drops it.
+  - Async `env.py`, which reads `DATABASE_URL` (one URL for the app and migrations, ADR-0007), keeps `alembic_version` in the `docflow` schema, and uses revision IDs of the form `NNNN_<name>`.
+  - `0001_baseline`: `CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA extensions`, and revoke `anon` and `authenticated` on the `docflow` schema when those roles exist (Supabase). The downgrade drops the extension.
   - `make migrations-check`: upgrade head → downgrade base → upgrade head on a fresh `docflow_test`, plus `alembic check` to catch model drift.
-  - `make migrate-neon-dev`, for rehearsing migrations on the Neon `dev` branch (overview A2).
   - **Done when:** `make migrations-check` passes.
 
 - [x] **P0-T9: Test infrastructure**
@@ -177,12 +176,12 @@ Each task lists its **Done when** check. Tasks that set up tooling are tested by
   - You create the accounts and set the secrets (the checklist from P0-T17); I check the result.
   - **Done when:**
     - `https://<render-service>.onrender.com/healthz` returns 200;
-    - `/readyz` returns 200 (Neon reachable, migration `0001` applied);
+    - `/readyz` returns 200 (Supabase Postgres reachable through the session pooler, migration `0001` applied);
     - the Vercel production URL shows the landing page with "API: ok".
 
 - [ ] **P0-T19: Phase 0 verification (after F1)**
   - Run the F1 E2E smoke workflow against production.
-  - cron-job.org: a `/healthz` ping every 10 min, and a weekly Supabase request, both running.
+  - cron-job.org: a `/readyz` ping every 10 min (it keeps both Render and Supabase active), and a weekly Supabase storage request as backup, both running.
   - CI green on `main`.
   - **Done when:**
     - you can sign up and sign in on the production URL and see your workspace and role;
