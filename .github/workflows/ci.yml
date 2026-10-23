@@ -1,0 +1,210 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UV_PYTHON: "3.12"
+  NODE_VERSION: "24"
+  TEST_DATABASE_URL: postgresql://docflow:docflow@localhost:5432/docflow_test
+
+jobs:
+  # Decide which jobs this change needs (ADR-0006). `infra` changes run everything.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      api: ${{ steps.filter.outputs.api == 'true' || steps.filter.outputs.infra == 'true' }}
+      web: ${{ steps.filter.outputs.web == 'true' || steps.filter.outputs.infra == 'true' }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dorny/paths-filter@v4
+        id: filter
+        with:
+          filters: |
+            api:
+              - 'apps/api/**'
+              - 'schemas/**'
+            web:
+              - 'apps/web/**'
+              - 'schemas/**'
+            infra:
+              - '.github/**'
+              - 'Makefile'
+              - 'docker-compose.yml'
+              - 'render.yaml'
+              - '.pre-commit-config.yaml'
+
+  api-lint:
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          working-directory: apps/api
+      - run: uv sync --frozen
+        working-directory: apps/api
+      - run: make api-lint
+
+  api-test:
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: docflow
+          POSTGRES_PASSWORD: docflow
+          POSTGRES_DB: docflow_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U docflow -d docflow_test"
+          --health-interval 2s --health-timeout 3s --health-retries 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          working-directory: apps/api
+      - run: uv sync --frozen
+        working-directory: apps/api
+      - run: make api-test
+
+  api-migrations:
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: docflow
+          POSTGRES_PASSWORD: docflow
+          POSTGRES_DB: docflow_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U docflow -d docflow_test"
+          --health-interval 2s --health-timeout 3s --health-retries 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          working-directory: apps/api
+      - run: uv sync --frozen
+        working-directory: apps/api
+      - run: make migrations-check
+
+  api-docker:
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: make api-docker-smoke
+
+  web-lint:
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: apps/web/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+      - run: make web-install web-lint
+
+  web-test:
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: apps/web/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+      - run: make web-install web-test
+
+  web-build:
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: apps/web/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+      - run: make web-install web-build
+
+  codegen-check:
+    needs: changes
+    if: needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          working-directory: apps/api
+      - run: uv sync --frozen
+        working-directory: apps/api
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: apps/web/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+      - run: make web-install check-gen
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      # Free for repos owned by a personal account; an organization needs GITLEAKS_LICENSE.
+      - uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # The single required check for branch protection and Render's "deploy after CI passes".
+  # Skipped jobs (unchanged paths) count as success; failed or cancelled ones do not.
+  ci-ok:
+    if: always()
+    needs:
+      [changes, api-lint, api-test, api-migrations, api-docker, web-lint, web-test, web-build, codegen-check, secrets]
+    runs-on: ubuntu-latest
+    steps:
+      - name: All required jobs passed or were skipped
+        run: |
+          if [[ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
+            echo "A required job failed or was cancelled."
+            exit 1
+          fi
