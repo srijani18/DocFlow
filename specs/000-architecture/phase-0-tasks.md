@@ -117,7 +117,7 @@ Each task lists its **Done when** check. Tasks that set up tooling are tested by
   - `make gen` runs everything; `make check-gen` runs `make gen` and then `git diff --exit-code`.
   - **Done when:** `make check-gen` passes on a clean tree, and fails after a route change that wasn't regenerated (tried locally).
 
-- [ ] **P0-T13: Pre-commit hooks**
+- [x] **P0-T13: Pre-commit hooks**
   - `.pre-commit-config.yaml` with:
     - ruff (lint and format), and mypy (as a local hook through uv)
     - ESLint, Prettier and `tsc --noEmit` (local hooks through pnpm, only on `apps/web/**`)

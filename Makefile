@@ -91,6 +91,7 @@ setup: ## Install everything and the git hooks (first-time setup)
 	cd $(API) && uv sync
 	$(MAKE) web-install
 	@test -f .env || (cp .env.example .env && echo "Created .env from .env.example")
+	cd $(API) && uv run pre-commit install
 
 dev: ## Run API (:8000) and web (:3000) together; needs `make db-up migrate` first
 	$(MAKE) -j2 dev-api dev-web
@@ -131,3 +132,7 @@ check-gen: gen ## Fail if generated code is out of date
 	@git diff --quiet -- $(GENERATED) && \
 		test -z "$$(git ls-files --others --exclude-standard -- $(GENERATED))" || \
 		(echo "Generated code is out of date: run 'make gen' and commit the result." && exit 1)
+
+.PHONY: pre-commit
+pre-commit: ## Run every pre-commit hook on all files
+	cd $(API) && uv run pre-commit run --all-files
