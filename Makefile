@@ -104,3 +104,30 @@ dev-web:
 lint: api-lint web-lint ## Lint everything
 
 test: api-test web-test ## Test everything
+
+# ---------------------------------------------------------------- code generation (constitution §3.4)
+
+GENERATED := $(API)/openapi.json $(WEB)/src/generated $(API)/app/generated
+
+.PHONY: gen gen-openapi gen-schemas check-gen
+gen: gen-openapi gen-schemas ## Regenerate OpenAPI, the TS client and schema models
+
+gen-openapi:
+	cd $(API) && uv run python -m app.openapi
+	cd $(WEB) && pnpm --silent gen:api
+
+# Exact generator flags are confirmed in F5, when the first schema files land.
+gen-schemas:
+	@if ls schemas/documents/*.json >/dev/null 2>&1; then \
+		(cd $(API) && uv run datamodel-codegen --input ../../schemas --input-file-type jsonschema \
+			--output app/generated/schemas --output-model-type pydantic_v2.BaseModel \
+			--target-python-version 3.12 --use-standard-collections --use-union-operator \
+			--field-constraints --disable-timestamp) && \
+		(cd $(WEB) && pnpm exec json2ts -i '../../schemas/**/*.json' -o src/generated/schemas \
+			--cwd ../../schemas); \
+	else echo "schemas/: no document schemas yet, nothing to generate"; fi
+
+check-gen: gen ## Fail if generated code is out of date
+	@git diff --quiet -- $(GENERATED) && \
+		test -z "$$(git ls-files --others --exclude-standard -- $(GENERATED))" || \
+		(echo "Generated code is out of date: run 'make gen' and commit the result." && exit 1)

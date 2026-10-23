@@ -16,6 +16,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "datamodel-code-generator>=0.86.0",
     "import-linter>=2.15",
     "mypy>=2.4.0",
     "pytest>=9.1.1",

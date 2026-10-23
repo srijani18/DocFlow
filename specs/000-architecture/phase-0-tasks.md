@@ -110,7 +110,7 @@ Each task lists its **Done when** check. Tasks that set up tooling are tested by
   - Tests: `landing shows API status ok/unavailable` (Vitest).
   - **Done when:** `pnpm lint && pnpm typecheck && pnpm test && pnpm build` passes.
 
-- [ ] **P0-T12: Code generation pipeline**
+- [x] **P0-T12: Code generation pipeline**
   - `python -m app.openapi` writes `apps/api/openapi.json` without starting a server.
   - `openapi-typescript` generates `apps/web/src/generated/api.d.ts`; `lib/api/client.ts` wraps it with `openapi-fetch`.
   - The `schemas/` step (datamodel-code-generator and json-schema-to-typescript) is wired up, but does nothing while there are no schema files.

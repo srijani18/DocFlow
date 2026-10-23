@@ -2,11 +2,11 @@
 
 import { useQuery } from "@tanstack/react-query";
 
-import { env } from "@/env";
+import { api } from "@/lib/api/client";
 
 async function fetchHealth(): Promise<"ok"> {
-  const response = await fetch(`${env.NEXT_PUBLIC_API_BASE_URL}/healthz`, { cache: "no-store" });
-  if (!response.ok) {
+  const { error, response } = await api.GET("/healthz", { cache: "no-store" });
+  if (error !== undefined || !response.ok) {
     throw new Error(`Health check failed with ${response.status}`);
   }
   return "ok";

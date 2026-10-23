@@ -21,7 +21,9 @@ describe("ApiStatus", () => {
     renderWithQueryClient();
 
     expect(await screen.findByText("API: ok")).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledWith("http://api.test/healthz", expect.anything());
+    const request = fetchMock.mock.calls[0]?.[0];
+    expect(request).toBeInstanceOf(Request);
+    expect((request as Request).url).toBe("http://api.test/healthz");
   });
 
   it("landing shows API status unavailable when the request fails", async () => {
