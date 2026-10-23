@@ -22,8 +22,8 @@ Each task lists its **Done when** check. Tasks that set up tooling are tested by
   - `.editorconfig`, a README stub, `LICENSE` (overview A8), and a `Makefile` skeleton with a `help` target (later tasks add targets).
   - **Done when:** `make help` lists the targets, and `git status` is clean after the first commit.
 
-- [ ] **P0-T2: `docker-compose.yml` with Postgres and pgvector**
-  - Image `pgvector/pgvector:pg17`, with the same major version as Neon (overview A7).
+- [x] **P0-T2: `docker-compose.yml` with Postgres and pgvector**
+  - Image `pgvector/pgvector:pg17`, with the same major version as Neon (overview A7). Host port `54320` by default (override with `DOCFLOW_PG_PORT`), so it does not clash with other local Postgres instances.
   - A named volume, port `5432`, and a health check (`pg_isready`).
   - An init script that creates the `docflow` and `docflow_test` databases and enables `vector` in both.
   - Targets `make db-up`, `make db-down` and `make db-reset`.
