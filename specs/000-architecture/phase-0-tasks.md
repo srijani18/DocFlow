@@ -15,7 +15,7 @@ Each task lists its **Done when** check. Tasks that set up tooling are tested by
 
 ---
 
-- [ ] **P0-T1: Repository initialisation**
+- [x] **P0-T1: Repository initialisation**
   - `git init` on `main`.
   - `.gitignore` covering Python, Node, `.env*` (except `.env.example`), `.DS_Store` and Playwright output.
   - `.gitattributes`, marking `*/generated/**`, `openapi.json` and lock files as `linguist-generated`.
