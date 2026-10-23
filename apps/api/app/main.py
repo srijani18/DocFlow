@@ -1,5 +1,7 @@
 """Application factory. `ROLE` decides what this process runs (ADR-0002)."""
 
+import asyncio
+import contextlib
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -12,6 +14,7 @@ from app.core.db import create_engine, create_sessionmaker
 from app.core.errors import install_error_handlers
 from app.core.logging import configure_logging
 from app.core.request_context import REQUEST_ID_HEADER, RequestContextMiddleware
+from app.worker.loop import Worker
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -20,14 +23,26 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     engine = create_engine(settings)
 
     @asynccontextmanager
-    async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
-        yield
-        await engine.dispose()
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        # ROLE=all runs the worker as a task inside the API process (ADR-0002).
+        worker_task = None
+        if settings.role.runs_worker:
+            worker_task = asyncio.create_task(app.state.worker.run(), name="worker")
+        app.state.worker_task = worker_task
+        try:
+            yield
+        finally:
+            if worker_task is not None:
+                worker_task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await worker_task
+            await engine.dispose()
 
     app = FastAPI(title="DocFlow API", version="0.1.0", lifespan=lifespan)
     app.state.settings = settings
     app.state.engine = engine
     app.state.sessionmaker = create_sessionmaker(engine)
+    app.state.worker = Worker() if settings.role.runs_worker else None
 
     install_error_handlers(app)
     # Starlette runs the last-added middleware first: CORS wraps everything, so even

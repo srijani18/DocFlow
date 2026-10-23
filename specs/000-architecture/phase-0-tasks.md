@@ -59,7 +59,7 @@ Each task lists its **Done when** check. Tasks that set up tooling are tested by
     - `test_readyz_503_when_database_unreachable`
   - **Done when:** the tests pass.
 
-- [ ] **P0-T6: `ROLE` switch and entrypoint**
+- [x] **P0-T6: `ROLE` switch and entrypoint**
   - `create_app(settings)` mounts the HTTP routers for `api` and `all`, and starts a placeholder worker task in the app's lifespan for `all`.
   - `python -m app` runs uvicorn for `api` and `all`, and runs only the worker loop (no HTTP server) for `worker`.
   - In Phase 0, the worker does nothing and does **not** touch the database. It waits on a wake event and logs a heartbeat once an hour.
