@@ -91,12 +91,13 @@ Each task lists its **Done when** check. Tasks that set up tooling are tested by
   - `tests/unit` and `tests/integration` folders, so `make api-test-unit` runs without Docker.
   - **Done when:** a sample integration test proves that data from one test isn't visible in the next.
 
-- [ ] **P0-T10: Module boundary rules**
+- [x] **P0-T10: Module boundary rules**
   - An `import-linter` contract:
     - Feature modules import each other only through `service.py`.
     - `app/llm/providers` is imported only by `app/llm`.
     - Domain `service.py` files don't import `fastapi`.
   - A ruff `banned-api` rule for provider SDKs outside `app/llm/providers/`.
+  - Contracts are added with each module, because import-linter can only name modules that exist. Phase 0 has two: `app.core` is the bottom layer, and the worker doesn't import the HTTP framework. F1 adds the `service.py`-only rule for `app.identity` and `app.auth`, and F10 adds the `app.llm.providers` rule.
   - **Done when:** `lint-imports` passes in `make api-lint`, and a deliberately bad import (tried locally) fails it.
 
 - [ ] **P0-T11: Next.js app scaffold**

@@ -92,3 +92,23 @@ fail_under = 80
 show_missing = true
 skip_covered = true
 exclude_also = ["if TYPE_CHECKING:", "raise NotImplementedError", "\\.\\.\\."]
+
+# ---------------------------------------------------------------- import-linter (ADR-0002)
+# Contracts grow with the codebase: each feature module adds its own when it is created
+# (e.g. F1 adds app.identity / app.auth; F10 adds "only app.llm imports app.llm.providers").
+
+[tool.importlinter]
+root_package = "app"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "core is the bottom layer: it never imports app wiring or feature modules"
+type = "forbidden"
+source_modules = ["app.core"]
+forbidden_modules = ["app.main", "app.__main__", "app.worker"]
+
+[[tool.importlinter.contracts]]
+name = "the worker does not depend on the HTTP framework"
+type = "forbidden"
+source_modules = ["app.worker"]
+forbidden_modules = ["fastapi", "starlette", "uvicorn"]
