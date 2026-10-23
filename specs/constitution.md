@@ -71,7 +71,7 @@ These rules are not optional. To change one, edit this file in a pull request of
 
 1. Every schema change is an Alembic migration. **Every migration has a working `downgrade()`.** CI runs `upgrade head → downgrade base → upgrade head` on an empty database.
 2. Destructive changes follow expand/contract: add the new structure, migrate, deploy, and only then remove the old structure in a later migration.
-3. Migrations connect over the **direct (non-pooled)** connection. The app connects through the **pooled** one.
+3. The app and migrations use **one connection string**: the Supabase pooler in **session mode** (ADR-0007). DocFlow tables live in the **`docflow` schema**, never in `public`. Migrations must also run on plain Postgres, so they don't assume Supabase-only schemas or roles exist.
 4. Conventions:
    - Primary keys are UUIDs.
    - Timestamps are `timestamptz` in UTC.
