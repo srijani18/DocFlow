@@ -24,6 +24,8 @@ services:
       # Secrets and per-deployment values: entered in the dashboard, never committed.
       - key: DATABASE_URL  # Supabase session pooler (ADR-0007)
         sync: false
+      - key: SUPABASE_URL  # https://<ref>.supabase.co
+        sync: false
       - key: CORS_ALLOWED_ORIGINS
         sync: false
       - key: CORS_ALLOWED_ORIGIN_REGEX

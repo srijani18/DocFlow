@@ -20,7 +20,7 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.pool import ConnectionPoolEntry
 
-from app.core.config import Settings
+from app.core.config import DatabaseSettings
 
 # Stable constraint names make migrations reproducible and reversible.
 NAMING_CONVENTION = {
@@ -62,7 +62,7 @@ def _search_path_setter(search_path: str) -> Callable[[DBAPIConnection, Connecti
     return set_search_path
 
 
-def create_engine(settings: Settings, *, search_path: str = SEARCH_PATH) -> AsyncEngine:
+def create_engine(settings: DatabaseSettings, *, search_path: str = SEARCH_PATH) -> AsyncEngine:
     engine = create_async_engine(
         settings.database_url,
         # Small pool: one instance. In session mode each client connection holds one

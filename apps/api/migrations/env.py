@@ -12,7 +12,7 @@ from alembic import context
 from sqlalchemy import text
 from sqlalchemy.engine import Connection
 
-from app.core.config import load_settings
+from app.core.config import DatabaseSettings, load_settings
 from app.core.db import DB_SCHEMA, MIGRATIONS_SEARCH_PATH, Base, create_engine
 from app.models import import_all_models
 
@@ -31,7 +31,7 @@ def _include_name(name: str | None, type_: str, _parent: object) -> bool:
 
 def run_migrations_offline() -> None:
     context.configure(
-        url=load_settings().database_url,
+        url=load_settings(settings_class=DatabaseSettings).database_url,
         target_metadata=target_metadata,
         version_table_schema=DB_SCHEMA,
         literal_binds=True,
@@ -56,7 +56,9 @@ def _run_sync(connection: Connection) -> None:
 
 
 async def run_migrations_online() -> None:
-    engine = create_engine(load_settings(), search_path=MIGRATIONS_SEARCH_PATH)
+    engine = create_engine(
+        load_settings(settings_class=DatabaseSettings), search_path=MIGRATIONS_SEARCH_PATH
+    )
     # The version table lives in our schema, so the schema must exist before Alembic
     # reads or creates it. Idempotent; never dropped by a downgrade.
     async with engine.begin() as connection:

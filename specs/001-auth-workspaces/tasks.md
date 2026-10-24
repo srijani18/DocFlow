@@ -14,12 +14,12 @@ The **Done when** line is the check that the task is finished.
 
 ---
 
-- [ ] **F1-T1: Identity tables and migration** (prepares AC5, AC19)
+- [x] **F1-T1: Identity tables and migration** (prepares AC5, AC19)
   - Alembic `0002_identity`, creating `users`, `workspaces` and `memberships` as in plan §3, with SQLAlchemy models. Add the `two_workspaces` test fixture.
   - Meta-test `test_tenant_tables.py`: every table is either on the global allowlist or has an indexed `workspace_id NOT NULL` foreign key.
   - **Done when:** `make migrations-check` (upgrade → downgrade → upgrade) passes, and the meta-test passes.
 
-- [ ] **F1-T2: JWKS cache** (AC12, AC13)
+- [x] **F1-T2: JWKS cache** (AC12, AC13)
   - `app/auth/jwks.py` with TTL caching, forced refresh on an unknown kid (throttled to once every 30 s), stale-if-error, and `AuthUnavailable`.
   - Tests:
     - `test_ac12_new_kid_triggers_refresh_and_verifies`
@@ -29,17 +29,17 @@ The **Done when** line is the check that the task is finished.
     - `test_unknown_kid_refresh_is_throttled`
   - **Done when:** the tests above pass using `respx` and an injected clock.
 
-- [ ] **F1-T3: Token verifier** (AC11)
+- [x] **F1-T3: Token verifier** (AC11)
   - `app/auth/verifier.py` with the algorithm allowlist and the iss, aud, exp, iat, sub, role and `is_anonymous` checks; `VerifiedClaims`.
   - Tests: one `test_ac11_*` per rejection reason (missing, malformed, expired, bad signature, wrong issuer, wrong audience, HS256, `none`, `role=anon`, anonymous user), plus a check that ES256 and RS256 are both accepted.
   - **Done when:** the tests pass, and the module imports nothing from FastAPI.
 
-- [ ] **F1-T4: Problem+json errors for authentication** (AC11, AC13)
+- [x] **F1-T4: Problem+json errors for authentication** (AC11, AC13)
   - Error types `unauthenticated`, `auth-unavailable` and `database-unavailable`; the `WWW-Authenticate` header; `Retry-After`. This extends the core error handlers from P0-T4.
   - Tests: `test_ac11_missing_token_returns_problem_401`, `test_ac13_auth_unavailable_returns_503_retry_after`.
   - **Done when:** the tests pass.
 
-- [ ] **F1-T5: Provisioning service** (AC5, AC6, AC7, AC8)
+- [x] **F1-T5: Provisioning service** (AC5, AC6, AC7, AC8)
   - `identity/repository.py` and `identity/service.py` implementing `provision_or_load` (plan §4.3), plus `default_workspace_name`.
   - Tests:
     - `test_ac5_first_request_creates_user_workspace_admin_membership`
@@ -50,11 +50,11 @@ The **Done when** line is the check that the task is finished.
     - `test_ac8_*`: display name, email local part, the fallback, and cutting to 80 characters at a character boundary
   - **Done when:** the tests pass against real Postgres.
 
-- [ ] **F1-T6: `get_current_user` dependency and `GET /v1/me`** (AC9, AC11)
+- [x] **F1-T6: `get_current_user` dependency and `GET /v1/me`** (AC9, AC11)
   - Tests: `test_ac9_me_returns_user_and_memberships`, `test_ac11_rejected_token_creates_nothing`.
   - **Done when:** the tests pass, and `openapi.json` is regenerated and committed.
 
-- [ ] **F1-T7: Workspace scope and `GET /v1/workspaces/{workspace_id}`** (AC14, AC15, AC19)
+- [x] **F1-T7: Workspace scope and `GET /v1/workspaces/{workspace_id}`** (AC14, AC15, AC19)
   - `require_workspace_member` and `WorkspaceScope`.
   - Tests:
     - `test_ac14_member_gets_workspace_with_role`
@@ -62,7 +62,7 @@ The **Done when** line is the check that the task is finished.
     - `test_ac19_member_of_a_cannot_read_b`
   - **Done when:** the tests pass.
 
-- [ ] **F1-T8: `PATCH /v1/workspaces/{workspace_id}` with role check** (AC16, AC17, AC18, AC19)
+- [x] **F1-T8: `PATCH /v1/workspaces/{workspace_id}` with role check** (AC16, AC17, AC18, AC19)
   - `require_role` and `rename_workspace(scope, name)`.
   - Tests:
     - `test_ac16_admin_renames_trimmed`
@@ -71,7 +71,7 @@ The **Done when** line is the check that the task is finished.
     - `test_ac19_admin_of_a_cannot_rename_b_gets_404`
   - **Done when:** the tests pass.
 
-- [ ] **F1-T9: OpenAPI contract test and regenerated TypeScript client** (contract)
+- [x] **F1-T9: OpenAPI contract test and regenerated TypeScript client** (contract)
   - Test: `test_openapi_matches_f1_contract`, which compares the generated schemas with plan §2.
   - **Done when:** `make check-gen` is clean.
 

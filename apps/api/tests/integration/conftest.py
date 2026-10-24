@@ -18,11 +18,15 @@ from fastapi import FastAPI
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, AsyncSession
 
+from app.auth.dependencies import get_token_verifier
+from app.auth.verifier import TokenVerifier
 from app.core.config import Settings
 from app.core.db import Base, create_engine, get_session
 from app.main import create_app
 from app.models import import_all_models
 from tests.conftest import asgi_client, make_settings
+from tests.support.identity import TwoWorkspaces, make_two_workspaces
+from tests.support.jwt import TEST_ISSUER, TEST_SIGNING_KEY, StaticKeys
 
 API_DIR = Path(__file__).resolve().parents[2]
 TEST_DATABASE_URL = os.environ.get(
@@ -92,7 +96,8 @@ async def committing_engine(db_engine: AsyncEngine) -> AsyncIterator[AsyncEngine
 async def db_client(
     db_settings: Settings, db_session: AsyncSession
 ) -> AsyncIterator[httpx.AsyncClient]:
-    """API client whose requests run inside the test's rolled-back transaction."""
+    """API client whose requests run inside the test's rolled-back transaction, and which
+    trusts tokens signed with TEST_SIGNING_KEY (see `tests.support.jwt.bearer`)."""
     app: FastAPI = create_app(db_settings)
 
     async def session_in_test_transaction() -> AsyncIterator[AsyncSession]:
@@ -104,5 +109,17 @@ async def db_client(
         await db_session.commit()
 
     app.dependency_overrides[get_session] = session_in_test_transaction
+    app.dependency_overrides[get_token_verifier] = lambda: TokenVerifier(
+        StaticKeys(TEST_SIGNING_KEY), issuer=TEST_ISSUER
+    )
     async with app.router.lifespan_context(app), await asgi_client(app) as http:
         yield http
+
+
+@pytest.fixture
+async def two_workspaces(db_session: AsyncSession) -> TwoWorkspaces:
+    workspaces = await make_two_workspaces(db_session)
+    # Like real pre-existing data: committed (here, a released savepoint), so a request
+    # that fails and rolls back cannot take the fixture rows with it.
+    await db_session.commit()
+    return workspaces

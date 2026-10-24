@@ -26,6 +26,7 @@ until [ "$(docker inspect -f '{{.State.Health.Status}}' "$DB")" = healthy ]; do 
 
 docker run -d --name "$API" --network "$NET" -p "$PORT:10000" \
   -e DATABASE_URL="postgresql://postgres:postgres@$DB:5432/docflow" \
+  -e SUPABASE_URL=https://smoke-test.supabase.co \
   -e ENVIRONMENT=production "$IMAGE" >/dev/null
 
 for _ in $(seq 1 30); do

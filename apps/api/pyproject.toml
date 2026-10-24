@@ -9,6 +9,7 @@ dependencies = [
     "httpx>=0.28.1",
     "psycopg[binary]>=3.3.6",
     "pydantic-settings>=2.16.1",
+    "pyjwt[crypto]>=2.15.1",
     "sqlalchemy[asyncio]>=2.1.6",
     "structlog>=26.1.0",
     "uvicorn[standard]>=0.54.0",
@@ -114,3 +115,26 @@ name = "the worker does not depend on the HTTP framework"
 type = "forbidden"
 source_modules = ["app.worker"]
 forbidden_modules = ["fastapi", "starlette", "uvicorn"]
+
+[[tool.importlinter.contracts]]
+name = "token verification is pure logic: no direct web-framework imports (F1 plan §4)"
+type = "forbidden"
+source_modules = ["app.auth.verifier", "app.auth.jwks", "app.auth.errors"]
+forbidden_modules = ["fastapi", "starlette"]
+# Error types reach FastAPI only through app.core.errors' handlers, which is fine.
+allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+name = "identity domain logic has no direct web-framework imports"
+type = "forbidden"
+source_modules = ["app.identity.service", "app.identity.repository", "app.identity.models"]
+forbidden_modules = ["fastapi", "starlette"]
+allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+name = "other modules use identity only through its service facade (ADR-0002)"
+type = "forbidden"
+source_modules = ["app.auth", "app.worker", "app.core"]
+forbidden_modules = ["app.identity.repository", "app.identity.models", "app.identity.routes"]
+# Going through app.identity.service (which uses the repository) is the point.
+allow_indirect_imports = true

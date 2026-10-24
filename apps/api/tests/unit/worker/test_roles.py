@@ -45,6 +45,7 @@ def test_role_worker_runs_without_http(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_invalid_role_fails_fast(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@h/db")
+    monkeypatch.setenv("SUPABASE_URL", "https://abc.supabase.co")
     monkeypatch.setenv("ROLE", "scheduler")
 
     with pytest.raises(ConfigError, match="ROLE"):
