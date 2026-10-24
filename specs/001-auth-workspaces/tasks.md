@@ -19,7 +19,7 @@ The **Done when** line is the check that the task is finished.
   - Meta-test `test_tenant_tables.py`: every table is either on the global allowlist or has an indexed `workspace_id NOT NULL` foreign key.
   - **Done when:** `make migrations-check` (upgrade → downgrade → upgrade) passes, and the meta-test passes.
 
-- [ ] **F1-T2: JWKS cache** (AC12, AC13)
+- [x] **F1-T2: JWKS cache** (AC12, AC13)
   - `app/auth/jwks.py` with TTL caching, forced refresh on an unknown kid (throttled to once every 30 s), stale-if-error, and `AuthUnavailable`.
   - Tests:
     - `test_ac12_new_kid_triggers_refresh_and_verifies`
