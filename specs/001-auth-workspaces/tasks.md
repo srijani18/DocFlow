@@ -39,7 +39,7 @@ The **Done when** line is the check that the task is finished.
   - Tests: `test_ac11_missing_token_returns_problem_401`, `test_ac13_auth_unavailable_returns_503_retry_after`.
   - **Done when:** the tests pass.
 
-- [ ] **F1-T5: Provisioning service** (AC5, AC6, AC7, AC8)
+- [x] **F1-T5: Provisioning service** (AC5, AC6, AC7, AC8)
   - `identity/repository.py` and `identity/service.py` implementing `provision_or_load` (plan §4.3), plus `default_workspace_name`.
   - Tests:
     - `test_ac5_first_request_creates_user_workspace_admin_membership`

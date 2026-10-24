@@ -123,3 +123,16 @@ source_modules = ["app.auth.verifier", "app.auth.jwks", "app.auth.errors"]
 forbidden_modules = ["fastapi", "starlette"]
 # Error types reach FastAPI only through app.core.errors' handlers, which is fine.
 allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+name = "identity domain logic has no direct web-framework imports"
+type = "forbidden"
+source_modules = ["app.identity.service", "app.identity.repository", "app.identity.models"]
+forbidden_modules = ["fastapi", "starlette"]
+allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+name = "other modules use identity only through its service facade (ADR-0002)"
+type = "forbidden"
+source_modules = ["app.auth", "app.worker", "app.core"]
+forbidden_modules = ["app.identity.repository", "app.identity.models", "app.identity.routes"]
