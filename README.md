@@ -33,6 +33,8 @@ make dev        # API on http://localhost:8000, web on http://localhost:3000
 
 Open <http://localhost:3000>. It should show **"API: ok"**. API docs are at <http://localhost:8000/docs>.
 
+**Signing in locally** uses a free Supabase project for Auth (the database stays in Docker). Do steps 2a and 2c–2f of [docs/deploy.md](docs/deploy.md) (skip 2b), set `Site URL` to `http://localhost:3000`, then put the project URL in `SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_URL`, and the publishable key in `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, in `.env`.
+
 ## Everyday commands
 
 ```bash
