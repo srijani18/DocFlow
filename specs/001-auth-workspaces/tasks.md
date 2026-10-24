@@ -29,7 +29,7 @@ The **Done when** line is the check that the task is finished.
     - `test_unknown_kid_refresh_is_throttled`
   - **Done when:** the tests above pass using `respx` and an injected clock.
 
-- [ ] **F1-T3: Token verifier** (AC11)
+- [x] **F1-T3: Token verifier** (AC11)
   - `app/auth/verifier.py` with the algorithm allowlist and the iss, aud, exp, iat, sub, role and `is_anonymous` checks; `VerifiedClaims`.
   - Tests: one `test_ac11_*` per rejection reason (missing, malformed, expired, bad signature, wrong issuer, wrong audience, HS256, `none`, `role=anon`, anonymous user), plus a check that ES256 and RS256 are both accepted.
   - **Done when:** the tests pass, and the module imports nothing from FastAPI.

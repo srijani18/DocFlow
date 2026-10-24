@@ -1,12 +1,16 @@
 """Real signing keys and tokens for auth tests: no Supabase needed (F1 plan §10)."""
 
 import json
+import time
+import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
 import jwt
 from cryptography.hazmat.primitives.asymmetric import ec, rsa
 from jwt.algorithms import ECAlgorithm, RSAAlgorithm
+
+from app.auth.errors import UnknownSigningKeyError
 
 TEST_SUPABASE_URL = "https://test-project.supabase.co"
 TEST_ISSUER = f"{TEST_SUPABASE_URL}/auth/v1"
@@ -47,3 +51,35 @@ def make_rs256_key(kid: str = "rs-1") -> SigningKey:
 
 def jwks_document(*keys: SigningKey) -> dict[str, Any]:
     return {"keys": [key.public_jwk for key in keys]}
+
+
+class StaticKeys:
+    """KeyProvider for tests: a fixed set of keys, no HTTP."""
+
+    def __init__(self, *keys: SigningKey) -> None:
+        self._keys = {key.kid: jwt.PyJWK(key.public_jwk) for key in keys}
+
+    async def get_key(self, kid: str) -> jwt.PyJWK:
+        try:
+            return self._keys[kid]
+        except KeyError:
+            raise UnknownSigningKeyError(kid) from None
+
+
+def supabase_claims(**overrides: Any) -> dict[str, Any]:
+    """Claims shaped like a Supabase access token for a signed-in user."""
+    now = int(time.time())
+    claims: dict[str, Any] = {
+        "iss": TEST_ISSUER,
+        "aud": "authenticated",
+        "sub": str(uuid.uuid4()),
+        "iat": now,
+        "exp": now + 3600,
+        "role": "authenticated",
+        "is_anonymous": False,
+        "email": "ada@example.com",
+        "session_id": str(uuid.uuid4()),
+        "user_metadata": {"full_name": "Ada Lovelace"},
+    }
+    claims.update(overrides)
+    return {key: value for key, value in claims.items() if value is not ...}

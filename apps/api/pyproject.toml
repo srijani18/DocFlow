@@ -115,3 +115,11 @@ name = "the worker does not depend on the HTTP framework"
 type = "forbidden"
 source_modules = ["app.worker"]
 forbidden_modules = ["fastapi", "starlette", "uvicorn"]
+
+[[tool.importlinter.contracts]]
+name = "token verification is pure logic: no direct web-framework imports (F1 plan §4)"
+type = "forbidden"
+source_modules = ["app.auth.verifier", "app.auth.jwks", "app.auth.errors"]
+forbidden_modules = ["fastapi", "starlette"]
+# Error types reach FastAPI only through app.core.errors' handlers, which is fine.
+allow_indirect_imports = true
