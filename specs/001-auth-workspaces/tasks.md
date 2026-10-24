@@ -75,16 +75,16 @@ The **Done when** line is the check that the task is finished.
   - Test: `test_openapi_matches_f1_contract`, which compares the generated schemas with plan §2.
   - **Done when:** `make check-gen` is clean.
 
-- [ ] **F1-T10: Web: Supabase clients, `proxy.ts` redirect and `safe-next`** (AC3)
+- [x] **F1-T10: Web: Supabase clients, `proxy.ts` redirect and `safe-next`** (AC3)
   - Tests: `AC3: only /app relative paths are allowed as next`, and the redirect behaviour of `proxy.ts` (unit tested with a mocked Supabase client).
   - **Done when:** the Vitest tests pass and `pnpm build` succeeds.
 
-- [ ] **F1-T11: Web: login page (sign in and sign up) and sign-out** (AC1, AC2, AC4)
+- [x] **F1-T11: Web: login page (sign in and sign up) and sign-out** (AC1, AC2, AC4)
   - shadcn form, generic error text, sign-out that clears the query cache.
   - Tests: `AC2: invalid credentials show a generic error`, `AC4: sign-out clears the session and redirects`.
   - **Done when:** the Vitest tests pass.
 
-- [ ] **F1-T12: Web: API client auth middleware, home page and waking banner** (AC10, AC20)
+- [x] **F1-T12: Web: API client auth middleware, home page and waking banner** (AC10, AC20)
   - `lib/api/client.ts`, `transient.ts` with the retry policy, `app/app/page.tsx` and `backend-waking.tsx`.
   - Tests:
     - `AC10: home shows email, workspace, role`
