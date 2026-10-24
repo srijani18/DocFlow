@@ -16,17 +16,17 @@ import httpx
 import pytest
 from fastapi import FastAPI
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, AsyncSession, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, AsyncSession
 
 from app.core.config import Settings
-from app.core.db import Base, get_session
+from app.core.db import Base, create_engine, get_session
 from app.main import create_app
 from app.models import import_all_models
 from tests.conftest import asgi_client, make_settings
 
 API_DIR = Path(__file__).resolve().parents[2]
 TEST_DATABASE_URL = os.environ.get(
-    "TEST_DATABASE_URL", "postgresql://docflow:docflow@localhost:54320/docflow_test"
+    "TEST_DATABASE_URL", "postgresql://postgres:postgres@localhost:54320/docflow_test"
 )
 
 
@@ -57,7 +57,7 @@ def db_settings() -> Settings:
 
 @pytest.fixture(scope="session")
 async def db_engine() -> AsyncIterator[AsyncEngine]:
-    engine = create_async_engine(make_settings(database_url=TEST_DATABASE_URL).database_url)
+    engine = create_engine(make_settings(database_url=TEST_DATABASE_URL))
     yield engine
     await engine.dispose()
 

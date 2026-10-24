@@ -15,7 +15,7 @@ concurrency:
 env:
   UV_PYTHON: "3.12"
   NODE_VERSION: "24"
-  TEST_DATABASE_URL: postgresql://docflow:docflow@localhost:5432/docflow_test
+  TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/docflow_test
 
 jobs:
   # Decide which jobs this change needs (ADR-0006). `infra` changes run everything.
@@ -64,12 +64,12 @@ jobs:
       postgres:
         image: pgvector/pgvector:pg17
         env:
-          POSTGRES_USER: docflow
-          POSTGRES_PASSWORD: docflow
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
           POSTGRES_DB: docflow_test
         ports: ["5432:5432"]
         options: >-
-          --health-cmd "pg_isready -U docflow -d docflow_test"
+          --health-cmd "pg_isready -U postgres -d docflow_test"
           --health-interval 2s --health-timeout 3s --health-retries 30
     steps:
       - uses: actions/checkout@v7
@@ -88,12 +88,12 @@ jobs:
       postgres:
         image: pgvector/pgvector:pg17
         env:
-          POSTGRES_USER: docflow
-          POSTGRES_PASSWORD: docflow
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
           POSTGRES_DB: docflow_test
         ports: ["5432:5432"]
         options: >-
-          --health-cmd "pg_isready -U docflow -d docflow_test"
+          --health-cmd "pg_isready -U postgres -d docflow_test"
           --health-interval 2s --health-timeout 3s --health-retries 30
     steps:
       - uses: actions/checkout@v7

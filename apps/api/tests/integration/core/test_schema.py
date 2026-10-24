@@ -71,3 +71,23 @@ async def test_baseline_revokes_supabase_client_roles(db_session: AsyncSession) 
             text("SELECT has_schema_privilege(:role, 'docflow', 'USAGE')"), {"role": role}
         )
         assert can_use is False
+
+
+async def test_migrations_never_create_tables_in_public(db_engine: AsyncEngine) -> None:
+    # Unqualified DDL in a migration lands in `public` (MIGRATIONS_SEARCH_PATH). On Supabase
+    # that schema is the one the Data API exposes, so nothing of ours may live there.
+    async with db_engine.connect() as connection:
+        tables = (
+            (
+                await connection.execute(
+                    text(
+                        "SELECT table_name FROM information_schema.tables "
+                        "WHERE table_schema = 'public'"
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+
+    assert tables == []

@@ -9,7 +9,7 @@ from app.core.config import Settings
 from app.main import create_app
 
 # Points at a closed port: unit tests must never need a database.
-UNREACHABLE_DATABASE_URL = "postgresql://docflow:docflow@127.0.0.1:1/unreachable"
+UNREACHABLE_DATABASE_URL = "postgresql://postgres:postgres@127.0.0.1:1/unreachable"
 
 
 def make_settings(**overrides: Any) -> Settings:

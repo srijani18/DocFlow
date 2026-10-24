@@ -2,7 +2,7 @@
 
 The URL comes from app settings (DATABASE_URL, the Supabase session pooler), never from
 alembic.ini. Everything, including `alembic_version`, lives in the `docflow` schema
-(ADR-0007), and connections get the app's search_path.
+(ADR-0007). Connections use MIGRATIONS_SEARCH_PATH so `docflow` is compared by name.
 """
 
 import asyncio
@@ -13,7 +13,7 @@ from sqlalchemy import text
 from sqlalchemy.engine import Connection
 
 from app.core.config import load_settings
-from app.core.db import DB_SCHEMA, Base, create_engine
+from app.core.db import DB_SCHEMA, MIGRATIONS_SEARCH_PATH, Base, create_engine
 from app.models import import_all_models
 
 config = context.config
@@ -56,7 +56,7 @@ def _run_sync(connection: Connection) -> None:
 
 
 async def run_migrations_online() -> None:
-    engine = create_engine(load_settings())
+    engine = create_engine(load_settings(), search_path=MIGRATIONS_SEARCH_PATH)
     # The version table lives in our schema, so the schema must exist before Alembic
     # reads or creates it. Idempotent; never dropped by a downgrade.
     async with engine.begin() as connection:

@@ -3,8 +3,9 @@ services:
   postgres:
     image: pgvector/pgvector:pg17
     environment:
-      POSTGRES_USER: docflow
-      POSTGRES_PASSWORD: docflow  # local only; never used outside this container
+      # Same superuser name as Supabase, so "$user" in the default search_path behaves alike.
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres  # local only; never used outside this container
       POSTGRES_DB: docflow
     ports:
       - "${DOCFLOW_PG_PORT:-54320}:5432"
@@ -12,7 +13,7 @@ services:
       - pgdata:/var/lib/postgresql/data
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U docflow -d docflow"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d docflow"]
       interval: 2s
       timeout: 3s
       retries: 30

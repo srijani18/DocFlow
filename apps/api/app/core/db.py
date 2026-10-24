@@ -5,7 +5,7 @@ connection string for the app and for Alembic. Every DocFlow table lives in the 
 schema, never in Supabase's `public` schema. Creating the engine does not connect.
 """
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from typing import Annotated
 
 from fastapi import Depends, Request
@@ -35,6 +35,10 @@ NAMING_CONVENTION = {
 DB_SCHEMA = "docflow"
 # `extensions` is where Supabase installs pgvector; `public` stays last for anything else.
 SEARCH_PATH = f"{DB_SCHEMA}, extensions, public"
+# Alembic must see `docflow` as a named, non-default schema, or autogenerate can't match
+# reflected tables to the schema-qualified models. Unqualified DDL in a migration would land
+# in `public`, which a test forbids.
+MIGRATIONS_SEARCH_PATH = "public, extensions"
 
 
 class Base(DeclarativeBase):
@@ -44,18 +48,21 @@ class Base(DeclarativeBase):
 CONNECT_TIMEOUT_SECONDS = 10
 
 
-def _set_search_path(dbapi_connection: DBAPIConnection, _record: ConnectionPoolEntry) -> None:
-    # Autocommit, so the setting is not undone when the first transaction rolls back.
-    # A plain SET (not a startup option) works through Supavisor's session mode.
-    previous = dbapi_connection.autocommit
-    dbapi_connection.autocommit = True
-    cursor = dbapi_connection.cursor()
-    cursor.execute(f"SET SESSION search_path TO {SEARCH_PATH}")
-    cursor.close()
-    dbapi_connection.autocommit = previous
+def _search_path_setter(search_path: str) -> Callable[[DBAPIConnection, ConnectionPoolEntry], None]:
+    def set_search_path(dbapi_connection: DBAPIConnection, _record: ConnectionPoolEntry) -> None:
+        # Autocommit, so the setting is not undone when the first transaction rolls back.
+        # A plain SET (not a startup option) works through Supavisor's session mode.
+        previous = dbapi_connection.autocommit
+        dbapi_connection.autocommit = True
+        cursor = dbapi_connection.cursor()
+        cursor.execute(f"SET SESSION search_path TO {search_path}")
+        cursor.close()
+        dbapi_connection.autocommit = previous
+
+    return set_search_path
 
 
-def create_engine(settings: Settings) -> AsyncEngine:
+def create_engine(settings: Settings, *, search_path: str = SEARCH_PATH) -> AsyncEngine:
     engine = create_async_engine(
         settings.database_url,
         # Small pool: one instance. In session mode each client connection holds one
@@ -67,7 +74,9 @@ def create_engine(settings: Settings) -> AsyncEngine:
         pool_recycle=300,
         connect_args={"connect_timeout": CONNECT_TIMEOUT_SECONDS},
     )
-    event.listen(engine.sync_engine, "connect", _set_search_path)
+    # insert=True: run before SQLAlchemy's own first-connect setup, which records the
+    # default schema; otherwise it would see the server default, not our search_path.
+    event.listen(engine.sync_engine, "connect", _search_path_setter(search_path), insert=True)
     return engine
 
 

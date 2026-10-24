@@ -29,7 +29,7 @@ db-reset: ## Delete local Postgres data and start fresh
 	$(MAKE) db-up
 
 db-psql: ## Open psql on the local dev database
-	docker compose exec postgres psql -U docflow -d docflow
+	docker compose exec postgres psql -U postgres -d docflow
 
 # ---------------------------------------------------------------- api
 
@@ -54,7 +54,7 @@ api-docker-smoke: ## Build the image, run it against a throwaway Postgres, check
 
 # ---------------------------------------------------------------- migrations
 
-TEST_DATABASE_URL ?= postgresql://docflow:docflow@localhost:54320/docflow_test
+TEST_DATABASE_URL ?= postgresql://postgres:postgres@localhost:54320/docflow_test
 ALEMBIC := cd $(API) && uv run alembic
 
 .PHONY: migrate migration migrations-check
@@ -64,7 +64,7 @@ migrate: ## Apply migrations to the local dev database (reads .env)
 migration: ## Create a migration: make migration name=add_documents
 	@test -n "$(name)" || (echo "usage: make migration name=<slug>" && exit 1)
 	$(ALEMBIC) revision --autogenerate -m "$(name)" \
-		--rev-id $$(printf "%04d" $$(( $$(ls $(API)/migrations/versions | grep -cE '^[0-9]{4}_') + 1 )))
+		--rev-id $$(printf "%04d" $$(( $$(ls migrations/versions | grep -cE '^[0-9]{4}_') + 1 )))
 
 migrations-check: ## upgrade -> downgrade base -> upgrade on the test DB, then check for model drift
 	cd $(API) && export DATABASE_URL=$(TEST_DATABASE_URL) && \
