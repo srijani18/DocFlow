@@ -1,6 +1,7 @@
 """FastAPI dependencies for authentication (F1 plan §4)."""
 
 import uuid
+from collections.abc import Awaitable, Callable
 from typing import Annotated
 
 import structlog
@@ -10,7 +11,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from app.auth.errors import UnauthenticatedError
 from app.auth.verifier import TokenVerifier, VerifiedClaims
 from app.core.db import DbSession
-from app.core.errors import NotFoundError
+from app.core.errors import ForbiddenError, NotFoundError
 from app.core.logging import get_logger
 from app.core.tenancy import WorkspaceScope
 from app.identity import service as identity_service
@@ -78,3 +79,18 @@ async def require_workspace_member(
 
 
 WorkspaceScopeDep = Annotated[WorkspaceScope, Depends(require_workspace_member)]
+
+
+def require_role(*roles: str) -> Callable[[WorkspaceScope], Awaitable[WorkspaceScope]]:
+    """A member check plus a role check. Membership is resolved first, so non-members
+    get 404 and never learn that a role would have been needed (AC15, AC17)."""
+
+    async def scope_with_role(scope: WorkspaceScopeDep) -> WorkspaceScope:
+        if scope.role not in roles:
+            raise ForbiddenError()
+        return scope
+
+    return scope_with_role
+
+
+AdminScopeDep = Annotated[WorkspaceScope, Depends(require_role("admin"))]

@@ -62,7 +62,7 @@ The **Done when** line is the check that the task is finished.
     - `test_ac19_member_of_a_cannot_read_b`
   - **Done when:** the tests pass.
 
-- [ ] **F1-T8: `PATCH /v1/workspaces/{workspace_id}` with role check** (AC16, AC17, AC18, AC19)
+- [x] **F1-T8: `PATCH /v1/workspaces/{workspace_id}` with role check** (AC16, AC17, AC18, AC19)
   - `require_role` and `rename_workspace(scope, name)`.
   - Tests:
     - `test_ac16_admin_renames_trimmed`

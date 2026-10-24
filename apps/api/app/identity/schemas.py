@@ -3,8 +3,9 @@
 import uuid
 from datetime import datetime
 from enum import StrEnum
+from typing import Annotated
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 
 class Role(StrEnum):
@@ -38,3 +39,16 @@ class Workspace(BaseModel):
     name: str = Field(min_length=1, max_length=80)
     role: Role = Field(description="The caller's role in this workspace.")
     created_at: datetime
+
+
+WorkspaceName = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=80)
+]
+
+
+class WorkspaceUpdate(BaseModel):
+    """Trimmed on the server, then 1..80 characters (AC16, AC18)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: WorkspaceName

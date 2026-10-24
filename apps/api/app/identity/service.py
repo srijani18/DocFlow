@@ -89,3 +89,13 @@ async def get_workspace(session: AsyncSession, scope: WorkspaceScope) -> Workspa
     if workspace is None:  # deleted between the membership check and now
         raise NotFoundError()
     return workspace
+
+
+async def rename_workspace(session: AsyncSession, scope: WorkspaceScope, name: str) -> Workspace:
+    """AC16. `name` is already trimmed and length-checked by the API model; the database
+    CHECK constraint enforces the same rule as a backstop."""
+    workspace = await repository.update_workspace_name(session, scope, name)
+    if workspace is None:
+        raise NotFoundError()
+    log.info("workspace_renamed")
+    return workspace

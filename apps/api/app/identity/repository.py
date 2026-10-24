@@ -96,3 +96,15 @@ async def get_workspace(session: AsyncSession, scope: WorkspaceScope) -> Workspa
         select(Workspace).where(Workspace.id == scope.workspace_id)
     )
     return workspace
+
+
+async def update_workspace_name(
+    session: AsyncSession, scope: WorkspaceScope, name: str
+) -> Workspace | None:
+    workspace: Workspace | None = await session.scalar(
+        update(Workspace)
+        .where(Workspace.id == scope.workspace_id)
+        .values(name=name, updated_at=func.now())
+        .returning(Workspace)
+    )
+    return workspace

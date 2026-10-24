@@ -68,3 +68,82 @@ async def test_ac11_workspace_requires_a_token(
     response = await db_client.get(f"/v1/workspaces/{two_workspaces.a.id}")
 
     assert response.status_code == 401
+
+
+async def _name_of(db_client: httpx.AsyncClient, w: TwoWorkspaces) -> str:
+    response = await db_client.get(f"/v1/workspaces/{w.a.id}", headers=as_user(w.a_admin))
+    name: str = response.json()["name"]
+    return name
+
+
+@pytest.mark.parametrize(
+    ("submitted", "saved"),
+    [("  Acme Finance  ", "Acme Finance"), ("x" * 80, "x" * 80), ("名" * 80, "名" * 80)],
+    ids=["trimmed", "80-ascii", "80-cjk"],
+)
+async def test_ac16_admin_renames_trimmed(
+    db_client: httpx.AsyncClient, two_workspaces: TwoWorkspaces, submitted: str, saved: str
+) -> None:
+    w = two_workspaces
+    response = await db_client.patch(
+        f"/v1/workspaces/{w.a.id}", json={"name": submitted}, headers=as_user(w.a_admin)
+    )
+
+    assert response.status_code == 200
+    assert (response.json()["name"], response.json()["role"]) == (saved, "admin")
+    assert await _name_of(db_client, w) == saved
+
+
+async def test_ac17_reviewer_forbidden_name_unchanged(
+    db_client: httpx.AsyncClient, two_workspaces: TwoWorkspaces
+) -> None:
+    w = two_workspaces
+    response = await db_client.patch(
+        f"/v1/workspaces/{w.a.id}", json={"name": "Hijacked"}, headers=as_user(w.a_reviewer)
+    )
+
+    assert response.status_code == 403
+    assert response.headers["content-type"] == "application/problem+json"
+    assert response.json()["type"].endswith("/forbidden")
+    assert await _name_of(db_client, w) == "Workspace A"
+
+
+@pytest.mark.parametrize(
+    ("body", "field"),
+    [
+        ({"name": ""}, "name"),
+        ({"name": "    "}, "name"),
+        ({"name": "x" * 81}, "name"),
+        ({}, "name"),
+        ({"name": 42}, "name"),
+        ({"name": "Fine", "nickname": "extra"}, "nickname"),
+    ],
+    ids=["empty", "whitespace", "81-chars", "missing", "not-a-string", "unknown-field"],
+)
+async def test_ac18_invalid_names_rejected_with_field_error(
+    db_client: httpx.AsyncClient, two_workspaces: TwoWorkspaces, body: dict[str, Any], field: str
+) -> None:
+    w = two_workspaces
+    response = await db_client.patch(
+        f"/v1/workspaces/{w.a.id}", json=body, headers=as_user(w.a_admin)
+    )
+
+    assert response.status_code == 422
+    assert response.headers["content-type"] == "application/problem+json"
+    assert [error["field"] for error in response.json()["errors"]] == [field]
+    assert await _name_of(db_client, w) == "Workspace A"
+
+
+@pytest.mark.parametrize("body", [{"name": "Taken over"}, {"name": ""}], ids=["valid", "invalid"])
+async def test_ac19_admin_of_a_cannot_rename_b_gets_404(
+    db_client: httpx.AsyncClient, two_workspaces: TwoWorkspaces, body: dict[str, Any]
+) -> None:
+    w = two_workspaces
+    response = await db_client.patch(
+        f"/v1/workspaces/{w.b.id}", json=body, headers=as_user(w.a_admin)
+    )
+
+    # Not 403 and not 422: nothing about workspace B may leak, not even that it exists.
+    assert response.status_code == 404
+    own = await db_client.get(f"/v1/workspaces/{w.b.id}", headers=as_user(w.b_admin))
+    assert own.json()["name"] == "Workspace B"
