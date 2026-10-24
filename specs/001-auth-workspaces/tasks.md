@@ -14,7 +14,7 @@ The **Done when** line is the check that the task is finished.
 
 ---
 
-- [ ] **F1-T1: Identity tables and migration** (prepares AC5, AC19)
+- [x] **F1-T1: Identity tables and migration** (prepares AC5, AC19)
   - Alembic `0002_identity`, creating `users`, `workspaces` and `memberships` as in plan §3, with SQLAlchemy models. Add the `two_workspaces` test fixture.
   - Meta-test `test_tenant_tables.py`: every table is either on the global allowlist or has an indexed `workspace_id NOT NULL` foreign key.
   - **Done when:** `make migrations-check` (upgrade → downgrade → upgrade) passes, and the meta-test passes.

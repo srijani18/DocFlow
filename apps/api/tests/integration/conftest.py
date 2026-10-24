@@ -23,6 +23,7 @@ from app.core.db import Base, create_engine, get_session
 from app.main import create_app
 from app.models import import_all_models
 from tests.conftest import asgi_client, make_settings
+from tests.support.identity import TwoWorkspaces, make_two_workspaces
 
 API_DIR = Path(__file__).resolve().parents[2]
 TEST_DATABASE_URL = os.environ.get(
@@ -106,3 +107,8 @@ async def db_client(
     app.dependency_overrides[get_session] = session_in_test_transaction
     async with app.router.lifespan_context(app), await asgi_client(app) as http:
         yield http
+
+
+@pytest.fixture
+async def two_workspaces(db_session: AsyncSession) -> TwoWorkspaces:
+    return await make_two_workspaces(db_session)
