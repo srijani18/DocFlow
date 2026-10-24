@@ -1,4 +1,7 @@
+import Link from "next/link";
+
 import { ApiStatus } from "@/components/api-status";
+import { buttonVariants } from "@/components/ui/button";
 
 export default function Home() {
   return (
@@ -8,6 +11,11 @@ export default function Home() {
         Upload invoices, receipts and purchase orders. DocFlow extracts, validates and routes them
         for review.
       </p>
+      <div>
+        <Link href="/app" className={buttonVariants({ size: "lg" })}>
+          Sign in
+        </Link>
+      </div>
       <ApiStatus />
     </main>
   );

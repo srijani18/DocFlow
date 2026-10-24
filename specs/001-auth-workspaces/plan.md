@@ -253,16 +253,23 @@ A normal request costs one indexed `SELECT`. Scoped endpoints add one membership
 
 ```
 apps/web/src/
-  proxy.ts                     refreshes the session (supabase.auth.getClaims), redirects /app/** → /login?next=…
-  lib/supabase/{browser,server}.ts   @supabase/ssr client factories
-  lib/api/client.ts            openapi-fetch client + middleware: Bearer token from getSession(); on 401 → refresh once → else redirect to /login
-  lib/api/transient.ts         isTransient(err): network TypeError | 502 | 503 | 504
+  proxy.ts                     redirects signed-out /app/** → /login?next=…, and signed-in /login → next (matcher: /app/:path*, /login)
+  lib/supabase/proxy.ts        updateSession: verifies and refreshes the session (supabase.auth.getClaims), copies cookies + no-store headers
+  lib/supabase/browser.ts      @supabase/ssr browser client
+  lib/api/client.ts            openapi-fetch client with an auth fetch wrapper: Bearer token from getSession(); on 401 → refresh once → else redirect to /login
+  lib/api/transient.ts         ApiError, isTransient(err): network TypeError | 502 | 503 | 504, createColdStartRetry (TanStack retry + retryDelay)
   lib/safe-next.ts             allows only same-origin relative paths that start with "/app" (AC3, prevents open redirects)
-  app/login/page.tsx           sign-in / sign-up tabs (shadcn form), generic error text (AC2)
-  app/app/layout.tsx           QueryClientProvider, signed-in shell, sign-out button (AC4)
-  app/app/page.tsx             home: useQuery(getMe) → email, workspace name, role (AC10)
-  components/backend-waking.tsx  "Starting up…" banner shown while getMe is retrying a transient error (AC20)
+  app/login/page.tsx           sign-in / sign-up tabs (login-form.tsx, shadcn components), generic error text (AC2)
+  app/app/layout.tsx           signed-in shell with the sign-out button (components/sign-out-button.tsx, AC4)
+  app/app/page.tsx             home: home-view.tsx runs useQuery(getMe) → email, workspace name, role (AC10)
+  components/backend-waking.tsx  "Starting up…" banner while getMe retries a transient error; "Try again" when it gives up (AC20)
 ```
+
+Implementation notes (F1-T10 to T12):
+
+- **No server-side Supabase client.** No Server Component reads the session: pages are static shells and the signed-in data comes from the API in the browser. That keeps every page prerenderable under Cache Components, and it means only `proxy.ts` refreshes tokens on the server, as Supabase's guide requires (refreshing in two places can trip refresh-token reuse detection).
+- **Auth as a fetch wrapper, not openapi-fetch middleware.** Retrying a request needs its body, which is consumed by the first send, so the wrapper clones the request before sending it.
+- **The 90-second budget** runs from the first failure of a fetch; "Try again" starts a new budget.
 
 - **Cold-start policy (AC20):**
   - TanStack Query retries only transient errors, with backoff `min(1s·2ⁿ, 10s)`, until 90 seconds have passed since the first attempt. After that it shows an error state with "Try again".
@@ -386,12 +393,12 @@ FastAPI's default 422 and `HTTPException` handlers are replaced, so every error 
 
 | AC | Tests |
 |---|---|
-| AC1–AC4 | `web/tests/e2e/auth.spec.ts` (smoke); `login.test.tsx`; `safe-next.test.ts` (AC3); `sign-out.test.tsx` (AC4) |
+| AC1–AC4 | `web/tests/e2e/auth.spec.ts` (smoke); `web/src/app/login/login-form.test.tsx` (AC1, AC2); `web/src/lib/safe-next.test.ts`, `web/src/proxy.test.ts` (AC3); `web/src/components/sign-out-button.test.tsx` (AC4) |
 | AC5, AC6, AC7, AC8 | `tests/integration/identity/test_provisioning.py::test_ac5_*`, `test_ac6_concurrent_first_requests_create_one_workspace`, `test_ac6_blocked_insert_returns_winner`, `test_ac7_*`, `test_ac8_*` (the AC8 unit test lives in `tests/unit/identity/`) |
 | AC9 | `tests/integration/identity/test_me.py::test_ac9_*` |
-| AC10 | `web/src/app/app/page.test.tsx` |
+| AC10 | `web/src/app/app/home-view.test.tsx` |
 | AC11 | `tests/unit/auth/test_verifier.py::test_ac11_*` (one case per rejection reason), `tests/integration/identity/test_me.py::test_ac11_rejected_token_creates_nothing` |
 | AC12, AC13 | `tests/unit/auth/test_jwks.py::test_ac12_*`, `test_ac13_*` |
 | AC14–AC18 | `tests/integration/identity/test_workspaces.py::test_ac14_*` … `test_ac18_*` |
 | AC19 | `tests/integration/identity/test_workspaces.py::test_ac19_*` (GET and PATCH across workspaces), `tests/integration/test_tenant_tables.py` (meta-test) |
-| AC20 | `web/src/lib/api/transient.test.ts`, `components/backend-waking.test.tsx` |
+| AC20 | `web/src/lib/api/transient.test.ts`, `web/src/components/backend-waking.test.tsx`, `web/src/app/app/home-view.test.tsx` |
