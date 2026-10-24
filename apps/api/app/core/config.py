@@ -6,7 +6,7 @@ Every field here must be documented in `.env.example`; a test enforces it.
 
 from enum import StrEnum
 from pathlib import Path
-from typing import Annotated, Literal
+from typing import Annotated, Literal, overload
 
 from pydantic import ValidationError, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
@@ -42,24 +42,14 @@ class ConfigError(RuntimeError):
     """Raised at startup when required configuration is missing or invalid."""
 
 
-class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=REPO_ROOT_ENV_FILE, extra="ignore", frozen=True)
+class DatabaseSettings(BaseSettings):
+    """Just what Alembic needs. Migrations run before the app starts (start.sh) and in CI
+    without a .env file, so they must not require settings they don't use."""
 
-    role: Role = Role.ALL
-    environment: Literal["local", "test", "production"] = "local"
-    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
-    port: int = 8000
+    model_config = SettingsConfigDict(env_file=REPO_ROOT_ENV_FILE, extra="ignore", frozen=True)
 
     # Supabase shared pooler, session mode (ADR-0007). Used by the app and by Alembic.
     database_url: str
-
-    # Supabase project URL, e.g. https://<ref>.supabase.co. Token issuer and JWKS derive from it.
-    supabase_url: str
-    auth_jwt_audience: str = "authenticated"
-    auth_jwks_cache_ttl_seconds: float = 600
-
-    cors_allowed_origins: Annotated[list[str], NoDecode] = []
-    cors_allowed_origin_regex: str | None = None
 
     @field_validator("database_url")
     @classmethod
@@ -70,6 +60,21 @@ class Settings(BaseSettings):
             if value.startswith(prefix):
                 return "postgresql+psycopg://" + value.removeprefix(prefix)
         return value
+
+
+class Settings(DatabaseSettings):
+    role: Role = Role.ALL
+    environment: Literal["local", "test", "production"] = "local"
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
+    port: int = 8000
+
+    # Supabase project URL, e.g. https://<ref>.supabase.co. Token issuer and JWKS derive from it.
+    supabase_url: str
+    auth_jwt_audience: str = "authenticated"
+    auth_jwks_cache_ttl_seconds: float = 600
+
+    cors_allowed_origins: Annotated[list[str], NoDecode] = []
+    cors_allowed_origin_regex: str | None = None
 
     @field_validator("supabase_url")
     @classmethod
@@ -96,10 +101,24 @@ class Settings(BaseSettings):
         return value
 
 
-def load_settings(env_file: Path | None = REPO_ROOT_ENV_FILE) -> Settings:
+@overload
+def load_settings(env_file: Path | None = REPO_ROOT_ENV_FILE) -> Settings: ...
+
+
+@overload
+def load_settings[S: DatabaseSettings](
+    env_file: Path | None = REPO_ROOT_ENV_FILE, *, settings_class: type[S]
+) -> S: ...
+
+
+def load_settings(
+    env_file: Path | None = REPO_ROOT_ENV_FILE,
+    *,
+    settings_class: type[DatabaseSettings] = Settings,
+) -> DatabaseSettings:
     """Load settings or fail fast, naming the bad variables but never their values."""
     try:
-        return Settings(_env_file=env_file)
+        return settings_class(_env_file=env_file)
     except ValidationError as exc:
         names = sorted({str(error["loc"][0]).upper() for error in exc.errors() if error["loc"]})
         raise ConfigError("Missing or invalid environment variables: " + ", ".join(names)) from None

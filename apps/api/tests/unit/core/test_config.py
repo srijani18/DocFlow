@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from app.core.config import ConfigError, Settings, load_settings
+from app.core.config import ConfigError, DatabaseSettings, Settings, load_settings
 
 ENV_EXAMPLE = Path(__file__).resolve().parents[5] / ".env.example"
 
@@ -79,3 +79,14 @@ def test_supabase_url_must_be_http(monkeypatch: pytest.MonkeyPatch) -> None:
 
     with pytest.raises(ConfigError, match="SUPABASE_URL"):
         load_settings(env_file=None)
+
+
+def test_migrations_need_only_database_url(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Alembic runs before the app (start.sh) and in CI without a .env file: it must not
+    # depend on settings it doesn't use, such as SUPABASE_URL.
+    monkeypatch.setenv("DATABASE_URL", "postgres://u:p@h/db")
+    monkeypatch.delenv("SUPABASE_URL", raising=False)
+
+    settings = load_settings(env_file=None, settings_class=DatabaseSettings)
+
+    assert settings.database_url == "postgresql+psycopg://u:p@h/db"
