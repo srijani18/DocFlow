@@ -110,7 +110,7 @@ components:
       additionalProperties: false
       required: [name]
       properties:
-        name: { type: string }   # trimmed on the server, then 1..80 characters
+        name: { type: string, minLength: 1, maxLength: 80 }   # checked after the server trims it
     Problem:   # RFC 9457
       type: object
       required: [type, title, status]

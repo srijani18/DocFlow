@@ -71,7 +71,7 @@ The **Done when** line is the check that the task is finished.
     - `test_ac19_admin_of_a_cannot_rename_b_gets_404`
   - **Done when:** the tests pass.
 
-- [ ] **F1-T9: OpenAPI contract test and regenerated TypeScript client** (contract)
+- [x] **F1-T9: OpenAPI contract test and regenerated TypeScript client** (contract)
   - Test: `test_openapi_matches_f1_contract`, which compares the generated schemas with plan §2.
   - **Done when:** `make check-gen` is clean.
 

@@ -14,7 +14,7 @@ from app.main import create_app
 DEFAULT_OUTPUT = Path(__file__).resolve().parents[1] / "openapi.json"
 
 # Building the app never connects to the database, so a placeholder URL is enough.
-_EXPORT_SETTINGS = Settings.model_validate(
+EXPORT_SETTINGS = Settings.model_validate(
     {
         "role": "api",
         "environment": "test",
@@ -25,7 +25,7 @@ _EXPORT_SETTINGS = Settings.model_validate(
 
 
 def export_openapi(output: Path = DEFAULT_OUTPUT) -> None:
-    document = create_app(_EXPORT_SETTINGS).openapi()
+    document = create_app(EXPORT_SETTINGS).openapi()
     output.write_text(json.dumps(document, indent=2, sort_keys=True) + "\n")
 
 
