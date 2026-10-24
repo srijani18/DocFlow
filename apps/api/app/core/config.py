@@ -53,6 +53,11 @@ class Settings(BaseSettings):
     # Supabase shared pooler, session mode (ADR-0007). Used by the app and by Alembic.
     database_url: str
 
+    # Supabase project URL, e.g. https://<ref>.supabase.co. Token issuer and JWKS derive from it.
+    supabase_url: str
+    auth_jwt_audience: str = "authenticated"
+    auth_jwks_cache_ttl_seconds: float = 600
+
     cors_allowed_origins: Annotated[list[str], NoDecode] = []
     cors_allowed_origin_regex: str | None = None
 
@@ -65,6 +70,23 @@ class Settings(BaseSettings):
             if value.startswith(prefix):
                 return "postgresql+psycopg://" + value.removeprefix(prefix)
         return value
+
+    @field_validator("supabase_url")
+    @classmethod
+    def _http_url_without_trailing_slash(cls, value: str) -> str:
+        value = value.strip().rstrip("/")
+        if not value.startswith(("https://", "http://")):
+            raise ValueError("must be an http(s) URL, e.g. https://<ref>.supabase.co")
+        return value
+
+    @property
+    def auth_issuer(self) -> str:
+        """The `iss` claim Supabase puts in access tokens."""
+        return f"{self.supabase_url}/auth/v1"
+
+    @property
+    def auth_jwks_url(self) -> str:
+        return f"{self.auth_issuer}/.well-known/jwks.json"
 
     @field_validator("cors_allowed_origins", mode="before")
     @classmethod

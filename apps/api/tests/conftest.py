@@ -7,6 +7,7 @@ from fastapi import FastAPI
 
 from app.core.config import Settings
 from app.main import create_app
+from tests.support.jwt import TEST_SUPABASE_URL
 
 # Points at a closed port: unit tests must never need a database.
 UNREACHABLE_DATABASE_URL = "postgresql://postgres:postgres@127.0.0.1:1/unreachable"
@@ -18,6 +19,7 @@ def make_settings(**overrides: Any) -> Settings:
         "environment": "test",
         "role": "api",
         "database_url": UNREACHABLE_DATABASE_URL,
+        "supabase_url": TEST_SUPABASE_URL,
     }
     return Settings.model_validate(values | overrides)
 

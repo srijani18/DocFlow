@@ -106,10 +106,11 @@ For Phase 1, but quick to do now. Go to **Storage → New bucket** and create tw
    | Variable | Value |
    |---|---|
    | `DATABASE_URL` | 📋 Supabase **session pooler** URI (step 2b) |
+   | `SUPABASE_URL` | 📋 `https://<ref>.supabase.co` (step 2d) |
    | `CORS_ALLOWED_ORIGINS` | Your Vercel production URL, e.g. `https://docflow-web.vercel.app` (fill in after step 4, then redeploy) |
    | `CORS_ALLOWED_ORIGIN_REGEX` | `^https://docflow-web-[a-z0-9-]+-<your-vercel-scope>\.vercel\.app$` (preview deployments, overview A1) |
 
-   F1 adds `SUPABASE_URL`. Phase 1 adds `SUPABASE_SECRET_KEY`, `SUPABASE_STORAGE_BUCKET=documents` and `GEMINI_API_KEY`. Add each under **Environment** when its feature ships; `.env.example` always lists the current set.
+   Phase 1 adds `SUPABASE_SECRET_KEY`, `SUPABASE_STORAGE_BUCKET=documents` and `GEMINI_API_KEY`. Add each under **Environment** when its feature ships; `.env.example` always lists the current set.
 4. **Apply.** The first deploy runs immediately. Later deploys wait for `ci-ok` on `main` (`autoDeployTrigger: checksPass`).
 5. Check, using the service URL from the dashboard (📋 `https://docflow-api-xxxx.onrender.com`):
    - `GET /healthz` returns `{"status":"ok"}`.

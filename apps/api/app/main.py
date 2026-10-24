@@ -5,11 +5,15 @@ import contextlib
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
+import httpx
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import APIRoute
 
+from app.auth.jwks import JwksCache
+from app.auth.verifier import TokenVerifier
 from app.core import health
+from app.core.clock import SystemClock
 from app.core.config import Settings, load_settings
 from app.core.db import create_engine, create_sessionmaker
 from app.core.errors import install_error_handlers
@@ -28,6 +32,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or load_settings()
     configure_logging(settings)
     engine = create_engine(settings)
+    # One HTTP client for outbound calls (JWKS now; storage and LLMs later).
+    http = httpx.AsyncClient()
+    jwks = JwksCache(
+        settings.auth_jwks_url,
+        http=http,
+        clock=SystemClock(),
+        ttl_seconds=settings.auth_jwks_cache_ttl_seconds,
+    )
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -43,6 +55,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 worker_task.cancel()
                 with contextlib.suppress(asyncio.CancelledError):
                     await worker_task
+            await http.aclose()
             await engine.dispose()
 
     app = FastAPI(
@@ -55,6 +68,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.engine = engine
     app.state.sessionmaker = create_sessionmaker(engine)
     app.state.worker = Worker() if settings.role.runs_worker else None
+    app.state.token_verifier = TokenVerifier(
+        jwks, issuer=settings.auth_issuer, audience=settings.auth_jwt_audience
+    )
 
     install_error_handlers(app)
     # Starlette runs the last-added middleware first: CORS wraps everything, so even

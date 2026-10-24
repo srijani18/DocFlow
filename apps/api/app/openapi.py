@@ -15,7 +15,12 @@ DEFAULT_OUTPUT = Path(__file__).resolve().parents[1] / "openapi.json"
 
 # Building the app never connects to the database, so a placeholder URL is enough.
 _EXPORT_SETTINGS = Settings.model_validate(
-    {"role": "api", "environment": "test", "database_url": "postgresql://unused@localhost/unused"}
+    {
+        "role": "api",
+        "environment": "test",
+        "database_url": "postgresql://unused@localhost/unused",
+        "supabase_url": "https://unused.supabase.co",
+    }
 )
 
 

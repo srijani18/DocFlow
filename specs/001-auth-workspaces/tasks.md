@@ -34,7 +34,7 @@ The **Done when** line is the check that the task is finished.
   - Tests: one `test_ac11_*` per rejection reason (missing, malformed, expired, bad signature, wrong issuer, wrong audience, HS256, `none`, `role=anon`, anonymous user), plus a check that ES256 and RS256 are both accepted.
   - **Done when:** the tests pass, and the module imports nothing from FastAPI.
 
-- [ ] **F1-T4: Problem+json errors for authentication** (AC11, AC13)
+- [x] **F1-T4: Problem+json errors for authentication** (AC11, AC13)
   - Error types `unauthenticated`, `auth-unavailable` and `database-unavailable`; the `WWW-Authenticate` header; `Retry-After`. This extends the core error handlers from P0-T4.
   - Tests: `test_ac11_missing_token_returns_problem_401`, `test_ac13_auth_unavailable_returns_503_retry_after`.
   - **Done when:** the tests pass.

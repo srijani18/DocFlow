@@ -39,13 +39,14 @@ def test_config_error_never_echoes_values(monkeypatch: pytest.MonkeyPatch) -> No
     ],
 )
 def test_database_url_uses_the_psycopg_driver(raw: str) -> None:
-    settings = Settings(_env_file=None, database_url=raw)
+    settings = Settings(_env_file=None, database_url=raw, supabase_url="https://abc.supabase.co")
 
     assert settings.database_url == "postgresql+psycopg://u:p@host:5432/postgres?sslmode=require"
 
 
 def test_cors_origins_parse_from_comma_separated_string(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@h/db")
+    monkeypatch.setenv("SUPABASE_URL", "https://abc.supabase.co")
     monkeypatch.setenv("CORS_ALLOWED_ORIGINS", "http://localhost:3000, https://docflow.vercel.app")
 
     settings = load_settings(env_file=None)
@@ -59,3 +60,22 @@ def test_env_example_lists_every_setting() -> None:
     missing = {name.upper() for name in Settings.model_fields} - documented
 
     assert not missing, f"Add these to .env.example: {sorted(missing)}"
+
+
+@pytest.mark.parametrize(
+    "raw", ["https://abc.supabase.co", "https://abc.supabase.co/", "  https://abc.supabase.co  "]
+)
+def test_supabase_url_is_normalised_and_drives_issuer_and_jwks(raw: str) -> None:
+    settings = Settings(_env_file=None, database_url="postgresql://u:p@h/db", supabase_url=raw)
+
+    assert settings.supabase_url == "https://abc.supabase.co"
+    assert settings.auth_issuer == "https://abc.supabase.co/auth/v1"
+    assert settings.auth_jwks_url == "https://abc.supabase.co/auth/v1/.well-known/jwks.json"
+
+
+def test_supabase_url_must_be_http(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@h/db")
+    monkeypatch.setenv("SUPABASE_URL", "abc.supabase.co")
+
+    with pytest.raises(ConfigError, match="SUPABASE_URL"):
+        load_settings(env_file=None)
