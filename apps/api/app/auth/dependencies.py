@@ -1,5 +1,6 @@
 """FastAPI dependencies for authentication (F1 plan §4)."""
 
+import uuid
 from typing import Annotated
 
 import structlog
@@ -9,7 +10,9 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from app.auth.errors import UnauthenticatedError
 from app.auth.verifier import TokenVerifier, VerifiedClaims
 from app.core.db import DbSession
+from app.core.errors import NotFoundError
 from app.core.logging import get_logger
+from app.core.tenancy import WorkspaceScope
 from app.identity import service as identity_service
 from app.identity.service import CurrentUser
 
@@ -50,3 +53,28 @@ async def get_current_user(
 
 
 CurrentUserDep = Annotated[CurrentUser, Depends(get_current_user)]
+
+
+async def require_workspace_member(
+    workspace_id: str, current_user: CurrentUserDep, session: DbSession
+) -> WorkspaceScope:
+    """Resolve `{workspace_id}` from the path into a WorkspaceScope, or 404.
+
+    Malformed IDs, unknown IDs and workspaces the caller isn't in all produce the same
+    404, so responses never reveal whether a workspace exists (AC15). That is also why the
+    path parameter is a plain string: a UUID type would turn malformed IDs into a 422.
+    """
+    try:
+        parsed_id = uuid.UUID(workspace_id)
+    except ValueError:
+        raise NotFoundError() from None
+    role = await identity_service.get_member_role(
+        session, workspace_id=parsed_id, user_id=current_user.id
+    )
+    if role is None:
+        raise NotFoundError()
+    structlog.contextvars.bind_contextvars(workspace_id=str(parsed_id))
+    return WorkspaceScope(workspace_id=parsed_id, user_id=current_user.id, role=role)
+
+
+WorkspaceScopeDep = Annotated[WorkspaceScope, Depends(require_workspace_member)]

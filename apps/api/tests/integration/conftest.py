@@ -118,4 +118,8 @@ async def db_client(
 
 @pytest.fixture
 async def two_workspaces(db_session: AsyncSession) -> TwoWorkspaces:
-    return await make_two_workspaces(db_session)
+    workspaces = await make_two_workspaces(db_session)
+    # Like real pre-existing data: committed (here, a released savepoint), so a request
+    # that fails and rolls back cannot take the fixture rows with it.
+    await db_session.commit()
+    return workspaces

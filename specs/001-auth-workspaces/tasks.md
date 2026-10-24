@@ -54,7 +54,7 @@ The **Done when** line is the check that the task is finished.
   - Tests: `test_ac9_me_returns_user_and_memberships`, `test_ac11_rejected_token_creates_nothing`.
   - **Done when:** the tests pass, and `openapi.json` is regenerated and committed.
 
-- [ ] **F1-T7: Workspace scope and `GET /v1/workspaces/{workspace_id}`** (AC14, AC15, AC19)
+- [x] **F1-T7: Workspace scope and `GET /v1/workspaces/{workspace_id}`** (AC14, AC15, AC19)
   - `require_workspace_member` and `WorkspaceScope`.
   - Tests:
     - `test_ac14_member_gets_workspace_with_role`

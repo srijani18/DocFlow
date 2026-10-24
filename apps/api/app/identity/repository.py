@@ -7,6 +7,7 @@ from sqlalchemy import func, insert, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.tenancy import WorkspaceScope
 from app.identity.models import Membership, User, Workspace
 
 
@@ -76,3 +77,22 @@ async def list_memberships(session: AsyncSession, user_id: uuid.UUID) -> list[Me
         .order_by(Membership.created_at, Workspace.name)
     )
     return [MembershipRow(row.workspace_id, row.name, row.role) for row in rows]
+
+
+async def get_member_role(
+    session: AsyncSession, *, workspace_id: uuid.UUID, user_id: uuid.UUID
+) -> str | None:
+    """The membership check behind every WorkspaceScope. None means "not a member"."""
+    role: str | None = await session.scalar(
+        select(Membership.role).where(
+            Membership.workspace_id == workspace_id, Membership.user_id == user_id
+        )
+    )
+    return role
+
+
+async def get_workspace(session: AsyncSession, scope: WorkspaceScope) -> Workspace | None:
+    workspace: Workspace | None = await session.scalar(
+        select(Workspace).where(Workspace.id == scope.workspace_id)
+    )
+    return workspace

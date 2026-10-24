@@ -7,9 +7,11 @@ from dataclasses import dataclass
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.verifier import VerifiedClaims
+from app.core.errors import NotFoundError
 from app.core.logging import get_logger
+from app.core.tenancy import WorkspaceScope
 from app.identity import repository
-from app.identity.models import WORKSPACE_NAME_MAX_LENGTH
+from app.identity.models import WORKSPACE_NAME_MAX_LENGTH, Workspace
 from app.identity.repository import MembershipRow
 
 log = get_logger(__name__)
@@ -74,3 +76,16 @@ async def provision_or_load(session: AsyncSession, claims: VerifiedClaims) -> Cu
 
 async def list_memberships(session: AsyncSession, user_id: uuid.UUID) -> list[MembershipRow]:
     return await repository.list_memberships(session, user_id)
+
+
+async def get_member_role(
+    session: AsyncSession, *, workspace_id: uuid.UUID, user_id: uuid.UUID
+) -> str | None:
+    return await repository.get_member_role(session, workspace_id=workspace_id, user_id=user_id)
+
+
+async def get_workspace(session: AsyncSession, scope: WorkspaceScope) -> Workspace:
+    workspace = await repository.get_workspace(session, scope)
+    if workspace is None:  # deleted between the membership check and now
+        raise NotFoundError()
+    return workspace

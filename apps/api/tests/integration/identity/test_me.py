@@ -34,6 +34,7 @@ async def test_ac9_me_lists_every_workspace_with_its_role(
 ) -> None:
     w = two_workspaces
     await add_member(db_session, w.b, w.a_admin, "reviewer")
+    await db_session.commit()
 
     response = await db_client.get(
         "/v1/me", headers=bearer(sub=w.a_admin.auth_subject, email=w.a_admin.email)

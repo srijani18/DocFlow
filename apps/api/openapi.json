@@ -164,6 +164,38 @@
         "title": "User",
         "type": "object"
       },
+      "Workspace": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/Role",
+            "description": "The caller's role in this workspace."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "role",
+          "created_at"
+        ],
+        "title": "Workspace",
+        "type": "object"
+      },
       "WorkspaceSummary": {
         "properties": {
           "id": {
@@ -300,6 +332,74 @@
           }
         ],
         "summary": "Get Me",
+        "tags": [
+          "identity"
+        ]
+      }
+    },
+    "/v1/workspaces/{workspace_id}": {
+      "get": {
+        "description": "A workspace the caller belongs to. Anything else is 404 (AC15).",
+        "operationId": "getWorkspace",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Workspace"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get Workspace",
         "tags": [
           "identity"
         ]

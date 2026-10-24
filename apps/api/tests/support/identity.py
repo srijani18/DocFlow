@@ -13,13 +13,36 @@ from app.identity.models import Membership, User, Workspace
 
 
 @dataclass(frozen=True)
+class UserRef:
+    id: uuid.UUID
+    auth_subject: str
+    email: str | None
+
+
+@dataclass(frozen=True)
+class WorkspaceRef:
+    id: uuid.UUID
+    name: str
+
+
+@dataclass(frozen=True)
+class MembershipRef:
+    workspace_id: uuid.UUID
+    user_id: uuid.UUID
+    role: str
+
+
+@dataclass(frozen=True)
 class TwoWorkspaces:
-    a: Workspace
-    b: Workspace
-    a_admin: User
-    a_reviewer: User
-    b_admin: User
-    memberships: tuple[Membership, ...]
+    """Plain values, not ORM objects: a request that rolls back expires the session's
+    objects, and tests must keep working after that."""
+
+    a: WorkspaceRef
+    b: WorkspaceRef
+    a_admin: UserRef
+    a_reviewer: UserRef
+    b_admin: UserRef
+    memberships: tuple[MembershipRef, ...]
 
 
 async def create_user(session: AsyncSession, *, email: str | None = None) -> User:
@@ -37,7 +60,7 @@ async def create_workspace(session: AsyncSession, *, name: str, created_by: User
 
 
 async def add_member(
-    session: AsyncSession, workspace: Workspace, user: User, role: str
+    session: AsyncSession, workspace: Workspace | WorkspaceRef, user: User | UserRef, role: str
 ) -> Membership:
     membership = Membership(workspace_id=workspace.id, user_id=user.id, role=role)
     session.add(membership)
@@ -56,4 +79,15 @@ async def make_two_workspaces(session: AsyncSession) -> TwoWorkspaces:
         await add_member(session, a, a_reviewer, "reviewer"),
         await add_member(session, b, b_admin, "admin"),
     )
-    return TwoWorkspaces(a, b, a_admin, a_reviewer, b_admin, memberships)
+    return TwoWorkspaces(
+        a=WorkspaceRef(a.id, a.name),
+        b=WorkspaceRef(b.id, b.name),
+        a_admin=_user_ref(a_admin),
+        a_reviewer=_user_ref(a_reviewer),
+        b_admin=_user_ref(b_admin),
+        memberships=tuple(MembershipRef(m.workspace_id, m.user_id, m.role) for m in memberships),
+    )
+
+
+def _user_ref(user: User) -> UserRef:
+    return UserRef(user.id, user.auth_subject, user.email)
