@@ -1,0 +1,62 @@
+# Installed by `make setup`. Run everything: `make pre-commit`.
+default_install_hook_types: [pre-commit, commit-msg]
+default_stages: [pre-commit]
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-yaml
+        args: [--allow-multiple-documents]  # pnpm 12 lockfiles are multi-document
+      - id: check-json
+        exclude: ^apps/web/tsconfig\.json$  # JSON with comments is allowed there
+      - id: end-of-file-fixer
+        exclude: ^(apps/api/openapi\.json|apps/web/src/generated/)
+      - id: trailing-whitespace
+        exclude: ^(apps/api/openapi\.json|apps/web/src/generated/)
+      - id: check-added-large-files
+        args: [--maxkb=500]
+      - id: check-merge-conflict
+      - id: detect-private-key
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.0
+    hooks:
+      - id: gitleaks
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.2
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+        files: ^apps/api/
+      - id: ruff-format
+        files: ^apps/api/
+
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v4.4.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: [feat, fix, test, refactor, docs, chore, ci, build, perf]
+
+  - repo: local
+    hooks:
+      - id: api-mypy
+        name: api mypy (strict)
+        entry: bash -c 'cd apps/api && uv run mypy .'
+        language: system
+        files: ^apps/api/.*\.py$
+        pass_filenames: false
+      - id: api-import-linter
+        name: api import-linter
+        entry: bash -c 'cd apps/api && uv run lint-imports'
+        language: system
+        files: ^apps/api/.*\.py$
+        pass_filenames: false
+      - id: web-checks
+        name: web eslint + prettier + tsc
+        entry: bash -c 'cd apps/web && pnpm --silent lint && pnpm --silent format:check && pnpm --silent typecheck'
+        language: system
+        files: ^apps/web/
+        pass_filenames: false
