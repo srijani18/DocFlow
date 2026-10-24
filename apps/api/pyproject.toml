@@ -136,3 +136,5 @@ name = "other modules use identity only through its service facade (ADR-0002)"
 type = "forbidden"
 source_modules = ["app.auth", "app.worker", "app.core"]
 forbidden_modules = ["app.identity.repository", "app.identity.models", "app.identity.routes"]
+# Going through app.identity.service (which uses the repository) is the point.
+allow_indirect_imports = true

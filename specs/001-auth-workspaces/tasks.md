@@ -50,7 +50,7 @@ The **Done when** line is the check that the task is finished.
     - `test_ac8_*`: display name, email local part, the fallback, and cutting to 80 characters at a character boundary
   - **Done when:** the tests pass against real Postgres.
 
-- [ ] **F1-T6: `get_current_user` dependency and `GET /v1/me`** (AC9, AC11)
+- [x] **F1-T6: `get_current_user` dependency and `GET /v1/me`** (AC9, AC11)
   - Tests: `test_ac9_me_returns_user_and_memberships`, `test_ac11_rejected_token_creates_nothing`.
   - **Done when:** the tests pass, and `openapi.json` is regenerated and committed.
 

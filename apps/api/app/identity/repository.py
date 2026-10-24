@@ -1,12 +1,20 @@
 """SQL for users, workspaces and memberships. No business rules here (constitution §11)."""
 
 import uuid
+from dataclasses import dataclass
 
 from sqlalchemy import func, insert, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.identity.models import Membership, User, Workspace
+
+
+@dataclass(frozen=True)
+class MembershipRow:
+    workspace_id: uuid.UUID
+    workspace_name: str
+    role: str
 
 
 async def get_user_by_subject(session: AsyncSession, auth_subject: str) -> User | None:
@@ -56,3 +64,15 @@ async def update_user_profile(
         .where(User.id == user_id)
         .values(email=email, display_name=display_name, updated_at=func.now())
     )
+
+
+async def list_memberships(session: AsyncSession, user_id: uuid.UUID) -> list[MembershipRow]:
+    # tenant-unscoped: lists the caller's own memberships across workspaces, filtered by
+    # user_id; this is how the caller learns which workspace scopes they may use.
+    rows = await session.execute(
+        select(Membership.workspace_id, Workspace.name, Membership.role)
+        .join(Workspace, Workspace.id == Membership.workspace_id)
+        .where(Membership.user_id == user_id)
+        .order_by(Membership.created_at, Workspace.name)
+    )
+    return [MembershipRow(row.workspace_id, row.name, row.role) for row in rows]

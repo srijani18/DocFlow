@@ -12,11 +12,39 @@ import structlog
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 from sqlalchemy.exc import InterfaceError, OperationalError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 PROBLEM_TYPE_BASE = "https://docflow.dev/problems/"
 PROBLEM_CONTENT_TYPE = "application/problem+json"
+
+
+class ProblemFieldError(BaseModel):
+    field: str
+    message: str
+
+
+class Problem(BaseModel):
+    """The body of every error response (OpenAPI documentation only)."""
+
+    type: str
+    title: str
+    status: int
+    detail: str | None = None
+    request_id: str | None = None
+    errors: list[ProblemFieldError] | None = None
+
+
+def problem_responses(*statuses: int) -> dict[int | str, dict[str, Any]]:
+    """`responses=` for a route: document each status as application/problem+json."""
+    return {
+        status: {
+            "description": HTTPStatus(status).phrase,
+            "content": {PROBLEM_CONTENT_TYPE: {"schema": {"$ref": "#/components/schemas/Problem"}}},
+        }
+        for status in statuses
+    }
 
 
 class AppError(Exception):

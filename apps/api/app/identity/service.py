@@ -10,6 +10,7 @@ from app.auth.verifier import VerifiedClaims
 from app.core.logging import get_logger
 from app.identity import repository
 from app.identity.models import WORKSPACE_NAME_MAX_LENGTH
+from app.identity.repository import MembershipRow
 
 log = get_logger(__name__)
 
@@ -69,3 +70,7 @@ async def provision_or_load(session: AsyncSession, claims: VerifiedClaims) -> Cu
             session, user_id=user.id, email=claims.email, display_name=display_name
         )
     return CurrentUser(user.id, user.auth_subject, claims.email, display_name)
+
+
+async def list_memberships(session: AsyncSession, user_id: uuid.UUID) -> list[MembershipRow]:
+    return await repository.list_memberships(session, user_id)

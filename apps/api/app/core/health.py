@@ -12,7 +12,7 @@ from fastapi import APIRouter, Request
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from app.core.errors import DatabaseUnavailableError
+from app.core.errors import DatabaseUnavailableError, problem_responses
 from app.core.logging import get_logger
 
 READINESS_TIMEOUT_SECONDS = 5
@@ -26,7 +26,7 @@ async def healthz() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@router.get("/readyz", responses={503: {"description": "A dependency is unavailable"}})
+@router.get("/readyz", responses=problem_responses(503))
 async def readyz(request: Request) -> dict[str, str]:
     engine: AsyncEngine = request.app.state.engine
     try:

@@ -83,3 +83,12 @@ def supabase_claims(**overrides: Any) -> dict[str, Any]:
     }
     claims.update(overrides)
     return {key: value for key, value in claims.items() if value is not ...}
+
+
+# The key the integration-test app trusts (see `db_client`).
+TEST_SIGNING_KEY = make_es256_key("test-key")
+
+
+def bearer(**claim_overrides: Any) -> dict[str, str]:
+    """Authorization header for a signed-in user; pass `sub=` to act as a known user."""
+    return {"Authorization": f"Bearer {TEST_SIGNING_KEY.sign(supabase_claims(**claim_overrides))}"}
