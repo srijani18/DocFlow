@@ -4,6 +4,7 @@ import { toApiError } from "@/lib/api/transient";
 
 export type DocumentSummary = components["schemas"]["Document"];
 export type DocumentPage = components["schemas"]["DocumentPage"];
+export type Extraction = components["schemas"]["Extraction"];
 
 export const documentKeys = {
   list: (workspaceId: string) => ["documents", workspaceId] as const,
@@ -55,6 +56,20 @@ export async function retryDocument(
 ): Promise<DocumentSummary> {
   const { data, error, response } = await api.POST(
     "/v1/workspaces/{workspace_id}/documents/{document_id}/retry",
+    { params: { path: { workspace_id: workspaceId, document_id: documentId } } },
+  );
+  if (data === undefined) {
+    throw toApiError(response, error);
+  }
+  return data;
+}
+
+export async function fetchExtraction(
+  workspaceId: string,
+  documentId: string,
+): Promise<Extraction> {
+  const { data, error, response } = await api.GET(
+    "/v1/workspaces/{workspace_id}/documents/{document_id}/extraction",
     { params: { path: { workspace_id: workspaceId, document_id: documentId } } },
   );
   if (data === undefined) {

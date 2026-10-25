@@ -83,6 +83,10 @@ class Settings(DatabaseSettings):
     llm_timeout_seconds: float = 60
     llm_classify_model: str = "gemini-flash-lite-latest"
     llm_classify_prompt: str = "classify/v1"
+    # Flash-Lite, not Flash: on the free tier Flash timed out or returned 503 while Flash-Lite
+    # extracted the synthetic invoice correctly in about 6 s (F5 spec D1, measured 2026-10-26).
+    llm_extract_model: str = "gemini-flash-lite-latest"
+    llm_extract_prompt: str = "extract/v1"
 
     cors_allowed_origins: Annotated[list[str], NoDecode] = []
     cors_allowed_origin_regex: str | None = None

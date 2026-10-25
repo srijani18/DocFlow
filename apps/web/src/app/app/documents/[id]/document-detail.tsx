@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 
 import { DocTypeLabel, OTHER_NOTE } from "@/components/doc-type";
 import { DocumentStatusBadge } from "@/components/document-status";
+import { ExtractionView } from "./extraction-view";
 import { MeGate } from "@/components/me-gate";
 import { Button } from "@/components/ui/button";
 import { useDocumentEvents } from "@/hooks/use-document-events";
@@ -120,6 +121,9 @@ export function DocumentDetail({
           </span>
         )}
       </div>
+      {doc.status === "NEEDS_REVIEW" && doc.doc_type !== null && doc.doc_type !== "other" && (
+        <ExtractionView workspaceId={workspaceId} documentId={documentId} />
+      )}
     </div>
   );
 }

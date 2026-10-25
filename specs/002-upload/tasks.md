@@ -20,4 +20,4 @@ Tests first, named after the criteria; tick each box in the same PR.
   - Tests: `AC2: rejects large or wrong-type files before upload`, `AC3: duplicate shows link to existing document`, `AC6: one failing file doesn't stop the others`, `AC7: shows the synthetic-data notice`.
 - [x] **F2-T7: Web list and detail pages** (AC8, AC9) — `/app/documents`, `/app/documents/[id]`, link from home.
   - Tests: `AC8: list renders and loads more`, `AC9: view original opens a signed URL`.
-- [ ] **F2-T8: Local check and close-out** — real upload to `documents-dev` through the UI; spec/plan updated with anything learned; status `Implemented`.
+- [x] **F2-T8: Local check and close-out** — real upload to `documents-dev` through the UI; spec/plan updated with anything learned; status `Implemented`.

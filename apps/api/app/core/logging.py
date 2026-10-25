@@ -18,10 +18,14 @@ REDACTED = "[REDACTED]"
 
 _SENSITIVE_EXACT = frozenset({"authorization", "cookie", "set-cookie", "email", "password"})
 _SENSITIVE_PARTS = ("token", "secret", "password", "api_key", "apikey", "dsn")
+# LLM usage counts contain "token" but are numbers we need in logs (constitution §5.2).
+_NOT_SENSITIVE = frozenset({"input_tokens", "output_tokens", "total_tokens"})
 
 
 def _is_sensitive(key: str) -> bool:
     lowered = key.lower()
+    if lowered in _NOT_SENSITIVE:
+        return False
     return lowered in _SENSITIVE_EXACT or any(part in lowered for part in _SENSITIVE_PARTS)
 
 

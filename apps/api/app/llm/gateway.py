@@ -7,9 +7,10 @@ attempt. F10 adds fallback routes, a circuit breaker and a cache behind the same
 import json
 import time
 import uuid
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from decimal import Decimal
+from typing import Any
 
 from sqlalchemy import insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -31,6 +32,9 @@ from app.schemas_registry import validation_errors
 
 log = get_logger(__name__)
 
+# A schema id from schemas/, or a function returning the problems with an answer.
+Validator = str | Callable[[dict[str, Any]], list[str]]
+
 
 @dataclass(frozen=True)
 class Route:
@@ -50,12 +54,13 @@ class Gateway:
         self._providers = providers
         self._routes = routes
 
-    async def generate(self, request: LlmRequest, *, validate_with: str) -> LlmResult:
+    async def generate(self, request: LlmRequest, *, validate_with: Validator) -> LlmResult:
         """Call the task's model and return schema-valid JSON.
 
-        `validate_with` names the schema in `schemas/` the answer must satisfy (for F5, the
-        extraction envelope). Raises TransientLlmError, PermanentLlmError or
-        InvalidOutputError; every attempt is logged either way (F4 AC4).
+        `validate_with` is the schema id in `schemas/` the answer must satisfy, or a function
+        for checks a single schema can't express (F5's extraction envelope). Raises
+        TransientLlmError, PermanentLlmError or InvalidOutputError; every attempt is logged
+        either way (F4 AC4).
         """
         route = self._routes[request.task]
         provider = self._providers[route.provider]
@@ -89,7 +94,7 @@ class Gateway:
         )
 
     @staticmethod
-    def _parse_and_validate(response: ProviderResponse, schema_id: str) -> dict[str, object]:
+    def _parse_and_validate(response: ProviderResponse, validate_with: Validator) -> dict[str, Any]:
         if response.truncated:
             raise InvalidOutputError("answer was cut off at the output token limit")
         try:
@@ -99,7 +104,10 @@ class Gateway:
             raise InvalidOutputError(f"answer is not JSON: {exc.msg}") from exc
         if not isinstance(data, dict):
             raise InvalidOutputError("answer is not a JSON object")
-        problems = validation_errors(schema_id, data)
+        if isinstance(validate_with, str):
+            problems = validation_errors(validate_with, data)
+        else:
+            problems = validate_with(data)
         if problems:
             raise InvalidOutputError("; ".join(problems[:5]))
         return data

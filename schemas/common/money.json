@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.docflow.dev/common/money.json",
+  "title": "Money",
+  "description": "An amount as printed, with its currency.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "amount",
+    "currency"
+  ],
+  "properties": {
+    "amount": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "description": "The amount as a number, without currency symbols or thousands separators.",
+      "x-eval": "numeric:0.01"
+    },
+    "currency": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[A-Z]{3}$",
+      "description": "ISO 4217 code, e.g. INR.",
+      "x-eval": "exact"
+    }
+  }
+}

@@ -1,0 +1,227 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.docflow.dev/documents/invoice.v1.json",
+  "x-schema-id": "docflow/invoice/v1",
+  "title": "Invoice",
+  "description": "A tax invoice or bill from a seller.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "invoice_number",
+    "invoice_date",
+    "due_date",
+    "vendor",
+    "buyer",
+    "place_of_supply",
+    "currency",
+    "line_items",
+    "subtotal",
+    "taxes",
+    "total"
+  ],
+  "properties": {
+    "invoice_number": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Invoice number as printed.",
+      "x-eval": "exact"
+    },
+    "invoice_date": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date",
+      "description": "Invoice date (YYYY-MM-DD).",
+      "x-eval": "exact"
+    },
+    "due_date": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date",
+      "description": "Payment due date (YYYY-MM-DD).",
+      "x-eval": "exact"
+    },
+    "vendor": {
+      "anyOf": [
+        {
+          "$ref": "../common/party.json"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The seller who issued the invoice."
+    },
+    "buyer": {
+      "anyOf": [
+        {
+          "$ref": "../common/party.json"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The customer billed."
+    },
+    "place_of_supply": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "GST place of supply (state).",
+      "x-eval": "fuzzy"
+    },
+    "currency": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[A-Z]{3}$",
+      "description": "ISO 4217 code, e.g. INR.",
+      "x-eval": "exact"
+    },
+    "line_items": {
+      "type": "array",
+      "description": "Each billed line, in order.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "description",
+          "hsn_sac",
+          "quantity",
+          "unit_price",
+          "amount"
+        ],
+        "properties": {
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "What was sold.",
+            "x-eval": "fuzzy"
+          },
+          "hsn_sac": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "HSN or SAC code.",
+            "x-eval": "exact"
+          },
+          "quantity": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Quantity.",
+            "x-eval": "numeric:0.01"
+          },
+          "unit_price": {
+            "anyOf": [
+              {
+                "$ref": "../common/money.json"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Price per unit."
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "$ref": "../common/money.json"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Line total."
+          }
+        }
+      }
+    },
+    "subtotal": {
+      "anyOf": [
+        {
+          "$ref": "../common/money.json"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Total before tax."
+    },
+    "taxes": {
+      "type": "array",
+      "description": "Each tax line (CGST, SGST, IGST…).",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "rate_percent",
+          "amount"
+        ],
+        "properties": {
+          "type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "CGST",
+                  "SGST",
+                  "IGST",
+                  "CESS",
+                  "OTHER"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Tax kind, or null if not stated.",
+            "x-eval": "exact"
+          },
+          "rate_percent": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Rate in percent, e.g. 9 for 9%.",
+            "x-eval": "numeric:0.01"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "$ref": "../common/money.json"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Tax amount."
+          }
+        }
+      }
+    },
+    "total": {
+      "anyOf": [
+        {
+          "$ref": "../common/money.json"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Grand total payable."
+    }
+  }
+}

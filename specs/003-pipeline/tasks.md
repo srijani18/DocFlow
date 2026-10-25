@@ -17,4 +17,4 @@
   - Tests: `test_ac9_status_change_streamed`, `test_ac10_other_workspace_events_not_streamed`, `test_sse_keepalive_and_max_duration`. **Done when:** `make check-gen` clean.
 - [x] **F3-T7: Web live status** (AC8, AC9) — `lib/api/events.ts`, `use-document-events`, status badge, retry button.
   - Tests: `AC9: list updates when a status event arrives`, `AC9: reconnects after the stream drops`, `AC8: retry button shown only for FAILED`.
-- [ ] **F3-T8: Close-out** — local end-to-end: upload → statuses advance live (with stub steps until F4/F5); spec status `Implemented`.
+- [x] **F3-T8: Close-out** — local end-to-end: upload → statuses advance live (with stub steps until F4/F5); spec status `Implemented`.

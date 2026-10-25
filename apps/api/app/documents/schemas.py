@@ -1,7 +1,8 @@
 """API models for uploads and documents (F2 plan §2)."""
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
+from decimal import Decimal
 from enum import StrEnum
 from typing import Annotated, Literal
 
@@ -38,6 +39,10 @@ class Document(BaseModel):
     failure_reason: str | None
     doc_type: DocType | None = Field(description="Set by classification (F4)")
     doc_type_confidence: float | None
+    vendor_name: str | None = Field(description="From the current extraction (F5)")
+    document_date: date | None
+    total_amount: Decimal | None = Field(description="Exact decimal, serialised as a string")
+    currency: str | None
     created_at: datetime
     updated_at: datetime
 

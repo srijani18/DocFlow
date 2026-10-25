@@ -17,6 +17,7 @@ from app.llm.gateway import Gateway, Route
 from app.llm.providers.gemini import GeminiProvider
 from app.pipeline.runner import Pipeline
 from app.pipeline.steps.classify import ClassifyStep
+from app.pipeline.steps.extract import ExtractStep
 from app.storage.supabase import SupabaseStorage
 from app.worker.loop import Worker
 
@@ -56,6 +57,7 @@ def build_services(settings: Settings) -> Services:
             storage=storage,
             publish=events.publish,
             classify=ClassifyStep(gateway, prompt_version=settings.llm_classify_prompt),
+            extract=ExtractStep(gateway, prompt_version=settings.llm_extract_prompt),
         )
         worker = Worker(sessionmaker=sessionmaker, pipeline=pipeline, events=events)
     return Services(engine, sessionmaker, http, storage, events, worker)
@@ -73,5 +75,8 @@ def build_gateway(
     return Gateway(
         sessionmaker=sessionmaker,
         providers={gemini.name: gemini},
-        routes={"classify": Route(gemini.name, settings.llm_classify_model)},
+        routes={
+            "classify": Route(gemini.name, settings.llm_classify_model),
+            "extract": Route(gemini.name, settings.llm_extract_model),
+        },
     )

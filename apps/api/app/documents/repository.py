@@ -1,7 +1,8 @@
 """SQL for uploads and documents. Every function takes a WorkspaceScope (constitution §4)."""
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
+from decimal import Decimal
 
 from sqlalchemy import func, insert, select, tuple_, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -202,4 +203,29 @@ async def set_classification(
         update(Document)
         .where(Document.workspace_id == scope.workspace_id, Document.id == document_id)
         .values(doc_type=doc_type, doc_type_confidence=confidence, updated_at=func.now())
+    )
+
+
+async def set_current_extraction(
+    session: AsyncSession,
+    scope: WorkspaceScope,
+    document_id: uuid.UUID,
+    *,
+    extraction_id: uuid.UUID,
+    vendor_name: str | None,
+    document_date: date | None,
+    total_amount: Decimal | None,
+    currency: str | None,
+) -> None:
+    await session.execute(
+        update(Document)
+        .where(Document.workspace_id == scope.workspace_id, Document.id == document_id)
+        .values(
+            current_extraction_id=extraction_id,
+            vendor_name=vendor_name,
+            document_date=document_date,
+            total_amount=total_amount,
+            currency=currency,
+            updated_at=func.now(),
+        )
     )
