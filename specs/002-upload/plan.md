@@ -167,4 +167,4 @@ sequenceDiagram
 
 ## 10. Configuration added
 
-`SUPABASE_SECRET_KEY` (secret), `SUPABASE_STORAGE_BUCKET` (`documents-dev` locally, `documents` in production), `UPLOAD_MAX_BYTES` (default 10485760). Web: `NEXT_PUBLIC_*` already present.
+`SUPABASE_SECRET_KEY` (secret), `SUPABASE_STORAGE_BUCKET` (`documents-dev` locally, `documents` in production). The 10 MB limit is a constant shared by the API schema and the table's CHECK constraint, not a setting, so they can't drift apart. Web: `NEXT_PUBLIC_*` already present.

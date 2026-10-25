@@ -20,6 +20,15 @@ export class ApiError extends Error {
   }
 }
 
+function isProblem(value: unknown): value is Problem {
+  return typeof value === "object" && value !== null && "title" in value && "status" in value;
+}
+
+/** An ApiError for a failed openapi-fetch call, keeping the problem body when there is one. */
+export function toApiError(response: Response, error: unknown): ApiError {
+  return new ApiError(response.status, isProblem(error) ? error : undefined);
+}
+
 const TRANSIENT_STATUSES = new Set([502, 503, 504]);
 
 export const COLD_START_BUDGET_MS = 90_000;

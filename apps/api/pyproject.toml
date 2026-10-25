@@ -132,6 +132,20 @@ forbidden_modules = ["fastapi", "starlette"]
 allow_indirect_imports = true
 
 [[tool.importlinter.contracts]]
+name = "documents domain logic has no direct web-framework imports"
+type = "forbidden"
+source_modules = ["app.documents.service", "app.documents.repository", "app.documents.models", "app.storage.client", "app.storage.supabase", "app.storage.fake"]
+forbidden_modules = ["fastapi", "starlette"]
+allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+name = "other modules use documents only through its service facade (ADR-0002)"
+type = "forbidden"
+source_modules = ["app.auth", "app.worker", "app.core", "app.identity", "app.storage"]
+forbidden_modules = ["app.documents.repository", "app.documents.routes"]
+allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
 name = "other modules use identity only through its service facade (ADR-0002)"
 type = "forbidden"
 source_modules = ["app.auth", "app.worker", "app.core"]

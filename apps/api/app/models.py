@@ -3,7 +3,7 @@
 import importlib
 
 # Add each feature's models module here as it is created.
-MODEL_MODULES: tuple[str, ...] = ("app.identity.models",)
+MODEL_MODULES: tuple[str, ...] = ("app.identity.models", "app.documents.models")
 
 
 def import_all_models() -> None:
