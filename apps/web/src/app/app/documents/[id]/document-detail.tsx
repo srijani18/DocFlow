@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
+import { DocTypeLabel, OTHER_NOTE } from "@/components/doc-type";
 import { DocumentStatusBadge } from "@/components/document-status";
 import { MeGate } from "@/components/me-gate";
 import { Button } from "@/components/ui/button";
@@ -79,8 +80,15 @@ export function DocumentDetail({
         <h2 className="text-xl font-semibold break-all">{doc.filename}</h2>
         <DocumentStatusBadge status={doc.status} />
       </div>
+      {doc.doc_type === "other" && (
+        <p className="rounded-md border px-3 py-2 text-sm">{OTHER_NOTE}.</p>
+      )}
       <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
-        <dt className="text-muted-foreground">Type</dt>
+        <dt className="text-muted-foreground">Document type</dt>
+        <dd>
+          <DocTypeLabel docType={doc.doc_type} confidence={doc.doc_type_confidence} />
+        </dd>
+        <dt className="text-muted-foreground">File type</dt>
         <dd>{doc.content_type}</dd>
         <dt className="text-muted-foreground">Size</dt>
         <dd>{formatBytes(doc.size_bytes)}</dd>

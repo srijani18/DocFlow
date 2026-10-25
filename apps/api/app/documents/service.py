@@ -308,3 +308,16 @@ async def load_for_job(
         workspace_id=workspace_id, user_id=document.created_by_user_id, role=WORKER_ROLE
     )
     return scope, document
+
+
+async def set_classification(
+    session: AsyncSession,
+    scope: WorkspaceScope,
+    document_id: uuid.UUID,
+    *,
+    doc_type: str,
+    confidence: float,
+) -> None:
+    await repository.set_classification(
+        session, scope, document_id, doc_type=doc_type, confidence=confidence
+    )

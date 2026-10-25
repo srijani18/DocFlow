@@ -188,3 +188,18 @@ async def get_document_for_job(
         select(Document).where(Document.workspace_id == workspace_id, Document.id == document_id)
     )
     return document
+
+
+async def set_classification(
+    session: AsyncSession,
+    scope: WorkspaceScope,
+    document_id: uuid.UUID,
+    *,
+    doc_type: str,
+    confidence: float,
+) -> None:
+    await session.execute(
+        update(Document)
+        .where(Document.workspace_id == scope.workspace_id, Document.id == document_id)
+        .values(doc_type=doc_type, doc_type_confidence=confidence, updated_at=func.now())
+    )

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.docflow.dev/classification.v1.json",
+  "x-schema-id": "docflow/classification/v1",
+  "title": "Classification",
+  "description": "What kind of document this is, and how sure the model is.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["doc_type", "confidence"],
+  "properties": {
+    "doc_type": {
+      "description": "invoice, receipt, purchase_order, or other for anything else.",
+      "enum": ["invoice", "receipt", "purchase_order", "other"],
+      "x-eval": "exact"
+    },
+    "confidence": {
+      "description": "Probability from 0 to 1 that doc_type is correct.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    }
+  }
+}

@@ -7,7 +7,7 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
-from app.documents.models import MAX_UPLOAD_BYTES, DocumentStatus
+from app.documents.models import MAX_UPLOAD_BYTES, DocType, DocumentStatus
 
 
 class ContentType(StrEnum):
@@ -36,6 +36,8 @@ class Document(BaseModel):
     status: DocumentStatus
     status_changed_at: datetime
     failure_reason: str | None
+    doc_type: DocType | None = Field(description="Set by classification (F4)")
+    doc_type_confidence: float | None
     created_at: datetime
     updated_at: datetime
 
