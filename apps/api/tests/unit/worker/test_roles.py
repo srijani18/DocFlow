@@ -5,7 +5,6 @@ import pytest
 from app import __main__ as entrypoint
 from app.core.config import ConfigError, Role, load_settings
 from app.main import create_app
-from app.worker.loop import Worker
 from tests.conftest import make_settings
 
 
@@ -59,19 +58,3 @@ def test_invalid_role_fails_fast(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_role_capabilities(role: Role, http: bool, worker: bool) -> None:
     assert role.serves_http is http
     assert role.runs_worker is worker
-
-
-async def test_worker_wakes_on_signal_and_never_needs_the_database() -> None:
-    # Phase 0 placeholder: the worker idles on its wake event (overview §5) and runs no
-    # queries.
-    worker = Worker(heartbeat_seconds=3600)
-    task = asyncio.create_task(worker.run())
-    await asyncio.sleep(0)
-
-    worker.wake()
-    await asyncio.sleep(0)
-    assert worker.wakeups == 1
-
-    task.cancel()
-    with pytest.raises(asyncio.CancelledError):
-        await task

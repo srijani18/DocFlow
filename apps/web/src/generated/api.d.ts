@@ -139,6 +139,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/workspaces/{workspace_id}/documents/{document_id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retry Document
+         * @description Process a FAILED document again with a fresh set of attempts (F3 AC8).
+         */
+        post: operations["retryDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{workspace_id}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Stream Events
+         * @description Status changes for the caller's workspace only. The membership check (and its
+         *     database session) finishes before streaming starts, so no connection is held open.
+         */
+        get: operations["streamEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/workspaces/{workspace_id}/uploads": {
         parameters: {
             query?: never;
@@ -170,7 +211,8 @@ export interface paths {
         put?: never;
         /**
          * Complete Upload
-         * @description Record the uploaded file as a document once it is in storage (AC1, AC4, AC5).
+         * @description Record the uploaded file as a document once it is in storage (AC1, AC4, AC5), and
+         *     queue its processing (F3 AC1).
          */
         post: operations["completeUpload"];
         delete?: never;
@@ -211,6 +253,11 @@ export interface components {
             size_bytes: number;
             status: components["schemas"]["DocumentStatus"];
             /**
+             * Status Changed At
+             * Format: date-time
+             */
+            status_changed_at: string;
+            /**
              * Updated At
              * Format: date-time
              */
@@ -225,9 +272,10 @@ export interface components {
         };
         /**
          * DocumentStatus
+         * @description F3 statuses. F6 adds VALIDATING and APPROVED.
          * @enum {string}
          */
-        DocumentStatus: "UPLOADED";
+        DocumentStatus: "UPLOADED" | "CLASSIFYING" | "EXTRACTING" | "NEEDS_REVIEW" | "FAILED";
         /** FileUrl */
         FileUrl: {
             /**
@@ -740,6 +788,114 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FileUrl"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    retryDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Document"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    streamEvents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `ready`, then `document.status` events (DocumentStatusEvent JSON) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": string;
                 };
             };
             /** @description Unauthorized */

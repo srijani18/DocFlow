@@ -3,7 +3,7 @@
 from fastapi import APIRouter
 
 from app.auth.dependencies import AdminScopeDep, CurrentUserDep, WorkspaceScopeDep
-from app.core.db import DbSession
+from app.core.db_session import DbSession
 from app.core.errors import problem_responses
 from app.identity import service
 from app.identity.models import Workspace as WorkspaceRow

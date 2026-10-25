@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from sqlalchemy import text
 
 from app.core.config import Settings
-from app.core.db import DbSession
+from app.core.db_session import DbSession
 from app.main import create_app
 from tests.conftest import asgi_client
 

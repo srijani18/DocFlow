@@ -2,8 +2,20 @@
 
 import uuid
 from datetime import datetime
+from enum import StrEnum
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, Integer, Text, func, text
+from sqlalchemy import (
+    BigInteger,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Identity,
+    Index,
+    Integer,
+    Text,
+    func,
+    text,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base
@@ -12,6 +24,22 @@ CONTENT_TYPES = ("application/pdf", "image/png", "image/jpeg")
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 
 _CONTENT_TYPE_LIST = ", ".join(f"'{content_type}'" for content_type in CONTENT_TYPES)
+
+
+class DocumentStatus(StrEnum):
+    """F3 statuses. F6 adds VALIDATING and APPROVED."""
+
+    UPLOADED = "UPLOADED"
+    CLASSIFYING = "CLASSIFYING"
+    EXTRACTING = "EXTRACTING"
+    NEEDS_REVIEW = "NEEDS_REVIEW"
+    FAILED = "FAILED"
+
+
+PROCESSING_STATUSES = frozenset(
+    {DocumentStatus.UPLOADED, DocumentStatus.CLASSIFYING, DocumentStatus.EXTRACTING}
+)
+_STATUS_LIST = ", ".join(f"'{status}'" for status in DocumentStatus)
 
 
 def _uuid_pk() -> Mapped[uuid.UUID]:
@@ -47,6 +75,7 @@ class Document(Base):
     __table_args__ = (
         CheckConstraint(f"content_type IN ({_CONTENT_TYPE_LIST})", name="content_type"),
         CheckConstraint(f"size_bytes BETWEEN 1 AND {MAX_UPLOAD_BYTES}", name="size_bytes"),
+        CheckConstraint(f"status IN ({_STATUS_LIST})", name="status"),
         # The real duplicate guard (AC3); the check when an upload starts is a shortcut.
         Index("uq_documents_workspace_sha256", "workspace_id", "sha256", unique=True),
         Index("ix_documents_workspace_created", "workspace_id", "created_at", "id"),
@@ -64,6 +93,31 @@ class Document(Base):
     sha256: Mapped[str] = mapped_column(Text)
     status: Mapped[str] = mapped_column(Text)
     failure_reason: Mapped[str | None] = mapped_column(Text)
+    status_changed_at: Mapped[datetime] = _timestamp()
+    # Bumped by each retry, so each processing run has its own job key (F3 plan §3).
+    processing_generation: Mapped[int] = mapped_column(Integer, server_default=text("1"))
     created_by_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("docflow.users.id"))
     created_at: Mapped[datetime] = _timestamp()
     updated_at: Mapped[datetime] = _timestamp()
+
+
+class DocumentEvent(Base):
+    """Every status change, with its time (F3 AC2). Feeds the latency metric."""
+
+    __tablename__ = "document_events"
+    __table_args__ = (Index("ix_document_events_document", "document_id", "id"),)
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    workspace_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("docflow.workspaces.id", ondelete="CASCADE"), index=True
+    )
+    document_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("docflow.documents.id", ondelete="CASCADE")
+    )
+    from_status: Mapped[str | None] = mapped_column(Text)
+    to_status: Mapped[str] = mapped_column(Text)
+    job_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("docflow.jobs.id", ondelete="SET NULL")
+    )
+    detail: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = _timestamp()

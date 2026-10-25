@@ -13,7 +13,7 @@ import uvicorn
 from app.core.config import Settings, load_settings
 from app.core.logging import configure_logging
 from app.main import create_app
-from app.worker.loop import Worker
+from app.wiring import build_services
 
 
 def serve_http(settings: Settings) -> None:
@@ -28,18 +28,24 @@ def serve_http(settings: Settings) -> None:
     )
 
 
-async def _run_worker_until_signal() -> None:
-    task = asyncio.create_task(Worker().run())
+async def _run_worker_until_signal(settings: Settings) -> None:
+    services = build_services(settings)
+    if services.worker is None:  # pragma: no cover - only called for ROLE=worker
+        raise RuntimeError("ROLE does not run the worker")
+    task = asyncio.create_task(services.worker.run())
     loop = asyncio.get_running_loop()
     for sig in (signal.SIGTERM, signal.SIGINT):
         loop.add_signal_handler(sig, task.cancel)
-    with contextlib.suppress(asyncio.CancelledError):
-        await task
+    try:
+        with contextlib.suppress(asyncio.CancelledError):
+            await task
+    finally:
+        await services.aclose()
 
 
 def run_worker_process(settings: Settings) -> None:
     configure_logging(settings)
-    asyncio.run(_run_worker_until_signal())
+    asyncio.run(_run_worker_until_signal(settings))
 
 
 def main(settings: Settings | None = None) -> None:

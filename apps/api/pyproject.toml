@@ -48,7 +48,8 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101", "S105", "S106", "PLR2004"]
+# PLR0913/PLR0917: pytest injects fixtures by parameter name, so long signatures are normal.
+"tests/**" = ["S101", "S105", "S106", "PLR2004", "PLR0913", "PLR0917"]
 "migrations/**" = ["N999"]
 
 [tool.ruff.lint.flake8-tidy-imports.banned-api]

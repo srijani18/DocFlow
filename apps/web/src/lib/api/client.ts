@@ -72,5 +72,8 @@ const supabaseAuth: AuthSource = {
   },
 };
 
+/** The current Supabase access token, for requests made outside the typed client (SSE). */
+export const getAccessToken = () => supabaseAuth.accessToken();
+
 /** Typed client generated from apps/api/openapi.json (`make gen`). Use from Client Components. */
 export const api = createApiClient(supabaseAuth);

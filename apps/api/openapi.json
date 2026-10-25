@@ -51,6 +51,11 @@
           "status": {
             "$ref": "#/components/schemas/DocumentStatus"
           },
+          "status_changed_at": {
+            "format": "date-time",
+            "title": "Status Changed At",
+            "type": "string"
+          },
           "updated_at": {
             "format": "date-time",
             "title": "Updated At",
@@ -64,6 +69,7 @@
           "size_bytes",
           "sha256",
           "status",
+          "status_changed_at",
           "failure_reason",
           "created_at",
           "updated_at"
@@ -100,8 +106,13 @@
         "type": "object"
       },
       "DocumentStatus": {
+        "description": "F3 statuses. F6 adds VALIDATING and APPROVED.",
         "enum": [
-          "UPLOADED"
+          "UPLOADED",
+          "CLASSIFYING",
+          "EXTRACTING",
+          "NEEDS_REVIEW",
+          "FAILED"
         ],
         "title": "DocumentStatus",
         "type": "string"
@@ -997,6 +1008,161 @@
         ]
       }
     },
+    "/v1/workspaces/{workspace_id}/documents/{document_id}/retry": {
+      "post": {
+        "description": "Process a FAILED document again with a fresh set of attempts (F3 AC8).",
+        "operationId": "retryDocument",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Document"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Retry Document",
+        "tags": [
+          "documents"
+        ]
+      }
+    },
+    "/v1/workspaces/{workspace_id}/events": {
+      "get": {
+        "description": "Status changes for the caller's workspace only. The membership check (and its\ndatabase session) finishes before streaming starts, so no connection is held open.",
+        "operationId": "streamEvents",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "`ready`, then `document.status` events (DocumentStatusEvent JSON)"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Stream Events",
+        "tags": [
+          "events"
+        ]
+      }
+    },
     "/v1/workspaces/{workspace_id}/uploads": {
       "post": {
         "description": "Start an upload: returns a signed upload ticket, or the existing duplicate.",
@@ -1112,7 +1278,7 @@
     },
     "/v1/workspaces/{workspace_id}/uploads/{upload_id}/complete": {
       "post": {
-        "description": "Record the uploaded file as a document once it is in storage (AC1, AC4, AC5).",
+        "description": "Record the uploaded file as a document once it is in storage (AC1, AC4, AC5), and\nqueue its processing (F3 AC1).",
         "operationId": "completeUpload",
         "parameters": [
           {

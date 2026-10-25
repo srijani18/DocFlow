@@ -7,6 +7,7 @@ import { DocumentStatusBadge } from "@/components/document-status";
 import { MeGate } from "@/components/me-gate";
 import { Button } from "@/components/ui/button";
 import { UploadDropzone } from "@/components/upload-dropzone";
+import { useDocumentEvents } from "@/hooks/use-document-events";
 import { documentKeys, fetchDocumentPage } from "@/lib/api/documents";
 import { currentWorkspace } from "@/lib/api/me";
 import { formatBytes, formatDateTime } from "@/lib/format";
@@ -32,6 +33,7 @@ export function DocumentsView() {
 
 /** The workspace's documents, newest first, 50 at a time (F2 AC8). */
 export function DocumentList({ workspaceId }: { workspaceId: string }) {
+  useDocumentEvents(workspaceId);
   const documents = useInfiniteQuery({
     queryKey: documentKeys.list(workspaceId),
     queryFn: ({ pageParam }) => fetchDocumentPage(workspaceId, pageParam),

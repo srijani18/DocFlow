@@ -9,6 +9,8 @@ import { DocumentDetail } from "./document-detail";
 
 const supabase = createSupabaseMock();
 vi.mock("@/lib/supabase/browser", () => ({ getSupabaseBrowserClient: () => supabase.client }));
+// Live updates have their own tests; here they would consume the fetch mocks.
+vi.mock("@/hooks/use-document-events", () => ({ useDocumentEvents: () => undefined }));
 
 const DOCUMENT = makeDocument();
 
@@ -55,5 +57,39 @@ describe("DocumentDetail", () => {
     renderDetail();
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Document not found.");
+  });
+});
+
+describe("DocumentDetail retry", () => {
+  it("AC8: retry button shown only for FAILED", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      Response.json(makeDocument({ status: "NEEDS_REVIEW" })),
+    );
+
+    renderDetail();
+
+    expect(await screen.findByText("Needs review")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
+  });
+
+  it("AC8: retry requeues a failed document", async () => {
+    const failed = makeDocument({
+      status: "FAILED",
+      failure_reason: "AI service unavailable after 5 attempts",
+    });
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(Response.json(failed))
+      .mockResolvedValueOnce(Response.json(makeDocument({ status: "UPLOADED" }), { status: 202 }));
+
+    renderDetail();
+    expect(await screen.findByText("AI service unavailable after 5 attempts")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+
+    expect(await screen.findByText("Queued")).toBeInTheDocument();
+    const request = fetchMock.mock.calls[1]?.[0] as Request;
+    expect(request.url).toBe(
+      `http://api.test/v1/workspaces/${WORKSPACE_ID}/documents/${failed.id}/retry`,
+    );
   });
 });
