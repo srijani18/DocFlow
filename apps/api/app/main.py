@@ -5,7 +5,6 @@ import contextlib
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-import httpx
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import APIRoute
@@ -15,15 +14,14 @@ from app.auth.verifier import TokenVerifier
 from app.core import health
 from app.core.clock import SystemClock
 from app.core.config import Settings, load_settings
-from app.core.db import create_engine, create_sessionmaker
-from app.core.errors import install_error_handlers
+from app.core.error_handlers import install_error_handlers
 from app.core.logging import configure_logging
 from app.core.openapi_docs import install_problem_openapi
 from app.core.request_context import REQUEST_ID_HEADER, RequestContextMiddleware
 from app.documents import routes as document_routes
+from app.events import routes as event_routes
 from app.identity import routes as identity_routes
-from app.storage.supabase import SupabaseStorage
-from app.worker.loop import Worker
+from app.wiring import build_services
 
 
 def _operation_id(route: APIRoute) -> str:
@@ -35,12 +33,10 @@ def _operation_id(route: APIRoute) -> str:
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or load_settings()
     configure_logging(settings)
-    engine = create_engine(settings)
-    # One HTTP client for outbound calls (JWKS now; storage and LLMs later).
-    http = httpx.AsyncClient()
+    services = build_services(settings)
     jwks = JwksCache(
         settings.auth_jwks_url,
-        http=http,
+        http=services.http,
         clock=SystemClock(),
         ttl_seconds=settings.auth_jwks_cache_ttl_seconds,
     )
@@ -59,8 +55,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 worker_task.cancel()
                 with contextlib.suppress(asyncio.CancelledError):
                     await worker_task
-            await http.aclose()
-            await engine.dispose()
+            await services.aclose()
 
     app = FastAPI(
         title="DocFlow API",
@@ -69,16 +64,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         generate_unique_id_function=_operation_id,
     )
     app.state.settings = settings
-    app.state.engine = engine
-    app.state.sessionmaker = create_sessionmaker(engine)
-    app.state.worker = Worker() if settings.role.runs_worker else None
-    app.state.storage = SupabaseStorage(
-        supabase_url=settings.supabase_url,
-        secret_key=settings.supabase_secret_key,
-        bucket=settings.supabase_storage_bucket,
-        http=http,
-        clock=SystemClock(),
-    )
+    app.state.engine = services.engine
+    app.state.sessionmaker = services.sessionmaker
+    app.state.worker = services.worker
+    app.state.storage = services.storage
+    app.state.events = services.events
     app.state.token_verifier = TokenVerifier(
         jwks, issuer=settings.auth_issuer, audience=settings.auth_jwt_audience
     )
@@ -100,5 +90,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(health.router)
     app.include_router(identity_routes.router)
     app.include_router(document_routes.router)
+    app.include_router(event_routes.router)
     install_problem_openapi(app)
     return app

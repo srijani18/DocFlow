@@ -13,6 +13,7 @@ export function makeDocument(
     sha256: "a".repeat(64),
     status: "UPLOADED",
     failure_reason: null,
+    status_changed_at: "2026-10-25T10:00:00Z",
     created_at: "2026-10-25T10:00:00Z",
     updated_at: "2026-10-25T10:00:00Z",
     ...overrides,

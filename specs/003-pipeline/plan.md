@@ -172,3 +172,11 @@ web: lib/api/events.ts (fetch-based SSE reader with Bearer, reconnect with backo
 - **Worker loop:** wake on event, sleep until `run_after`, sweep; no queries while idle (count statements with a SQLAlchemy event hook).
 - **SSE:** stream receives own-workspace events only (AC10); keep-alive and 30-minute close with a fake clock.
 - **Web:** SSE reader parses events and reconnects; list and detail update from events (AC9).
+
+## 11. Implementation notes (F3-T1 to T7)
+
+- **The document status is the pipeline's checkpoint.** Each step stores its result and advances the status in one transaction (`StepContext.advance`), so a re-run resumes at the first unfinished step. Retry sets the status back to `UPLOADED`; F4/F5 steps skip work whose result already exists (F4 AC7, F5 AC5).
+- **Steps open their own short transactions**, so no database transaction is held open during a slow external call (an LLM request can take a minute; the pooler has 5 connections).
+- **The worker never imports the web framework** (import-linter): FastAPI handlers moved from `app/core/errors.py` to `app/core/error_handlers.py`, and the per-request session dependency from `app/core/db.py` to `app/core/db_session.py`.
+- **`app/wiring.py`** builds the engine, HTTP client, storage, event broker and worker once, for both `create_app` (ROLE=api|all) and the standalone worker process (ROLE=worker).
+- The SSE event payload (`DocumentStatusEvent`) isn't returned by a JSON endpoint, so it isn't in the generated TS client; `apps/web/src/lib/api/events.ts` mirrors it by hand.

@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from sqlalchemy import text
 
-from app.core.db import DbSession
+from app.core.db_session import DbSession
 from tests.conftest import asgi_client
 
 

@@ -1,13 +1,14 @@
 "use client";
 
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
 import { DocumentStatusBadge } from "@/components/document-status";
 import { MeGate } from "@/components/me-gate";
 import { Button } from "@/components/ui/button";
-import { documentKeys, fetchDocument, fetchFileUrl } from "@/lib/api/documents";
+import { useDocumentEvents } from "@/hooks/use-document-events";
+import { documentKeys, fetchDocument, fetchFileUrl, retryDocument } from "@/lib/api/documents";
 import { currentWorkspace } from "@/lib/api/me";
 import { ApiError } from "@/lib/api/transient";
 import { formatBytes, formatDateTime } from "@/lib/format";
@@ -35,6 +36,8 @@ export function DocumentDetail({
   workspaceId: string;
   documentId: string;
 }) {
+  const queryClient = useQueryClient();
+  useDocumentEvents(workspaceId);
   const document = useQuery({
     queryKey: documentKeys.detail(workspaceId, documentId),
     queryFn: () => fetchDocument(workspaceId, documentId),
@@ -44,6 +47,15 @@ export function DocumentDetail({
   const openOriginal = useMutation({
     mutationFn: () => fetchFileUrl(workspaceId, documentId),
     onSuccess: (url) => window.open(url, "_blank", "noopener,noreferrer"),
+  });
+
+  // Queue the document again with fresh attempts (F3 AC8); live events show its progress.
+  const retry = useMutation({
+    mutationFn: () => retryDocument(workspaceId, documentId),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(documentKeys.detail(workspaceId, documentId), updated);
+      void queryClient.invalidateQueries({ queryKey: documentKeys.list(workspaceId) });
+    },
   });
 
   if (document.isPending) {
@@ -89,6 +101,11 @@ export function DocumentDetail({
         >
           View original
         </Button>
+        {doc.status === "FAILED" && (
+          <Button onClick={() => retry.mutate()} disabled={retry.isPending}>
+            Retry
+          </Button>
+        )}
         {openOriginal.isError && (
           <span role="alert" className="text-sm text-destructive">
             Couldn&apos;t open the file. Try again.

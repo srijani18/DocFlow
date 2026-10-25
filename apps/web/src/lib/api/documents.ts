@@ -48,3 +48,17 @@ export async function fetchFileUrl(workspaceId: string, documentId: string): Pro
   }
   return data.url;
 }
+
+export async function retryDocument(
+  workspaceId: string,
+  documentId: string,
+): Promise<DocumentSummary> {
+  const { data, error, response } = await api.POST(
+    "/v1/workspaces/{workspace_id}/documents/{document_id}/retry",
+    { params: { path: { workspace_id: workspaceId, document_id: documentId } } },
+  );
+  if (data === undefined) {
+    throw toApiError(response, error);
+  }
+  return data;
+}

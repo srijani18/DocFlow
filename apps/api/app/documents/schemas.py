@@ -7,17 +7,13 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
-from app.documents.models import MAX_UPLOAD_BYTES
+from app.documents.models import MAX_UPLOAD_BYTES, DocumentStatus
 
 
 class ContentType(StrEnum):
     PDF = "application/pdf"
     PNG = "image/png"
     JPEG = "image/jpeg"
-
-
-class DocumentStatus(StrEnum):
-    UPLOADED = "UPLOADED"
 
 
 class UploadStart(BaseModel):
@@ -38,6 +34,7 @@ class Document(BaseModel):
     size_bytes: int
     sha256: str
     status: DocumentStatus
+    status_changed_at: datetime
     failure_reason: str | None
     created_at: datetime
     updated_at: datetime
@@ -72,3 +69,12 @@ class DocumentPage(BaseModel):
 class FileUrl(BaseModel):
     url: str
     expires_at: datetime
+
+
+class DocumentStatusEvent(BaseModel):
+    """The `data` of a `document.status` server-sent event (F3 plan §2)."""
+
+    document_id: uuid.UUID
+    status: DocumentStatus
+    failure_reason: str | None
+    changed_at: datetime

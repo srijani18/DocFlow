@@ -3,6 +3,7 @@
 import base64
 import json
 import uuid
+from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
@@ -12,13 +13,15 @@ from app.core.clock import Clock
 from app.core.errors import AppError, NotFoundError
 from app.core.tenancy import WorkspaceScope
 from app.documents import repository
-from app.documents.models import Document, Upload
+from app.documents.models import PROCESSING_STATUSES, Document, DocumentStatus, Upload
+from app.jobs import service as jobs
 from app.storage.client import SignedUpload, SignedUrl, Storage
 
 # A Supabase signed upload token lasts 2 hours, so an upload can't outlive it (spec D3).
 UPLOAD_TTL = timedelta(hours=2)
 FILE_URL_TTL_SECONDS = 300  # spec D4
-INITIAL_STATUS = "UPLOADED"
+INITIAL_STATUS = DocumentStatus.UPLOADED
+WORKER_ROLE = "worker"
 
 
 class UploadIncompleteError(AppError):
@@ -27,10 +30,41 @@ class UploadIncompleteError(AppError):
     title = "The file hasn't been uploaded"
 
 
+class NotRetryableError(AppError):
+    status = 409
+    type_slug = "not-retryable"
+    title = "Only failed documents can be retried"
+
+
+class StatusConflictError(Exception):
+    """The document isn't in the status a transition expected (another run moved it)."""
+
+
+@dataclass(frozen=True)
+class StatusEvent:
+    """A committed status change, for live updates (F3 AC9). Publish only after commit."""
+
+    workspace_id: uuid.UUID
+    document_id: uuid.UUID
+    status: str
+    failure_reason: str | None
+    changed_at: datetime
+
+
 @dataclass(frozen=True)
 class NewUpload:
     upload: Upload
     signed: SignedUpload
+
+
+def created_event(document: Document) -> StatusEvent:
+    return StatusEvent(
+        workspace_id=document.workspace_id,
+        document_id=document.id,
+        status=document.status,
+        failure_reason=None,
+        changed_at=document.status_changed_at,
+    )
 
 
 def storage_path(scope: WorkspaceScope, upload_id: uuid.UUID) -> str:
@@ -106,6 +140,20 @@ async def complete_upload(
         document = await repository.find_document_by_sha256(session, scope, upload.sha256)
         if document is None:  # the unique index guarantees one exists; defensive only
             raise UploadIncompleteError()
+    else:
+        await repository.insert_event(
+            session,
+            scope,
+            document_id=document.id,
+            from_status=None,
+            to_status=document.status,
+            job_id=None,
+            detail=None,
+        )
+        # The document and its job commit together (ADR-0001, F3 AC1).
+        await jobs.enqueue_document_processing(
+            session, scope, document_id=document.id, generation=document.processing_generation
+        )
     await repository.mark_upload_completed(session, scope, upload.id, document.id)
     return document, created
 
@@ -150,3 +198,113 @@ async def create_file_url(
 ) -> SignedUrl:
     document = await get_document(session, scope, document_id)
     return await storage.create_signed_url(document.storage_path, ttl_seconds=FILE_URL_TTL_SECONDS)
+
+
+async def transition(
+    session: AsyncSession,
+    scope: WorkspaceScope,
+    document_id: uuid.UUID,
+    *,
+    expected: Collection[str],
+    to: DocumentStatus,
+    failure_reason: str | None = None,
+    job_id: uuid.UUID | None = None,
+    detail: str | None = None,
+    bump_generation: bool = False,
+) -> tuple[Document, StatusEvent]:
+    """The only writer of `documents.status` (F3 plan §3). Locks the row, checks the current
+    status, updates it and records the event, all in the caller's transaction (AC2)."""
+    current = await repository.lock_document(session, scope, document_id)
+    if current is None:
+        raise NotFoundError()
+    from_status = current.status
+    if from_status not in expected:
+        raise StatusConflictError(f"{document_id} is {from_status}, expected one of {expected}")
+    document = await repository.set_status(
+        session,
+        scope,
+        document_id,
+        status=to,
+        failure_reason=failure_reason,
+        bump_generation=bump_generation,
+    )
+    await repository.insert_event(
+        session,
+        scope,
+        document_id=document_id,
+        from_status=from_status,
+        to_status=to,
+        job_id=job_id,
+        detail=detail,
+    )
+    event = StatusEvent(
+        workspace_id=scope.workspace_id,
+        document_id=document_id,
+        status=to,
+        failure_reason=failure_reason,
+        changed_at=document.status_changed_at,
+    )
+    return document, event
+
+
+async def fail(
+    session: AsyncSession,
+    scope: WorkspaceScope,
+    document_id: uuid.UUID,
+    *,
+    reason: str,
+    job_id: uuid.UUID | None,
+    detail: str | None,
+) -> StatusEvent | None:
+    """Mark a document FAILED from whichever processing step it reached (F3 AC3, AC4)."""
+    try:
+        _, event = await transition(
+            session,
+            scope,
+            document_id,
+            expected=PROCESSING_STATUSES,
+            to=DocumentStatus.FAILED,
+            failure_reason=reason,
+            job_id=job_id,
+            detail=detail,
+        )
+    except StatusConflictError:
+        return None  # already finished or failed by another run
+    return event
+
+
+async def retry_document(
+    session: AsyncSession, scope: WorkspaceScope, document_id: str
+) -> tuple[Document, StatusEvent]:
+    """Queue a FAILED document again with a fresh set of attempts (F3 AC8)."""
+    try:
+        document, event = await transition(
+            session,
+            scope,
+            _parse_id(document_id),
+            expected=[DocumentStatus.FAILED],
+            to=DocumentStatus.UPLOADED,
+            bump_generation=True,
+            detail="retry",
+        )
+    except StatusConflictError:
+        raise NotRetryableError() from None
+    await jobs.enqueue_document_processing(
+        session, scope, document_id=document.id, generation=document.processing_generation
+    )
+    return document, event
+
+
+async def load_for_job(
+    session: AsyncSession, *, workspace_id: uuid.UUID, document_id: uuid.UUID
+) -> tuple[WorkspaceScope, Document] | None:
+    """The scope a job runs in: the document's workspace, acting for its uploader."""
+    document = await repository.get_document_for_job(
+        session, workspace_id=workspace_id, document_id=document_id
+    )
+    if document is None:
+        return None
+    scope = WorkspaceScope(
+        workspace_id=workspace_id, user_id=document.created_by_user_id, role=WORKER_ROLE
+    )
+    return scope, document

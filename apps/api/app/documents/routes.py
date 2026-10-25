@@ -2,11 +2,11 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Query, Response, status
+from fastapi import APIRouter, BackgroundTasks, Query, Response, status
 from fastapi.exceptions import RequestValidationError
 
 from app.auth.dependencies import WorkspaceScopeDep
-from app.core.db import DbSession
+from app.core.db_session import DbSession
 from app.core.errors import problem_responses
 from app.documents import service
 from app.documents.models import Document as DocumentRow
@@ -19,6 +19,7 @@ from app.documents.schemas import (
     UploadStartResult,
     UploadTicket,
 )
+from app.events.dependencies import EventsDep, JobWakerDep
 from app.storage.dependencies import ClockDep, StorageDep
 
 router = APIRouter(prefix="/v1/workspaces/{workspace_id}", tags=["documents"])
@@ -84,11 +85,20 @@ async def complete_upload(
     storage: StorageDep,
     clock: ClockDep,
     response: Response,
+    background: BackgroundTasks,
+    events: EventsDep,
+    wake_worker: JobWakerDep,
 ) -> Document:
-    """Record the uploaded file as a document once it is in storage (AC1, AC4, AC5)."""
+    """Record the uploaded file as a document once it is in storage (AC1, AC4, AC5), and
+    queue its processing (F3 AC1)."""
     document, created = await service.complete_upload(session, storage, clock, scope, upload_id)
     if not created:
         response.status_code = status.HTTP_200_OK
+        return to_document(document)
+    # Background tasks run after the response, so after the commit: the worker and other
+    # tabs never see a job or document that isn't committed yet.
+    background.add_task(wake_worker)
+    background.add_task(events.publish, service.created_event(document))
     return to_document(document)
 
 
@@ -122,3 +132,24 @@ async def create_document_file_url(
     """A link to the original file, valid for 5 minutes (AC9)."""
     signed = await service.create_file_url(session, storage, scope, document_id)
     return FileUrl(url=signed.url, expires_at=signed.expires_at)
+
+
+@router.post(
+    "/documents/{document_id}/retry",
+    status_code=status.HTTP_202_ACCEPTED,
+    responses=problem_responses(401, 404, 409, 503),
+)
+async def retry_document(
+    document_id: str,
+    *,
+    scope: WorkspaceScopeDep,
+    session: DbSession,
+    background: BackgroundTasks,
+    events: EventsDep,
+    wake_worker: JobWakerDep,
+) -> Document:
+    """Process a FAILED document again with a fresh set of attempts (F3 AC8)."""
+    document, event = await service.retry_document(session, scope, document_id)
+    background.add_task(wake_worker)
+    background.add_task(events.publish, event)
+    return to_document(document)

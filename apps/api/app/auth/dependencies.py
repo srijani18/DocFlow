@@ -10,7 +10,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.auth.errors import UnauthenticatedError
 from app.auth.verifier import TokenVerifier, VerifiedClaims
-from app.core.db import DbSession
+from app.core.db_session import DbSession
 from app.core.errors import ForbiddenError, NotFoundError
 from app.core.logging import get_logger
 from app.core.tenancy import WorkspaceScope

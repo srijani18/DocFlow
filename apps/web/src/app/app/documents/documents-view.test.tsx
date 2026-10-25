@@ -9,6 +9,8 @@ import { DocumentList } from "./documents-view";
 
 const supabase = createSupabaseMock();
 vi.mock("@/lib/supabase/browser", () => ({ getSupabaseBrowserClient: () => supabase.client }));
+// Live updates have their own tests; here they would consume the fetch mocks.
+vi.mock("@/hooks/use-document-events", () => ({ useDocumentEvents: () => undefined }));
 
 beforeEach(() => {
   supabase.auth.getSession.mockResolvedValue({
@@ -52,7 +54,7 @@ describe("DocumentList", () => {
     );
     const row = screen.getByRole("row", { name: /newest\.pdf/ });
     expect(row).toHaveTextContent("2.0 KB");
-    expect(row).toHaveTextContent("Uploaded");
+    expect(row).toHaveTextContent("Queued");
 
     await userEvent.click(screen.getByRole("button", { name: "Load more" }));
 

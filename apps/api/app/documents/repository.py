@@ -3,12 +3,12 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import select, tuple_, update
+from sqlalchemy import func, insert, select, tuple_, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.tenancy import WorkspaceScope
-from app.documents.models import Document, Upload
+from app.documents.models import Document, DocumentEvent, Upload
 
 
 async def find_document_by_sha256(
@@ -116,3 +116,75 @@ async def list_documents(
         statement = statement.where(tuple_(Document.created_at, Document.id) < before)
     statement = statement.order_by(Document.created_at.desc(), Document.id.desc()).limit(limit)
     return list(await session.scalars(statement))
+
+
+async def lock_document(
+    session: AsyncSession, scope: WorkspaceScope, document_id: uuid.UUID
+) -> Document | None:
+    document: Document | None = await session.scalar(
+        select(Document)
+        .where(Document.workspace_id == scope.workspace_id, Document.id == document_id)
+        .with_for_update()
+    )
+    return document
+
+
+async def set_status(
+    session: AsyncSession,
+    scope: WorkspaceScope,
+    document_id: uuid.UUID,
+    *,
+    status: str,
+    failure_reason: str | None,
+    bump_generation: bool = False,
+) -> Document:
+    values: dict[str, object] = {
+        "status": status,
+        "failure_reason": failure_reason,
+        "status_changed_at": func.now(),
+        "updated_at": func.now(),
+    }
+    if bump_generation:
+        values["processing_generation"] = Document.processing_generation + 1
+    document: Document = (
+        await session.scalars(
+            update(Document)
+            .where(Document.workspace_id == scope.workspace_id, Document.id == document_id)
+            .values(**values)
+            .returning(Document)
+            .execution_options(populate_existing=True)
+        )
+    ).one()
+    return document
+
+
+async def insert_event(
+    session: AsyncSession,
+    scope: WorkspaceScope,
+    *,
+    document_id: uuid.UUID,
+    from_status: str | None,
+    to_status: str,
+    job_id: uuid.UUID | None,
+    detail: str | None,
+) -> None:
+    await session.execute(
+        insert(DocumentEvent).values(
+            workspace_id=scope.workspace_id,
+            document_id=document_id,
+            from_status=from_status,
+            to_status=to_status,
+            job_id=job_id,
+            detail=detail,
+        )
+    )
+
+
+async def get_document_for_job(
+    session: AsyncSession, *, workspace_id: uuid.UUID, document_id: uuid.UUID
+) -> Document | None:
+    """The worker's entry point: a job names its workspace, which becomes the scope."""
+    document: Document | None = await session.scalar(
+        select(Document).where(Document.workspace_id == workspace_id, Document.id == document_id)
+    )
+    return document
