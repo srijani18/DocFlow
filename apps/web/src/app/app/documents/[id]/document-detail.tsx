@@ -8,6 +8,7 @@ import { DocTypeLabel, OTHER_NOTE } from "@/components/doc-type";
 import { DocumentStatusBadge } from "@/components/document-status";
 import { ExtractionView } from "./extraction-view";
 import { MeGate } from "@/components/me-gate";
+import { Panel } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { useDocumentEvents } from "@/hooks/use-document-events";
 import { documentKeys, fetchDocument, fetchFileUrl, retryDocument } from "@/lib/api/documents";
@@ -77,52 +78,66 @@ export function DocumentDetail({
   const doc = document.data;
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center gap-3">
-        <h2 className="text-xl font-semibold break-all">{doc.filename}</h2>
-        <DocumentStatusBadge status={doc.status} />
-      </div>
-      {doc.doc_type === "other" && (
-        <p className="rounded-md border px-3 py-2 text-sm">{OTHER_NOTE}.</p>
-      )}
-      <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
-        <dt className="text-muted-foreground">Document type</dt>
-        <dd>
-          <DocTypeLabel docType={doc.doc_type} confidence={doc.doc_type_confidence} />
-        </dd>
-        <dt className="text-muted-foreground">File type</dt>
-        <dd>{doc.content_type}</dd>
-        <dt className="text-muted-foreground">Size</dt>
-        <dd>{formatBytes(doc.size_bytes)}</dd>
-        <dt className="text-muted-foreground">Uploaded</dt>
-        <dd>{formatDateTime(doc.created_at)}</dd>
-        {doc.failure_reason !== null && (
-          <>
-            <dt className="text-muted-foreground">Problem</dt>
-            <dd>{doc.failure_reason}</dd>
-          </>
-        )}
-      </dl>
-      <div className="flex items-center gap-3">
-        <Button
-          variant="outline"
-          onClick={() => openOriginal.mutate()}
-          disabled={openOriginal.isPending}
-        >
-          View original
-        </Button>
-        {doc.status === "FAILED" && (
-          <Button onClick={() => retry.mutate()} disabled={retry.isPending}>
-            Retry
-          </Button>
-        )}
+      <Panel>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex min-w-0 flex-wrap items-center gap-3">
+            <h1 className="text-2xl font-semibold tracking-tight break-all">{doc.filename}</h1>
+            <DocumentStatusBadge status={doc.status} />
+          </div>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              onClick={() => openOriginal.mutate()}
+              disabled={openOriginal.isPending}
+            >
+              View original
+            </Button>
+            {doc.status === "FAILED" && (
+              <Button onClick={() => retry.mutate()} disabled={retry.isPending}>
+                Retry
+              </Button>
+            )}
+          </div>
+        </div>
         {openOriginal.isError && (
-          <span role="alert" className="text-sm text-destructive">
+          <p role="alert" className="mt-3 text-sm text-destructive">
             Couldn&apos;t open the file. Try again.
-          </span>
+          </p>
         )}
-      </div>
+        {doc.doc_type === "other" && (
+          <p className="mt-4 rounded-xl bg-muted px-4 py-3 text-sm">{OTHER_NOTE}.</p>
+        )}
+        {doc.failure_reason !== null && (
+          <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800 dark:bg-red-950 dark:text-red-200">
+            <span className="font-medium">Problem: </span>
+            {doc.failure_reason}
+          </p>
+        )}
+        <dl className="mt-6 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
+          <div>
+            <dt className="text-muted-foreground">Document type</dt>
+            <dd className="mt-1 font-medium">
+              <DocTypeLabel docType={doc.doc_type} confidence={doc.doc_type_confidence} />
+            </dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground">File type</dt>
+            <dd className="mt-1 font-medium">{doc.content_type}</dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground">Size</dt>
+            <dd className="mt-1 font-medium">{formatBytes(doc.size_bytes)}</dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground">Uploaded</dt>
+            <dd className="mt-1 font-medium">{formatDateTime(doc.created_at)}</dd>
+          </div>
+        </dl>
+      </Panel>
       {doc.status === "NEEDS_REVIEW" && doc.doc_type !== null && doc.doc_type !== "other" && (
-        <ExtractionView workspaceId={workspaceId} documentId={documentId} />
+        <Panel>
+          <ExtractionView workspaceId={workspaceId} documentId={documentId} />
+        </Panel>
       )}
     </div>
   );

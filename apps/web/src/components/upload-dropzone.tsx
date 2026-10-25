@@ -81,15 +81,16 @@ export function UploadDropzone({ workspaceId }: { workspaceId: string }) {
         }}
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
-        className={`flex flex-col items-center gap-2 rounded-lg border border-dashed p-8 text-center text-sm ${
-          dragging ? "border-primary bg-muted" : ""
+        className={`flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed p-10 text-center text-sm transition-colors ${
+          dragging ? "border-primary bg-accent" : "border-primary/25 bg-surface"
         }`}
       >
-        <UploadIcon className="text-muted-foreground" aria-hidden />
-        <p>Drop PDFs, PNGs or JPEGs here (up to 10 MB each)</p>
-        <Button variant="outline" size="sm" onClick={() => inputRef.current?.click()}>
-          Choose files
-        </Button>
+        <span className="bg-brand-gradient inline-flex size-12 items-center justify-center rounded-2xl text-white shadow-md shadow-primary/25">
+          <UploadIcon className="size-5" aria-hidden />
+        </span>
+        <p className="text-base font-medium">Drop PDFs, PNGs or JPEGs here</p>
+        <p className="-mt-2 text-muted-foreground">Up to 10 MB each, several at once</p>
+        <Button onClick={() => inputRef.current?.click()}>Choose files</Button>
         <input
           ref={inputRef}
           type="file"

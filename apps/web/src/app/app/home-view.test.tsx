@@ -2,6 +2,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
+import { routeFetch } from "@/test/fetch-router";
+import { makeDocument } from "@/test/fixtures";
 import { createSupabaseMock, sessionWithToken } from "@/test/supabase-mock";
 
 import { HomeView } from "./home-view";
@@ -41,7 +43,10 @@ afterEach(() => {
 
 describe("HomeView", () => {
   it("AC10: home shows email, workspace, role", async () => {
-    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(Response.json(ME));
+    const fetchMock = routeFetch({
+      "/v1/me": () => Response.json(ME),
+      "/documents": () => Response.json({ items: [], next_cursor: null }),
+    });
 
     renderHome();
 
@@ -54,7 +59,7 @@ describe("HomeView", () => {
   });
 
   it("says so when the user belongs to no workspace", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(Response.json({ ...ME, memberships: [] }));
+    routeFetch({ "/v1/me": () => Response.json({ ...ME, memberships: [] }) });
 
     renderHome();
 
@@ -94,7 +99,11 @@ describe("HomeView", () => {
     await act(() => vi.advanceTimersByTimeAsync(100_000));
     expect(screen.getByRole("alert")).toBeInTheDocument();
 
-    fetchMock.mockResolvedValue(Response.json(ME));
+    fetchMock.mockRestore();
+    routeFetch({
+      "/v1/me": () => Response.json(ME),
+      "/documents": () => Response.json({ items: [], next_cursor: null }),
+    });
     vi.useRealTimers();
     await userEvent.click(screen.getByRole("button", { name: "Try again" }));
 
@@ -110,5 +119,32 @@ describe("HomeView", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Something went wrong");
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("HomeView dashboard", () => {
+  it("shows the latest documents with their status and total", async () => {
+    routeFetch({
+      "/v1/me": () => Response.json(ME),
+      "/documents": () =>
+        Response.json({
+          items: [
+            makeDocument({
+              filename: "inv-142.pdf",
+              status: "NEEDS_REVIEW",
+              doc_type: "invoice",
+              total_amount: "16826.80",
+              currency: "INR",
+            }),
+          ],
+          next_cursor: null,
+        }),
+    });
+
+    renderHome();
+
+    expect(await screen.findByRole("link", { name: "inv-142.pdf" })).toBeInTheDocument();
+    expect(screen.getByText("Needs review")).toBeInTheDocument();
+    expect(screen.getByText("₹16,826.80")).toBeInTheDocument();
   });
 });

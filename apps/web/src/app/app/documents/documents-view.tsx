@@ -6,6 +6,7 @@ import Link from "next/link";
 import { DocTypeLabel } from "@/components/doc-type";
 import { DocumentStatusBadge } from "@/components/document-status";
 import { MeGate } from "@/components/me-gate";
+import { Panel } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { UploadDropzone } from "@/components/upload-dropzone";
 import { useDocumentEvents } from "@/hooks/use-document-events";
@@ -22,9 +23,13 @@ export function DocumentsView() {
           return <p className="text-sm">You don&apos;t belong to a workspace yet.</p>;
         }
         return (
-          <div className="flex flex-col gap-8">
-            <UploadDropzone workspaceId={membership.workspace.id} />
-            <DocumentList workspaceId={membership.workspace.id} />
+          <div className="flex flex-col gap-6">
+            <Panel>
+              <UploadDropzone workspaceId={membership.workspace.id} />
+            </Panel>
+            <Panel>
+              <DocumentList workspaceId={membership.workspace.id} />
+            </Panel>
           </div>
         );
       }}
@@ -61,46 +66,50 @@ export function DocumentList({ workspaceId }: { workspaceId: string }) {
   }
   return (
     <div className="flex flex-col gap-3">
-      <table className="w-full text-left text-sm">
-        <thead className="text-muted-foreground">
-          <tr>
-            <th className="py-2 font-normal">Name</th>
-            <th className="py-2 font-normal">Status</th>
-            <th className="py-2 font-normal">Type</th>
-            <th className="py-2 font-normal">Vendor</th>
-            <th className="py-2 text-right font-normal">Total</th>
-            <th className="py-2 pl-6 font-normal">Uploaded</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((document) => (
-            <tr key={document.id} className="border-t">
-              <td className="max-w-64 truncate py-2">
-                <Link
-                  href={`/app/documents/${document.id}`}
-                  className="underline-offset-4 hover:underline"
-                >
-                  {document.filename}
-                </Link>
-              </td>
-              <td className="py-2">
-                <DocumentStatusBadge status={document.status} />
-              </td>
-              <td className="py-2">
-                <DocTypeLabel
-                  docType={document.doc_type}
-                  confidence={document.doc_type_confidence}
-                />
-              </td>
-              <td className="max-w-48 truncate py-2 pr-4">{document.vendor_name ?? "—"}</td>
-              <td className="py-2 text-right tabular-nums">
-                {formatMoney(document.total_amount, document.currency)}
-              </td>
-              <td className="py-2 pl-6 whitespace-nowrap">{formatDateTime(document.created_at)}</td>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          <thead className="text-xs tracking-wide text-muted-foreground uppercase">
+            <tr>
+              <th className="py-3 pr-4 font-medium">Name</th>
+              <th className="py-3 pr-4 font-medium">Status</th>
+              <th className="py-3 pr-4 font-medium">Type</th>
+              <th className="py-3 pr-4 font-medium">Vendor</th>
+              <th className="py-3 text-right font-medium">Total</th>
+              <th className="py-3 pl-6 font-medium">Uploaded</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {items.map((document) => (
+              <tr key={document.id} className="border-t transition-colors hover:bg-muted/50">
+                <td className="max-w-64 truncate py-3 pr-4">
+                  <Link
+                    href={`/app/documents/${document.id}`}
+                    className="font-medium underline-offset-4 hover:underline"
+                  >
+                    {document.filename}
+                  </Link>
+                </td>
+                <td className="py-3 pr-4">
+                  <DocumentStatusBadge status={document.status} />
+                </td>
+                <td className="py-3 pr-4">
+                  <DocTypeLabel
+                    docType={document.doc_type}
+                    confidence={document.doc_type_confidence}
+                  />
+                </td>
+                <td className="max-w-48 truncate py-3 pr-4">{document.vendor_name ?? "—"}</td>
+                <td className="py-3 text-right tabular-nums">
+                  {formatMoney(document.total_amount, document.currency)}
+                </td>
+                <td className="py-3 pl-6 whitespace-nowrap text-muted-foreground">
+                  {formatDateTime(document.created_at)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       {documents.hasNextPage && (
         <Button
           variant="outline"

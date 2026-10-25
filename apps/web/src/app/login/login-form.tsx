@@ -121,14 +121,14 @@ export function LoginForm() {
   const [notice, setNotice] = useState<string | null>(null);
 
   return (
-    <Card className="w-full max-w-sm">
+    <Card className="w-full rounded-3xl border shadow-xl shadow-primary/5">
       <CardHeader>
-        <CardTitle>DocFlow</CardTitle>
-        <CardDescription>Sign in, or create an account to get your own workspace.</CardDescription>
+        <CardTitle className="text-lg">Sign in or create an account</CardTitle>
+        <CardDescription>New accounts get their own workspace.</CardDescription>
       </CardHeader>
       <CardContent>
         <Tabs value={mode} onValueChange={(value: Mode) => setMode(value)}>
-          <TabsList className="w-full">
+          <TabsList className="w-full rounded-full">
             <TabsTrigger value="sign-in">Sign in</TabsTrigger>
             <TabsTrigger value="sign-up">Create account</TabsTrigger>
           </TabsList>
