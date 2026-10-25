@@ -1,6 +1,6 @@
 # F3: Processing pipeline (spec)
 
-**Status:** Draft (2026-10-25)
+**Status:** Approved (2026-10-25)
 **Phase:** 1
 **Plan:** [plan.md](plan.md) · **Tasks:** [tasks.md](tasks.md)
 
@@ -52,7 +52,7 @@ After upload, each document is processed in the background: it is classified (F4
 - Notifications (email, webhooks: F9).
 - A UI for dead jobs beyond the document's `FAILED` status and reason.
 
-## Decisions (proposed defaults; approve or change)
+## Decisions (approved 2026-10-25)
 
 - **D1. Attempts and delays:** 5 attempts; delays of 30 s, 1 min, 2 min, 4 min (doubling, ±20% jitter, capped at 15 min).
 - **D2. Lease:** a claimed job is held for 5 minutes; if the worker hasn't finished by then, the job can be claimed again (AC5). Every external call has a timeout well under that.

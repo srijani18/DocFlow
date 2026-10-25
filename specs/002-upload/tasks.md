@@ -1,6 +1,6 @@
 # F2: Document upload (tasks)
 
-**Status:** Draft (2026-10-25)
+**Status:** Approved (2026-10-25)
 **Prerequisite:** F1 complete. Manual: `SUPABASE_SECRET_KEY` and the `documents-dev` bucket (see the Phase 1 checklist in the PR).
 
 Tests first, named after the criteria; tick each box in the same PR.

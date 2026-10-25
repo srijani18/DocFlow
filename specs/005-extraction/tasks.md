@@ -1,6 +1,6 @@
 # F5: Structured extraction (tasks)
 
-**Status:** Draft (2026-10-25)
+**Status:** Approved (2026-10-25)
 **Prerequisite:** F4-T2 (gateway).
 
 - [ ] **F5-T1: Schemas, codegen and samples** (AC2) — `schemas/common`, `schemas/documents/*.v1.json`, `classification.v1.json` (from F4) and the envelope; `make gen-schemas` wired; `evals/samples/generate_synthetic.py` and the generated samples.

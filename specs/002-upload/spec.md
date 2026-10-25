@@ -1,6 +1,6 @@
 # F2: Document upload (spec)
 
-**Status:** Draft (2026-10-25)
+**Status:** Approved (2026-10-25)
 **Phase:** 1
 **Plan:** [plan.md](plan.md) · **Tasks:** [tasks.md](tasks.md)
 
@@ -55,7 +55,7 @@ Members of a workspace upload invoices, receipts and purchase orders as PDF, PNG
 - Cleaning up storage files from abandoned uploads (F14).
 - Virus scanning.
 
-## Decisions (proposed defaults; approve or change)
+## Decisions (approved 2026-10-25)
 
 - **D1. Size and types:** 10 MB; PDF, PNG and JPEG, matching the brief and ADR-0004. Enforced in the browser, in the API and by the bucket.
 - **D2. Duplicate scope:** per workspace, by SHA-256 of the file bytes, computed in the browser. The pipeline re-checks the hash after download (F3 AC7), so a lying client gains nothing.

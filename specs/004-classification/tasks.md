@@ -1,6 +1,6 @@
 # F4: Classification (tasks)
 
-**Status:** Draft (2026-10-25)
+**Status:** Approved (2026-10-25)
 **Prerequisite:** F3-T3 (pipeline runner). Manual: `GEMINI_API_KEY` in `.env` (AI Studio, free, no card).
 
 - [ ] **F4-T1: `llm_calls` table and price table** (AC4) — migration `0005_llm_calls_classification`; `prices.v1.json`; cost estimate.

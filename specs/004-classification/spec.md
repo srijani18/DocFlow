@@ -1,6 +1,6 @@
 # F4: Classification (spec)
 
-**Status:** Draft (2026-10-25)
+**Status:** Approved (2026-10-25)
 **Phase:** 1
 **Plan:** [plan.md](plan.md) · **Tasks:** [tasks.md](tasks.md)
 
@@ -37,7 +37,7 @@ The first AI step of the pipeline (F3) decides what kind of document was uploade
 - Changing the type by hand (F7).
 - More document types.
 
-## Decisions (proposed defaults; approve or change)
+## Decisions (approved 2026-10-25)
 
 - **D1. Gemini, not Groq, classifies in Phase 1.** The brief suggested Groq for classification, but the input is a PDF or image: Groq's models can't read PDFs, and the Phase 1 row of the brief says "Gemini only". F10 can route image classification to Groq later.
 - **D2. Models:** `gemini-flash-lite-latest` for classification, as configuration. The real model list and free-tier limits are read from AI Studio with your key during implementation and recorded in overview §8.

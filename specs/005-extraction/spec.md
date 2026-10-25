@@ -1,6 +1,6 @@
 # F5: Structured extraction (spec)
 
-**Status:** Draft (2026-10-25)
+**Status:** Approved (2026-10-25)
 **Phase:** 1
 **Plan:** [plan.md](plan.md) · **Tasks:** [tasks.md](tasks.md)
 
@@ -42,7 +42,7 @@ For invoices, receipts and purchase orders, a vision AI model reads the document
 - Accuracy measurement (F11). Phase 1 shows results; Phase 2 measures them.
 - Other providers or fallback (F10).
 
-## Decisions (proposed defaults; approve or change)
+## Decisions (approved 2026-10-25)
 
 - **D1. Model:** `gemini-flash-latest` for extraction, as configuration (confirmed against AI Studio when implementing, as in F4).
 - **D2. Low-confidence threshold:** 0.8 for highlighting; configuration, revisited with eval data in Phase 2.

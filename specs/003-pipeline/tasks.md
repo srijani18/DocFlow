@@ -1,6 +1,6 @@
 # F3: Processing pipeline (tasks)
 
-**Status:** Draft (2026-10-25)
+**Status:** Approved (2026-10-25)
 **Prerequisite:** F2-T2 (tables).
 
 - [ ] **F3-T1: Jobs and events tables, status transitions** (AC2) — migration `0004_jobs`, `transition()` with compare-and-set and `document_events`.

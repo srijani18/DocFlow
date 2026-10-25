@@ -1,6 +1,6 @@
 # F5: Structured extraction (plan)
 
-**Status:** Draft (2026-10-25)
+**Status:** Approved (2026-10-25)
 **Spec:** [spec.md](spec.md) · **Tasks:** [tasks.md](tasks.md)
 
 ## 1. Approach
