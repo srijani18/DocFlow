@@ -2,6 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { LogOutIcon } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -28,7 +29,8 @@ export function SignOutButton() {
   }
 
   return (
-    <Button variant="outline" onClick={signOut} disabled={pending}>
+    <Button variant="subtle" onClick={signOut} disabled={pending}>
+      <LogOutIcon aria-hidden />
       Sign out
     </Button>
   );

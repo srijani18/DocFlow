@@ -1,25 +1,38 @@
-import Link from "next/link";
+import { Suspense } from "react";
 
+import { AppNav, NavLinks } from "@/components/app-nav";
+import { Wordmark } from "@/components/brand";
 import { SignOutButton } from "@/components/sign-out-button";
 
 // proxy.ts has already sent signed-out visitors to /login before anything here renders.
 export default function AppLayout({ children }: LayoutProps<"/app">) {
   return (
-    <div className="flex flex-1 flex-col">
-      <header className="border-b">
-        <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-6 py-3">
-          <nav className="flex items-center gap-6 text-sm">
-            <Link href="/app" className="font-semibold tracking-tight">
-              DocFlow
-            </Link>
-            <Link href="/app/documents" className="text-muted-foreground hover:text-foreground">
-              Documents
-            </Link>
-          </nav>
-          <SignOutButton />
+    <div className="flex min-h-svh flex-1 bg-surface">
+      <aside className="sticky top-0 hidden h-svh w-64 shrink-0 flex-col border-r bg-sidebar px-4 py-6 md:flex">
+        <div className="px-2">
+          <Wordmark href="/app" />
         </div>
-      </header>
-      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-10">{children}</main>
+        <div className="mt-10 flex-1">
+          <Suspense fallback={<NavLinks pathname={null} />}>
+            <AppNav />
+          </Suspense>
+        </div>
+        <SignOutButton />
+      </aside>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="flex items-center justify-between gap-3 border-b bg-white px-4 py-3 md:hidden">
+          <Wordmark href="/app" size="sm" />
+          <SignOutButton />
+        </header>
+        <div className="border-b bg-white px-2 py-1 md:hidden">
+          <Suspense fallback={<NavLinks pathname={null} orientation="horizontal" />}>
+            <AppNav orientation="horizontal" />
+          </Suspense>
+        </div>
+        <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-8 sm:px-8 sm:py-10">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }
