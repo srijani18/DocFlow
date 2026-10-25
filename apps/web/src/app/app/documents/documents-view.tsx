@@ -69,7 +69,7 @@ export function DocumentList({ workspaceId }: { workspaceId: string }) {
             <th className="py-2 font-normal">Type</th>
             <th className="py-2 font-normal">Vendor</th>
             <th className="py-2 text-right font-normal">Total</th>
-            <th className="py-2 font-normal">Uploaded</th>
+            <th className="py-2 pl-6 font-normal">Uploaded</th>
           </tr>
         </thead>
         <tbody>
@@ -92,11 +92,11 @@ export function DocumentList({ workspaceId }: { workspaceId: string }) {
                   confidence={document.doc_type_confidence}
                 />
               </td>
-              <td className="max-w-48 truncate py-2">{document.vendor_name ?? "—"}</td>
+              <td className="max-w-48 truncate py-2 pr-4">{document.vendor_name ?? "—"}</td>
               <td className="py-2 text-right tabular-nums">
                 {formatMoney(document.total_amount, document.currency)}
               </td>
-              <td className="py-2">{formatDateTime(document.created_at)}</td>
+              <td className="py-2 pl-6 whitespace-nowrap">{formatDateTime(document.created_at)}</td>
             </tr>
           ))}
         </tbody>

@@ -116,7 +116,7 @@ async def test_ac7_summary_columns_per_type(committing_engine: AsyncEngine) -> N
 
     document = await document_row(seeded, document_id)
     assert (document.vendor_name, str(document.document_date), document.currency) == (
-        "Annapurna Tiffin Centre",
+        "ANNAPURNA TIFFIN CENTRE",
         "2026-09-02",
         "INR",
     )

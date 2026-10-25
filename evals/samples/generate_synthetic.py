@@ -148,7 +148,7 @@ def receipt_001() -> None:
             "date": "2026-09-02",
             "time": "13:42",
             "merchant": {
-                "name": "Annapurna Tiffin Centre",
+                "name": "ANNAPURNA TIFFIN CENTRE",
                 "gstin": "29LMNOP4321Q1Z9",
                 "address": address("12 Gandhi Bazaar", "Bengaluru", "Karnataka", "560004"),
             },

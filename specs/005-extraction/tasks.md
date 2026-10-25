@@ -15,4 +15,4 @@
   - Tests: `test_ac6_returns_current_extraction`, `test_other_workspace_extraction_404` (constitution §4). **Done when:** `make check-gen` clean.
 - [x] **F5-T6: Web extraction view and list columns** (AC6, AC7).
   - Tests: `AC6: shows fields, line items and highlights low confidence`, `AC6: raw JSON toggle`, `AC7: list shows vendor and total`.
-- [ ] **F5-T7: Phase 1 done-when (local)** — upload the synthetic invoice through the UI with a real Gemini key; statuses advance live; extracted fields appear. Record cost and latency from `llm_calls` in the PR. Spec status `Implemented`.
+- [x] **F5-T7: Phase 1 done-when (local)** — upload the synthetic invoice through the UI with a real Gemini key; statuses advance live; extracted fields appear. Record cost and latency from `llm_calls` in the PR. Spec status `Implemented`.

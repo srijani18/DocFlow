@@ -114,3 +114,30 @@ async def test_other_workspace_extraction_404(
 
     assert [response.status_code for response in responses] == [404, 404]
     assert all("Kaveri" not in response.text for response in responses)
+
+
+async def test_ac6_fields_come_back_in_schema_order(
+    db_client: httpx.AsyncClient,
+    two_workspaces: TwoWorkspaces,
+    fake_storage: FakeStorage,
+    db_session: AsyncSession,
+) -> None:
+    w = two_workspaces
+    document = await upload_document(db_client, fake_storage, w.a.id, w.a_admin)
+    await store_extraction(db_session, w, document["id"])
+
+    response = await db_client.get(
+        f"/v1/workspaces/{w.a.id}/documents/{document['id']}/extraction",
+        headers=as_user(w.a_admin),
+    )
+
+    data = response.json()["data"]
+    assert list(data) == list(INVOICE)  # invoice_number first, total last
+    assert list(data["vendor"]) == ["name", "gstin", "address"]
+    assert list(data["line_items"][0]) == [
+        "description",
+        "hsn_sac",
+        "quantity",
+        "unit_price",
+        "amount",
+    ]

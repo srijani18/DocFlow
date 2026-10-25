@@ -144,3 +144,18 @@ sequenceDiagram
 - **Codegen:** `make gen-schemas` feeds the generators a JSON-only copy of `schemas/`; TypeScript types are generated per file, because json2ts resolves `$ref`s against its working directory.
 - **The web view is schema-agnostic:** it lays out any extraction from its data (scalars as rows, arrays of objects as tables) and highlights fields below 0.8 confidence, so new document types need no UI code.
 - **Samples:** `evals/samples/generate_synthetic.py` writes synthetic PDFs plus ground-truth JSON, which the schema tests validate, and which F11 will reuse.
+
+
+## 12. Phase 1 "done when", checked locally on 2026-10-26
+
+Real services: Supabase Storage (`documents-dev`), Gemini free tier, local API, worker and web app, driven in headless Chromium.
+
+- The three synthetic samples were uploaded together; statuses moved Queued → Classifying → Extracting → Needs review live, without reloads.
+- Classification: invoice, receipt and the letter as `other` (which skipped extraction). Each took about 3 s on `gemini-3.5-flash-lite`.
+- Extraction: every top-level invoice field matched `evals/samples/synthetic-invoice-001.json`; the list shows the vendor and ₹16,826.80. Extraction took 4–6 s on `gemini-3.5-flash-lite` (962 input tokens; 1,300–2,400 output tokens; estimated $0.0035–0.0063).
+  - Source: `SELECT task, model, latency_ms, input_tokens, output_tokens, cost_usd FROM docflow.llm_calls WHERE outcome = 'ok'`.
+- Resilience under real failures: the first extraction attempts on `gemini-flash-latest` timed out or returned 503; the jobs retried with backoff and one succeeded on attempt 5 after the model switch (F5 D1). A job interrupted by an API reload was reclaimed when its lease expired.
+- Found and fixed during the check:
+  - JSONB doesn't keep key order, so the API now returns `data` in schema order.
+  - Token counts were redacted from logs by the secret filter.
+  - The receipt's ground truth now copies the merchant name as printed.
