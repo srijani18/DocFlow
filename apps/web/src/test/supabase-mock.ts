@@ -12,7 +12,14 @@ export function createSupabaseMock() {
     getSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
     refreshSession: vi.fn(),
   };
-  return { auth, client: { auth } as unknown as SupabaseClient };
+  const uploadToSignedUrl = vi.fn().mockResolvedValue({ data: { path: "p" }, error: null });
+  const storage = { from: vi.fn(() => ({ uploadToSignedUrl })) };
+  return {
+    auth,
+    storage,
+    uploadToSignedUrl,
+    client: { auth, storage } as unknown as SupabaseClient,
+  };
 }
 
 export function sessionWithToken(accessToken: string) {

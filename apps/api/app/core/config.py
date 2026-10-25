@@ -73,6 +73,10 @@ class Settings(DatabaseSettings):
     auth_jwt_audience: str = "authenticated"
     auth_jwks_cache_ttl_seconds: float = 600
 
+    # Supabase Storage (ADR-0004). Without a secret key, storage endpoints answer 503.
+    supabase_secret_key: str | None = None
+    supabase_storage_bucket: str = "documents-dev"
+
     cors_allowed_origins: Annotated[list[str], NoDecode] = []
     cors_allowed_origin_regex: str | None = None
 

@@ -24,7 +24,10 @@ from app.core.config import Settings
 from app.core.db import Base, create_engine, get_session
 from app.main import create_app
 from app.models import import_all_models
+from app.storage.dependencies import get_clock, get_storage
+from app.storage.fake import FakeStorage
 from tests.conftest import asgi_client, make_settings
+from tests.support.clock import FrozenClock
 from tests.support.identity import TwoWorkspaces, make_two_workspaces
 from tests.support.jwt import TEST_ISSUER, TEST_SIGNING_KEY, StaticKeys
 
@@ -93,11 +96,22 @@ async def committing_engine(db_engine: AsyncEngine) -> AsyncIterator[AsyncEngine
 
 
 @pytest.fixture
+def clock() -> FrozenClock:
+    return FrozenClock()
+
+
+@pytest.fixture
+def fake_storage(clock: FrozenClock) -> FakeStorage:
+    return FakeStorage(clock=clock)
+
+
+@pytest.fixture
 async def db_client(
-    db_settings: Settings, db_session: AsyncSession
+    db_settings: Settings, db_session: AsyncSession, fake_storage: FakeStorage, clock: FrozenClock
 ) -> AsyncIterator[httpx.AsyncClient]:
     """API client whose requests run inside the test's rolled-back transaction, and which
-    trusts tokens signed with TEST_SIGNING_KEY (see `tests.support.jwt.bearer`)."""
+    trusts tokens signed with TEST_SIGNING_KEY (see `tests.support.jwt.bearer`). Storage is
+    `fake_storage` and time is `clock`."""
     app: FastAPI = create_app(db_settings)
 
     async def session_in_test_transaction() -> AsyncIterator[AsyncSession]:
@@ -112,6 +126,8 @@ async def db_client(
     app.dependency_overrides[get_token_verifier] = lambda: TokenVerifier(
         StaticKeys(TEST_SIGNING_KEY), issuer=TEST_ISSUER
     )
+    app.dependency_overrides[get_storage] = lambda: fake_storage
+    app.dependency_overrides[get_clock] = lambda: clock
     async with app.router.lifespan_context(app), await asgi_client(app) as http:
         yield http
 

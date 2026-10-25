@@ -20,7 +20,9 @@ from app.core.errors import install_error_handlers
 from app.core.logging import configure_logging
 from app.core.openapi_docs import install_problem_openapi
 from app.core.request_context import REQUEST_ID_HEADER, RequestContextMiddleware
+from app.documents import routes as document_routes
 from app.identity import routes as identity_routes
+from app.storage.supabase import SupabaseStorage
 from app.worker.loop import Worker
 
 
@@ -70,6 +72,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.engine = engine
     app.state.sessionmaker = create_sessionmaker(engine)
     app.state.worker = Worker() if settings.role.runs_worker else None
+    app.state.storage = SupabaseStorage(
+        supabase_url=settings.supabase_url,
+        secret_key=settings.supabase_secret_key,
+        bucket=settings.supabase_storage_bucket,
+        http=http,
+        clock=SystemClock(),
+    )
     app.state.token_verifier = TokenVerifier(
         jwks, issuer=settings.auth_issuer, audience=settings.auth_jwt_audience
     )
@@ -90,5 +99,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.include_router(health.router)
     app.include_router(identity_routes.router)
+    app.include_router(document_routes.router)
     install_problem_openapi(app)
     return app
