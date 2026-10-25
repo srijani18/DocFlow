@@ -35,7 +35,15 @@ describe("DocumentList", () => {
       .spyOn(globalThis, "fetch")
       .mockResolvedValueOnce(
         Response.json({
-          items: [makeDocument({ id: "1", filename: "newest.pdf", size_bytes: 2048 })],
+          items: [
+            makeDocument({
+              id: "1",
+              filename: "newest.pdf",
+              size_bytes: 2048,
+              doc_type: "invoice",
+              doc_type_confidence: 0.914,
+            }),
+          ],
           next_cursor: "c1",
         }),
       )
@@ -72,5 +80,31 @@ describe("DocumentList", () => {
     renderList();
 
     expect(await screen.findByText("No documents yet.")).toBeInTheDocument();
+  });
+});
+
+describe("DocumentList types", () => {
+  it("AC1: list shows type and confidence", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      Response.json({
+        items: [
+          makeDocument({
+            id: "1",
+            filename: "a.pdf",
+            doc_type: "purchase_order",
+            doc_type_confidence: 0.914,
+          }),
+          makeDocument({ id: "2", filename: "b.pdf", doc_type: null, doc_type_confidence: null }),
+        ],
+        next_cursor: null,
+      }),
+    );
+
+    renderList();
+
+    expect(await screen.findByRole("row", { name: /a\.pdf/ })).toHaveTextContent(
+      "Purchase order · 91%",
+    );
+    expect(screen.getByRole("row", { name: /b\.pdf/ })).toHaveTextContent("—");
   });
 });

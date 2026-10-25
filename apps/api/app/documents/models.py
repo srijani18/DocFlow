@@ -5,6 +5,7 @@ from datetime import datetime
 from enum import StrEnum
 
 from sqlalchemy import (
+    REAL,
     BigInteger,
     CheckConstraint,
     DateTime,
@@ -42,6 +43,18 @@ PROCESSING_STATUSES = frozenset(
 _STATUS_LIST = ", ".join(f"'{status}'" for status in DocumentStatus)
 
 
+class DocType(StrEnum):
+    """F4 classification labels."""
+
+    INVOICE = "invoice"
+    RECEIPT = "receipt"
+    PURCHASE_ORDER = "purchase_order"
+    OTHER = "other"
+
+
+_DOC_TYPE_LIST = ", ".join(f"'{doc_type}'" for doc_type in DocType)
+
+
 def _uuid_pk() -> Mapped[uuid.UUID]:
     return mapped_column(primary_key=True, server_default=text("gen_random_uuid()"))
 
@@ -76,6 +89,8 @@ class Document(Base):
         CheckConstraint(f"content_type IN ({_CONTENT_TYPE_LIST})", name="content_type"),
         CheckConstraint(f"size_bytes BETWEEN 1 AND {MAX_UPLOAD_BYTES}", name="size_bytes"),
         CheckConstraint(f"status IN ({_STATUS_LIST})", name="status"),
+        CheckConstraint(f"doc_type IN ({_DOC_TYPE_LIST})", name="doc_type"),
+        CheckConstraint("doc_type_confidence BETWEEN 0 AND 1", name="doc_type_confidence"),
         # The real duplicate guard (AC3); the check when an upload starts is a shortcut.
         Index("uq_documents_workspace_sha256", "workspace_id", "sha256", unique=True),
         Index("ix_documents_workspace_created", "workspace_id", "created_at", "id"),
@@ -94,6 +109,8 @@ class Document(Base):
     status: Mapped[str] = mapped_column(Text)
     failure_reason: Mapped[str | None] = mapped_column(Text)
     status_changed_at: Mapped[datetime] = _timestamp()
+    doc_type: Mapped[str | None] = mapped_column(Text)
+    doc_type_confidence: Mapped[float | None] = mapped_column(REAL)
     # Bumped by each retry, so each processing run has its own job key (F3 plan §3).
     processing_generation: Mapped[int] = mapped_column(Integer, server_default=text("1"))
     created_by_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("docflow.users.id"))

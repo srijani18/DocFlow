@@ -1,0 +1,14 @@
+{
+  "comment": "USD per million tokens, standard tier. Output includes thinking tokens. Keys are the concrete model names providers report (Gemini: modelVersion).",
+  "checked": "2026-10-25",
+  "source": "https://ai.google.dev/pricing",
+  "providers": {
+    "gemini": {
+      "gemini-3.1-flash-lite-preview": { "input_per_mtok": 0.25, "output_per_mtok": 1.50 },
+      "gemini-3-flash-preview": { "input_per_mtok": 0.50, "output_per_mtok": 3.00 }
+    },
+    "fake": {
+      "fake-model": { "input_per_mtok": 1.00, "output_per_mtok": 2.00 }
+    }
+  }
+}

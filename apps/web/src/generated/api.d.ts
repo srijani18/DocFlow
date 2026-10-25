@@ -230,6 +230,12 @@ export interface components {
          * @enum {string}
          */
         ContentType: "application/pdf" | "image/png" | "image/jpeg";
+        /**
+         * DocType
+         * @description F4 classification labels.
+         * @enum {string}
+         */
+        DocType: "invoice" | "receipt" | "purchase_order" | "other";
         /** Document */
         Document: {
             content_type: components["schemas"]["ContentType"];
@@ -238,6 +244,10 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** @description Set by classification (F4) */
+            doc_type: components["schemas"]["DocType"] | null;
+            /** Doc Type Confidence */
+            doc_type_confidence: number | null;
             /** Failure Reason */
             failure_reason: string | null;
             /** Filename */

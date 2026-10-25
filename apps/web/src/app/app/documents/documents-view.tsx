@@ -3,6 +3,7 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import Link from "next/link";
 
+import { DocTypeLabel } from "@/components/doc-type";
 import { DocumentStatusBadge } from "@/components/document-status";
 import { MeGate } from "@/components/me-gate";
 import { Button } from "@/components/ui/button";
@@ -65,6 +66,7 @@ export function DocumentList({ workspaceId }: { workspaceId: string }) {
           <tr>
             <th className="py-2 font-normal">Name</th>
             <th className="py-2 font-normal">Status</th>
+            <th className="py-2 font-normal">Type</th>
             <th className="py-2 font-normal">Size</th>
             <th className="py-2 font-normal">Uploaded</th>
           </tr>
@@ -82,6 +84,12 @@ export function DocumentList({ workspaceId }: { workspaceId: string }) {
               </td>
               <td className="py-2">
                 <DocumentStatusBadge status={document.status} />
+              </td>
+              <td className="py-2">
+                <DocTypeLabel
+                  docType={document.doc_type}
+                  confidence={document.doc_type_confidence}
+                />
               </td>
               <td className="py-2">{formatBytes(document.size_bytes)}</td>
               <td className="py-2">{formatDateTime(document.created_at)}</td>

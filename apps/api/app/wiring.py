@@ -13,7 +13,10 @@ from app.core.clock import SystemClock
 from app.core.config import Settings
 from app.core.db import create_engine, create_sessionmaker
 from app.events.broker import EventBroker
+from app.llm.gateway import Gateway, Route
+from app.llm.providers.gemini import GeminiProvider
 from app.pipeline.runner import Pipeline
+from app.pipeline.steps.classify import ClassifyStep
 from app.storage.supabase import SupabaseStorage
 from app.worker.loop import Worker
 
@@ -47,6 +50,28 @@ def build_services(settings: Settings) -> Services:
     events = EventBroker()
     worker = None
     if settings.role.runs_worker:
-        pipeline = Pipeline(sessionmaker=sessionmaker, storage=storage, publish=events.publish)
+        gateway = build_gateway(settings, sessionmaker=sessionmaker, http=http)
+        pipeline = Pipeline(
+            sessionmaker=sessionmaker,
+            storage=storage,
+            publish=events.publish,
+            classify=ClassifyStep(gateway, prompt_version=settings.llm_classify_prompt),
+        )
         worker = Worker(sessionmaker=sessionmaker, pipeline=pipeline, events=events)
     return Services(engine, sessionmaker, http, storage, events, worker)
+
+
+def build_gateway(
+    settings: Settings, *, sessionmaker: async_sessionmaker[AsyncSession], http: httpx.AsyncClient
+) -> Gateway:
+    gemini = GeminiProvider(
+        api_key=settings.gemini_api_key,
+        http=http,
+        base_url=settings.gemini_base_url,
+        timeout_seconds=settings.llm_timeout_seconds,
+    )
+    return Gateway(
+        sessionmaker=sessionmaker,
+        providers={gemini.name: gemini},
+        routes={"classify": Route(gemini.name, settings.llm_classify_model)},
+    )

@@ -99,3 +99,12 @@ ALTER TABLE documents
 - **Unit:** schema adapter; Gemini provider with `respx` (success, 429 with RetryInfo, 503, timeout, 400, malformed JSON); cost estimate; prompt loader.
 - **Integration (FakeProvider, real Postgres):** `test_ac1_*` labels and confidence stored; `test_ac2_invalid_output_logged_and_retried`; `test_ac3_other_skips_extraction`; `test_ac4_every_attempt_logged`; `test_ac7_rerun_makes_no_call`.
 - **Manual (local, your key):** classify the synthetic sample invoice; record the model list and free-tier limits from AI Studio in overview §8.
+
+
+## 10. Implementation notes (F4-T1 to T5)
+
+- **Calls are logged and priced by the concrete model.** Gemini reports `modelVersion` (e.g. `gemini-3.1-flash-lite-preview`) even when we ask for an alias such as `gemini-flash-lite-latest`; that is what `llm_calls.model` records and what `prices.v1.json` is keyed by.
+- `Gateway.generate(request, validate_with=schema_id)` validates against the schema file by id, so extraction (F5) can validate the whole envelope while sending the adapted document schema.
+- Answers are parsed with `Decimal` for numbers and the raw JSON text is kept (`LlmResult.raw_json`), so F5 can store amounts exactly.
+- The "other" note isn't a new column: the UI shows it whenever `doc_type = other`, and the status event records it as `detail`.
+- A `200` from Gemini whose body isn't JSON is treated as transient (a proxy hiccup), a missing key as transient (an operator fix), and a blocked prompt or `400` as permanent.

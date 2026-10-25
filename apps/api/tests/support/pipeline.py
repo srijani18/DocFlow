@@ -13,6 +13,7 @@ from app.core.tenancy import WorkspaceScope
 from app.documents import service
 from app.documents.models import Document, DocumentEvent
 from app.jobs.models import Job
+from app.llm.models import LlmCall
 from app.storage.fake import FakeStorage
 from tests.support.clock import FrozenClock
 from tests.support.documents import PDF
@@ -109,3 +110,11 @@ async def wait_for_status(seeded: Seeded, document_id: uuid.UUID, status: str) -
             return
         await asyncio.sleep(0.05)
     raise AssertionError(f"document never reached {status}")
+
+
+async def llm_calls_for(seeded: Seeded, document_id: uuid.UUID) -> list[LlmCall]:
+    async with seeded.sessionmaker() as session:
+        rows = await session.scalars(
+            select(LlmCall).where(LlmCall.document_id == document_id).order_by(LlmCall.created_at)
+        )
+        return list(rows)

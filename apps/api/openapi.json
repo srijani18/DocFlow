@@ -10,6 +10,17 @@
         "title": "ContentType",
         "type": "string"
       },
+      "DocType": {
+        "description": "F4 classification labels.",
+        "enum": [
+          "invoice",
+          "receipt",
+          "purchase_order",
+          "other"
+        ],
+        "title": "DocType",
+        "type": "string"
+      },
       "Document": {
         "properties": {
           "content_type": {
@@ -19,6 +30,28 @@
             "format": "date-time",
             "title": "Created At",
             "type": "string"
+          },
+          "doc_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DocType"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Set by classification (F4)"
+          },
+          "doc_type_confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Doc Type Confidence"
           },
           "failure_reason": {
             "anyOf": [
@@ -71,6 +104,8 @@
           "status",
           "status_changed_at",
           "failure_reason",
+          "doc_type",
+          "doc_type_confidence",
           "created_at",
           "updated_at"
         ],
