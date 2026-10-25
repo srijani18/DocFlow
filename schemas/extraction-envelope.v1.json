@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.docflow.dev/extraction-envelope.v1.json",
+  "x-schema-id": "docflow/extraction-envelope/v1",
+  "title": "Extraction envelope",
+  "description": "What the model returns: the document data plus a confidence per field. `data` is checked against the document type's own schema.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "data",
+    "confidence"
+  ],
+  "properties": {
+    "data": {
+      "type": "object",
+      "description": "An instance of the document type's schema."
+    },
+    "confidence": {
+      "type": "array",
+      "description": "How sure the model is about each extracted field.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "field",
+          "score"
+        ],
+        "properties": {
+          "field": {
+            "type": "string",
+            "description": "Dotted path with zero-based indices, e.g. vendor.gstin or line_items.0.amount.amount."
+          },
+          "score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Probability from 0 to 1 that the value is correct."
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,18 +1,22 @@
 """Upload and document tables (F2 plan §3)."""
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
+from decimal import Decimal
 from enum import StrEnum
 
 from sqlalchemy import (
     REAL,
     BigInteger,
     CheckConstraint,
+    Date,
     DateTime,
     ForeignKey,
     Identity,
     Index,
     Integer,
+    Numeric,
+    String,
     Text,
     func,
     text,
@@ -94,6 +98,8 @@ class Document(Base):
         # The real duplicate guard (AC3); the check when an upload starts is a shortcut.
         Index("uq_documents_workspace_sha256", "workspace_id", "sha256", unique=True),
         Index("ix_documents_workspace_created", "workspace_id", "created_at", "id"),
+        Index("ix_documents_workspace_vendor", "workspace_id", "vendor_name"),
+        Index("ix_documents_workspace_date", "workspace_id", "document_date"),
     )
 
     id: Mapped[uuid.UUID] = _uuid_pk()
@@ -111,6 +117,17 @@ class Document(Base):
     status_changed_at: Mapped[datetime] = _timestamp()
     doc_type: Mapped[str | None] = mapped_column(Text)
     doc_type_confidence: Mapped[float | None] = mapped_column(REAL)
+    # The current extraction version and the fields copied from it for lists and search
+    # (ADR-0005 §4, F5 AC7). use_alter: documents and extractions reference each other.
+    current_extraction_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey(
+            "docflow.extractions.id", use_alter=True, name="fk_documents_current_extraction_id"
+        )
+    )
+    vendor_name: Mapped[str | None] = mapped_column(Text)
+    document_date: Mapped[date | None] = mapped_column(Date)
+    total_amount: Mapped[Decimal | None] = mapped_column(Numeric(18, 2))
+    currency: Mapped[str | None] = mapped_column(String(3))
     # Bumped by each retry, so each processing run has its own job key (F3 plan §3).
     processing_generation: Mapped[int] = mapped_column(Integer, server_default=text("1"))
     created_by_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("docflow.users.id"))

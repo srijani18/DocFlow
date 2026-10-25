@@ -8,6 +8,7 @@ MODEL_MODULES: tuple[str, ...] = (
     "app.documents.models",
     "app.jobs.models",
     "app.llm.models",
+    "app.extractions.models",
 )
 
 

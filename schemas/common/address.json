@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.docflow.dev/common/address.json",
+  "title": "Address",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "line1",
+    "line2",
+    "city",
+    "state",
+    "postal_code",
+    "country"
+  ],
+  "properties": {
+    "line1": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "First address line.",
+      "x-eval": "fuzzy"
+    },
+    "line2": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Second address line.",
+      "x-eval": "fuzzy"
+    },
+    "city": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "City.",
+      "x-eval": "fuzzy"
+    },
+    "state": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "State or province.",
+      "x-eval": "fuzzy"
+    },
+    "postal_code": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "PIN or postal code.",
+      "x-eval": "exact"
+    },
+    "country": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Country.",
+      "x-eval": "fuzzy"
+    }
+  }
+}

@@ -120,15 +120,23 @@ gen-openapi:
 	cd $(API) && uv run python -m app.openapi
 	cd $(WEB) && pnpm --silent gen:api
 
-# Exact generator flags are confirmed in F5, when the first schema files land.
+# The generators get a copy of schemas/ with only the .json files (the README isn't a schema).
+SCHEMAS_TMP := $(shell mktemp -d 2>/dev/null || echo /tmp/docflow-schemas)
 gen-schemas:
 	@if ls schemas/documents/*.json >/dev/null 2>&1; then \
-		(cd $(API) && uv run datamodel-codegen --input ../../schemas --input-file-type jsonschema \
+		rsync -a --delete --include='*/' --include='*.json' --exclude='*' schemas/ $(SCHEMAS_TMP)/ && \
+		rm -rf $(API)/app/generated/schemas $(WEB)/src/generated/schemas && \
+		(cd $(API) && uv run datamodel-codegen --input $(SCHEMAS_TMP) --input-file-type jsonschema \
 			--output app/generated/schemas --output-model-type pydantic_v2.BaseModel \
 			--target-python-version 3.12 --use-standard-collections --use-union-operator \
-			--field-constraints --disable-timestamp) && \
-		(cd $(WEB) && pnpm exec json2ts -i '../../schemas/**/*.json' -o src/generated/schemas \
-			--cwd ../../schemas); \
+			--field-constraints --disable-timestamp --use-schema-description --formatters builtin \
+			--custom-file-header '# Generated from schemas/ by `make gen-schemas`. Do not edit.') && \
+		(cd $(SCHEMAS_TMP) && for f in $$(find . -name '*.json' | sort); do \
+			out=$(CURDIR)/$(WEB)/src/generated/schemas/$${f%.json}.d.ts; mkdir -p $$(dirname $$out); \
+			(cd $$(dirname $$f) && $(CURDIR)/$(WEB)/node_modules/.bin/json2ts -i $$(basename $$f) -o $$out \
+				--bannerComment '/* Generated from schemas/ by make gen-schemas. Do not edit. */') || exit 1; \
+		done); \
+		rm -rf $(SCHEMAS_TMP); \
 	else echo "schemas/: no document schemas yet, nothing to generate"; fi
 
 check-gen: gen ## Fail if generated code is out of date

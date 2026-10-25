@@ -20,6 +20,7 @@ from app.core.openapi_docs import install_problem_openapi
 from app.core.request_context import REQUEST_ID_HEADER, RequestContextMiddleware
 from app.documents import routes as document_routes
 from app.events import routes as event_routes
+from app.extractions import routes as extraction_routes
 from app.identity import routes as identity_routes
 from app.wiring import build_services
 
@@ -91,5 +92,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(identity_routes.router)
     app.include_router(document_routes.router)
     app.include_router(event_routes.router)
+    app.include_router(extraction_routes.router)
     install_problem_openapi(app)
     return app

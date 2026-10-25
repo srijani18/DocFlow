@@ -1,0 +1,61 @@
+{
+  "doc_type": "receipt",
+  "schema_id": "docflow/receipt/v1",
+  "data": {
+    "receipt_number": "88231",
+    "date": "2026-09-02",
+    "time": "13:42",
+    "merchant": {
+      "name": "Annapurna Tiffin Centre",
+      "gstin": "29LMNOP4321Q1Z9",
+      "address": {
+        "line1": "12 Gandhi Bazaar",
+        "line2": null,
+        "city": "Bengaluru",
+        "state": "Karnataka",
+        "postal_code": "560004",
+        "country": "India"
+      }
+    },
+    "currency": "INR",
+    "line_items": [
+      {
+        "description": "Masala dosa",
+        "quantity": 2,
+        "amount": {
+          "amount": 180.0,
+          "currency": "INR"
+        }
+      },
+      {
+        "description": "Filter coffee",
+        "quantity": 2,
+        "amount": {
+          "amount": 80.0,
+          "currency": "INR"
+        }
+      },
+      {
+        "description": "Idli vada",
+        "quantity": 1,
+        "amount": {
+          "amount": 70.0,
+          "currency": "INR"
+        }
+      }
+    ],
+    "subtotal": {
+      "amount": 330.0,
+      "currency": "INR"
+    },
+    "tax_total": {
+      "amount": 16.5,
+      "currency": "INR"
+    },
+    "total": {
+      "amount": 346.5,
+      "currency": "INR"
+    },
+    "payment_method": "UPI"
+  }
+}

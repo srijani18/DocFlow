@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.docflow.dev/documents/receipt.v1.json",
+  "x-schema-id": "docflow/receipt/v1",
+  "title": "Receipt",
+  "description": "Proof of a payment already made, such as a till slip.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "receipt_number",
+    "date",
+    "time",
+    "merchant",
+    "currency",
+    "line_items",
+    "subtotal",
+    "tax_total",
+    "total",
+    "payment_method"
+  ],
+  "properties": {
+    "receipt_number": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Receipt or bill number.",
+      "x-eval": "exact"
+    },
+    "date": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date",
+      "description": "Date of payment (YYYY-MM-DD).",
+      "x-eval": "exact"
+    },
+    "time": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
+      "description": "Time of payment, 24-hour HH:MM.",
+      "x-eval": "exact"
+    },
+    "merchant": {
+      "anyOf": [
+        {
+          "$ref": "../common/party.json"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The shop or business that was paid."
+    },
+    "currency": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[A-Z]{3}$",
+      "description": "ISO 4217 code, e.g. INR.",
+      "x-eval": "exact"
+    },
+    "line_items": {
+      "type": "array",
+      "description": "Each purchased line, in order.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "description",
+          "quantity",
+          "amount"
+        ],
+        "properties": {
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "What was bought.",
+            "x-eval": "fuzzy"
+          },
+          "quantity": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Quantity.",
+            "x-eval": "numeric:0.01"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "$ref": "../common/money.json"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Line total."
+          }
+        }
+      }
+    },
+    "subtotal": {
+      "anyOf": [
+        {
+          "$ref": "../common/money.json"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Total before tax."
+    },
+    "tax_total": {
+      "anyOf": [
+        {
+          "$ref": "../common/money.json"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Total tax."
+    },
+    "total": {
+      "anyOf": [
+        {
+          "$ref": "../common/money.json"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Amount paid."
+    },
+    "payment_method": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "How it was paid, e.g. cash, card, UPI.",
+      "x-eval": "fuzzy"
+    }
+  }
+}

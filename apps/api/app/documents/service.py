@@ -5,7 +5,8 @@ import json
 import uuid
 from collections.abc import Collection
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
+from decimal import Decimal
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -320,4 +321,27 @@ async def set_classification(
 ) -> None:
     await repository.set_classification(
         session, scope, document_id, doc_type=doc_type, confidence=confidence
+    )
+
+
+async def set_current_extraction(
+    session: AsyncSession,
+    scope: WorkspaceScope,
+    document_id: uuid.UUID,
+    *,
+    extraction_id: uuid.UUID,
+    vendor_name: str | None,
+    document_date: date | None,
+    total_amount: Decimal | None,
+    currency: str | None,
+) -> None:
+    await repository.set_current_extraction(
+        session,
+        scope,
+        document_id,
+        extraction_id=extraction_id,
+        vendor_name=vendor_name,
+        document_date=document_date,
+        total_amount=total_amount,
+        currency=currency,
     )

@@ -16,6 +16,7 @@ from typing import Any
 from urllib.parse import urldefrag, urljoin
 
 from jsonschema import Draft202012Validator, FormatChecker
+from jsonschema.exceptions import ValidationError
 from referencing import Registry, Resource
 from referencing.jsonschema import DRAFT202012
 
@@ -107,7 +108,24 @@ def _validator(schema_id: str) -> Draft202012Validator:
     return Draft202012Validator(schema, registry=registry, format_checker=FormatChecker())
 
 
+def _most_specific(error: ValidationError) -> ValidationError:
+    """For "matches none of anyOf" (a nullable object), report the closest branch's own
+    problem, e.g. `vendor.gstin: ... does not match ...`, not the whole object."""
+    while error.context:
+        # Branches that fail only because the value isn't their type (e.g. `null`) say
+        # nothing useful; among the rest, the deepest error is the most specific.
+        relevant = [
+            sub for sub in error.context if not (sub.validator == "type" and not sub.relative_path)
+        ] or list(error.context)
+        error = max(relevant, key=lambda sub: len(sub.absolute_path))
+    return error
+
+
 def validation_errors(schema_id: str, instance: object) -> list[str]:
     """Readable problems, `path: message`; empty when the instance is valid."""
-    errors = sorted(_validator(schema_id).iter_errors(instance), key=lambda e: list(e.path))
-    return [f"{'.'.join(map(str, error.path)) or '<root>'}: {error.message}" for error in errors]
+    errors = [_most_specific(error) for error in _validator(schema_id).iter_errors(instance)]
+    errors.sort(key=lambda error: [str(part) for part in error.absolute_path])
+    return [
+        f"{'.'.join(map(str, error.absolute_path)) or '<root>'}: {error.message}"
+        for error in errors
+    ]

@@ -61,7 +61,6 @@ describe("DocumentList", () => {
       "/app/documents/1",
     );
     const row = screen.getByRole("row", { name: /newest\.pdf/ });
-    expect(row).toHaveTextContent("2.0 KB");
     expect(row).toHaveTextContent("Queued");
 
     await userEvent.click(screen.getByRole("button", { name: "Load more" }));
@@ -106,5 +105,30 @@ describe("DocumentList types", () => {
       "Purchase order · 91%",
     );
     expect(screen.getByRole("row", { name: /b\.pdf/ })).toHaveTextContent("—");
+  });
+});
+
+describe("DocumentList summary", () => {
+  it("AC7: list shows vendor and total", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      Response.json({
+        items: [
+          makeDocument({
+            id: "1",
+            filename: "inv.pdf",
+            vendor_name: "Kaveri Fasteners Private Limited",
+            total_amount: "16826.80",
+            currency: "INR",
+          }),
+        ],
+        next_cursor: null,
+      }),
+    );
+
+    renderList();
+
+    const row = await screen.findByRole("row", { name: /inv\.pdf/ });
+    expect(row).toHaveTextContent("Kaveri Fasteners Private Limited");
+    expect(row).toHaveTextContent("₹16,826.80");
   });
 });

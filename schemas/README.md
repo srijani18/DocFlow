@@ -1,6 +1,6 @@
 # `schemas/`: document shapes (single source of truth)
 
-**Status:** Approved (2026-10-24). The schema files themselves arrive in Phase 1 (F5).
+**Status:** Approved (2026-10-24). Schema files added in F5 (2026-10-25): `classification.v1`, `extraction-envelope.v1`, the three document types and `common/`.
 
 These JSON Schemas define the structured data DocFlow extracts from each document type. They are the only place those shapes are defined. Everything else is generated from them or reads them:
 
@@ -56,16 +56,18 @@ schemas/
 
 ### 3. Confidence lives outside the schema
 
-The model returns an envelope that the gateway validates:
+The model returns an envelope (`extraction-envelope.v1.json`) that the gateway validates:
 
 ```json
 {
   "data": { "...": "an instance of the document schema" },
-  "confidence": { "<field path>": 0.0 }
+  "confidence": [{ "field": "<field path>", "score": 0.0 }]
 }
 ```
 
-- `data` is validated against the document schema. `confidence` is validated against a generic envelope schema (an object of numbers from 0 to 1).
+The confidence is a **list** on the wire, because providers' structured output handles arrays of objects more reliably than free-form maps. It is **stored** as the map `{ "<field path>": score }` on the extraction row.
+
+- `data` is validated against the document schema. Each confidence entry needs a `score` from 0 to 1, and its `field` must point at a field that exists in `data`; otherwise the answer is invalid.
 - **Field paths:** dotted paths with zero-based indices, for example `vendor.name`, `total.amount` or `line_items.2.quantity`. The same paths are used for review highlighting (F7), `corrections` rows and per-field eval scores.
 
 ### 4. Versioning

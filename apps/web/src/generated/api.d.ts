@@ -119,6 +119,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/workspaces/{workspace_id}/documents/{document_id}/extraction": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Current Extraction
+         * @description The document's current extraction; 404 until one exists (F5 AC6).
+         */
+        get: operations["getCurrentExtraction"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/workspaces/{workspace_id}/documents/{document_id}/file-url": {
         parameters: {
             query?: never;
@@ -244,10 +264,14 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** Currency */
+            currency: string | null;
             /** @description Set by classification (F4) */
             doc_type: components["schemas"]["DocType"] | null;
             /** Doc Type Confidence */
             doc_type_confidence: number | null;
+            /** Document Date */
+            document_date: string | null;
             /** Failure Reason */
             failure_reason: string | null;
             /** Filename */
@@ -268,10 +292,20 @@ export interface components {
              */
             status_changed_at: string;
             /**
+             * Total Amount
+             * @description Exact decimal, serialised as a string
+             */
+            total_amount: string | null;
+            /**
              * Updated At
              * Format: date-time
              */
             updated_at: string;
+            /**
+             * Vendor Name
+             * @description From the current extraction (F5)
+             */
+            vendor_name: string | null;
         };
         /** DocumentPage */
         DocumentPage: {
@@ -286,6 +320,47 @@ export interface components {
          * @enum {string}
          */
         DocumentStatus: "UPLOADED" | "CLASSIFYING" | "EXTRACTING" | "NEEDS_REVIEW" | "FAILED";
+        /**
+         * Extraction
+         * @description One version of a document's extracted data (ADR-0005).
+         */
+        Extraction: {
+            /**
+             * Confidence
+             * @description Field path (dotted, zero-based indices) to a score from 0 to 1
+             */
+            confidence: {
+                [key: string]: number;
+            };
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Data */
+            data: {
+                [key: string]: unknown;
+            };
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Prompt Version */
+            prompt_version: string | null;
+            /**
+             * Schema Id
+             * @description The schema `data` was validated against, e.g. docflow/invoice/v1
+             */
+            schema_id: string;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "model" | "agent_fix" | "human";
+            /** Version */
+            version: number;
+        };
         /** FileUrl */
         FileUrl: {
             /**
@@ -748,6 +823,56 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Document"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getCurrentExtraction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Extraction"];
                 };
             };
             /** @description Unauthorized */

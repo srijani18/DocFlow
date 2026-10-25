@@ -134,3 +134,13 @@ sequenceDiagram
 - **Integration (FakeProvider):** `test_ac1_*` per type, `test_ac3_invalid_answer_not_stored_and_retried`, `test_ac4_extraction_records_provenance`, `test_ac5_rerun_no_call_no_new_version`, `test_ac7_summary_columns_updated`, cross-workspace 404 on the extraction endpoint.
 - **Web:** `AC6: shows fields, line items and highlights low confidence`, `AC6: raw JSON toggle`, `AC7: list shows vendor and total`.
 - **Manual (Phase 1 "done when"):** upload `synthetic-invoice-001.pdf` locally and see its extracted fields in the UI.
+
+
+## 11. Implementation notes (F5-T1 to T6)
+
+- **Confidence on the wire is a list** of `{field, score}` (providers handle arrays of objects better than free-form maps) and is stored as the map `{path: score}`. `schemas/README.md` convention 3 updated.
+- **Exact amounts:** answers are parsed with `Decimal`, and extraction JSON is written as exact JSON text cast to JSONB in SQL (`app/extractions/exact_json.py`), so stored numbers keep every digit (test: `test_ac8_amounts_stored_exactly`). `documents.total_amount` is `numeric(18,2)` and the API returns it as a decimal string.
+- **Readable validation errors:** for "object or null" fields, the validator reports the closest branch's own problem (`vendor.gstin: … does not match …`) instead of "not valid under any of the given schemas".
+- **Codegen:** `make gen-schemas` feeds the generators a JSON-only copy of `schemas/`; TypeScript types are generated per file, because json2ts resolves `$ref`s against its working directory.
+- **The web view is schema-agnostic:** it lays out any extraction from its data (scalars as rows, arrays of objects as tables) and highlights fields below 0.8 confidence, so new document types need no UI code.
+- **Samples:** `evals/samples/generate_synthetic.py` writes synthetic PDFs plus ground-truth JSON, which the schema tests validate, and which F11 will reuse.

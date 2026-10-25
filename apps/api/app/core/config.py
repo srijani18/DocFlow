@@ -83,6 +83,8 @@ class Settings(DatabaseSettings):
     llm_timeout_seconds: float = 60
     llm_classify_model: str = "gemini-flash-lite-latest"
     llm_classify_prompt: str = "classify/v1"
+    llm_extract_model: str = "gemini-flash-latest"
+    llm_extract_prompt: str = "extract/v1"
 
     cors_allowed_origins: Annotated[list[str], NoDecode] = []
     cors_allowed_origin_regex: str | None = None

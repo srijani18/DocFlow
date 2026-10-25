@@ -1,0 +1,218 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.docflow.dev/documents/purchase_order.v1.json",
+  "x-schema-id": "docflow/purchase_order/v1",
+  "title": "Purchase order",
+  "description": "A buyer's order to a supplier.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "po_number",
+    "po_date",
+    "delivery_date",
+    "buyer",
+    "vendor",
+    "currency",
+    "line_items",
+    "subtotal",
+    "taxes",
+    "total"
+  ],
+  "properties": {
+    "po_number": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Purchase order number.",
+      "x-eval": "exact"
+    },
+    "po_date": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date",
+      "description": "Order date (YYYY-MM-DD).",
+      "x-eval": "exact"
+    },
+    "delivery_date": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date",
+      "description": "Requested delivery date (YYYY-MM-DD).",
+      "x-eval": "exact"
+    },
+    "buyer": {
+      "anyOf": [
+        {
+          "$ref": "../common/party.json"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The company placing the order."
+    },
+    "vendor": {
+      "anyOf": [
+        {
+          "$ref": "../common/party.json"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The supplier."
+    },
+    "currency": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[A-Z]{3}$",
+      "description": "ISO 4217 code, e.g. INR.",
+      "x-eval": "exact"
+    },
+    "line_items": {
+      "type": "array",
+      "description": "Each ordered line, in order.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "description",
+          "hsn_sac",
+          "quantity",
+          "unit_price",
+          "amount"
+        ],
+        "properties": {
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "What was sold.",
+            "x-eval": "fuzzy"
+          },
+          "hsn_sac": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "HSN or SAC code.",
+            "x-eval": "exact"
+          },
+          "quantity": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Quantity.",
+            "x-eval": "numeric:0.01"
+          },
+          "unit_price": {
+            "anyOf": [
+              {
+                "$ref": "../common/money.json"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Price per unit."
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "$ref": "../common/money.json"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Line total."
+          }
+        }
+      }
+    },
+    "subtotal": {
+      "anyOf": [
+        {
+          "$ref": "../common/money.json"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Total before tax."
+    },
+    "taxes": {
+      "type": "array",
+      "description": "Each tax line.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "rate_percent",
+          "amount"
+        ],
+        "properties": {
+          "type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "CGST",
+                  "SGST",
+                  "IGST",
+                  "CESS",
+                  "OTHER"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Tax kind, or null if not stated.",
+            "x-eval": "exact"
+          },
+          "rate_percent": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Rate in percent, e.g. 9 for 9%.",
+            "x-eval": "numeric:0.01"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "$ref": "../common/money.json"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Tax amount."
+          }
+        }
+      }
+    },
+    "total": {
+      "anyOf": [
+        {
+          "$ref": "../common/money.json"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Order total."
+    }
+  }
+}
