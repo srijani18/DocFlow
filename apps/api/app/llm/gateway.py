@@ -10,7 +10,7 @@ import uuid
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Any
+from typing import Any, Protocol
 
 from sqlalchemy import insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -20,10 +20,12 @@ from app.llm.models import LlmCall
 from app.llm.pricing import estimate_cost
 from app.llm.providers.base import Provider
 from app.llm.types import (
+    CredentialRejectedError,
     InvalidOutputError,
     LlmError,
     LlmRequest,
     LlmResult,
+    NoCredentialsError,
     ProviderRequest,
     ProviderResponse,
     Task,
@@ -34,6 +36,14 @@ log = get_logger(__name__)
 
 # A schema id from schemas/, or a function returning the problems with an answer.
 Validator = str | Callable[[dict[str, Any]], list[str]]
+
+
+class Credentials(Protocol):
+    """Where a workspace's own provider keys come from (F15)."""
+
+    async def keys_for(self, workspace_id: uuid.UUID) -> Mapping[str, str]: ...
+
+    async def mark_rejected(self, workspace_id: uuid.UUID, provider: str) -> None: ...
 
 
 @dataclass(frozen=True)
@@ -49,10 +59,12 @@ class Gateway:
         sessionmaker: async_sessionmaker[AsyncSession],
         providers: Mapping[str, Provider],
         routes: Mapping[Task, Route],
+        credentials: Credentials,
     ) -> None:
         self._sessionmaker = sessionmaker
         self._providers = providers
         self._routes = routes
+        self._credentials = credentials
 
     async def generate(self, request: LlmRequest, *, validate_with: Validator) -> LlmResult:
         """Call the task's model and return schema-valid JSON.
@@ -64,6 +76,10 @@ class Gateway:
         """
         route = self._routes[request.task]
         provider = self._providers[route.provider]
+        keys = await self._credentials.keys_for(request.context.workspace_id)
+        api_key = keys.get(route.provider)
+        if api_key is None:
+            raise NoCredentialsError(f"no {route.provider} key connected")
         started = time.monotonic()
         try:
             response = await provider.generate(
@@ -72,10 +88,13 @@ class Gateway:
                     instructions=request.prompt.text,
                     parts=request.parts,
                     response_schema=request.response_schema,
+                    api_key=api_key,
                 )
             )
         except LlmError as exc:
             await self._record(request, route, None, started, outcome="error", error=exc)
+            if isinstance(exc, CredentialRejectedError):
+                await self._credentials.mark_rejected(request.context.workspace_id, exc.provider)
             raise
         try:
             data = self._parse_and_validate(response, validate_with)

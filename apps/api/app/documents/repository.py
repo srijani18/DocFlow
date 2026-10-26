@@ -1,6 +1,7 @@
 """SQL for uploads and documents. Every function takes a WorkspaceScope (constitution §4)."""
 
 import uuid
+from collections.abc import Collection
 from datetime import date, datetime
 from decimal import Decimal
 
@@ -137,11 +138,13 @@ async def set_status(
     *,
     status: str,
     failure_reason: str | None,
+    failure_code: str | None = None,
     bump_generation: bool = False,
 ) -> Document:
     values: dict[str, object] = {
         "status": status,
         "failure_reason": failure_reason,
+        "failure_code": failure_code,
         "status_changed_at": func.now(),
         "updated_at": func.now(),
     }
@@ -229,3 +232,16 @@ async def set_current_extraction(
             updated_at=func.now(),
         )
     )
+
+
+async def list_failed_with_codes(
+    session: AsyncSession, scope: WorkspaceScope, codes: Collection[str]
+) -> list[uuid.UUID]:
+    rows = await session.scalars(
+        select(Document.id).where(
+            Document.workspace_id == scope.workspace_id,
+            Document.status == "FAILED",
+            Document.failure_code.in_(list(codes)),
+        )
+    )
+    return list(rows)

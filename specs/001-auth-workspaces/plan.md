@@ -245,7 +245,7 @@ A normal request costs one indexed `SELECT`. Scoped endpoints add one membership
 
 **CORS:**
 - no credentials;
-- allowed methods: `GET, POST, PATCH, DELETE, OPTIONS`;
+- allowed methods: `GET, POST, PUT, PATCH, DELETE, OPTIONS` (PUT added by F15 for saving AI keys);
 - allowed headers: `Authorization, Content-Type, Idempotency-Key, X-Request-ID`;
 - exposed header: `X-Request-ID`.
 

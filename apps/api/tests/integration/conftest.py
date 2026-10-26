@@ -121,8 +121,14 @@ def wakeups() -> list[str]:
 
 
 @pytest.fixture
+def db_app(db_settings: Settings) -> FastAPI:
+    """The app behind `db_client`; feature conftests may add dependency overrides."""
+    return create_app(db_settings)
+
+
+@pytest.fixture
 async def db_client(
-    db_settings: Settings,
+    db_app: FastAPI,
     db_session: AsyncSession,
     fake_storage: FakeStorage,
     clock: FrozenClock,
@@ -132,7 +138,7 @@ async def db_client(
     """API client whose requests run inside the test's rolled-back transaction, and which
     trusts tokens signed with TEST_SIGNING_KEY (see `tests.support.jwt.bearer`). Storage is
     `fake_storage` and time is `clock`."""
-    app: FastAPI = create_app(db_settings)
+    app = db_app
 
     async def session_in_test_transaction() -> AsyncIterator[AsyncSession]:
         try:

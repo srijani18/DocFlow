@@ -77,8 +77,12 @@ class Settings(DatabaseSettings):
     supabase_secret_key: str | None = None
     supabase_storage_bucket: str = "documents-dev"
 
+    # Encrypts workspaces' own AI keys (F15, ADR-0008): "v1:<base64 32 bytes>[,v2:…]".
+    # Without it, keys can't be saved and documents fail with no_ai_key.
+    byok_master_keys: str | None = None
+
     # LLM gateway (F4, F5). Model IDs and prompt versions are configuration (constitution §5.7).
-    gemini_api_key: str | None = None
+    # Provider keys are not settings: each workspace brings its own (F15).
     gemini_base_url: str = "https://generativelanguage.googleapis.com"
     llm_timeout_seconds: float = 60
     llm_classify_model: str = "gemini-flash-lite-latest"

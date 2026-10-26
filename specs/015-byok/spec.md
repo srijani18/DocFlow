@@ -1,6 +1,6 @@
 # F15: Bring your own AI keys (spec)
 
-**Status:** Approved (2026-10-26)
+**Status:** Implemented (2026-10-26)
 **Phase:** 2 (built before F10, which routes across the keys this adds)
 **Plan:** [plan.md](plan.md) · **Tasks:** [tasks.md](tasks.md) · **ADR:** [0008](../000-architecture/adr/0008-byok-encrypted-keys.md)
 

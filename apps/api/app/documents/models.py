@@ -114,6 +114,8 @@ class Document(Base):
     sha256: Mapped[str] = mapped_column(Text)
     status: Mapped[str] = mapped_column(Text)
     failure_reason: Mapped[str | None] = mapped_column(Text)
+    # Machine-readable cause, e.g. no_ai_key, so such failures can be requeued (F15 AC8).
+    failure_code: Mapped[str | None] = mapped_column(Text)
     status_changed_at: Mapped[datetime] = _timestamp()
     doc_type: Mapped[str | None] = mapped_column(Text)
     doc_type_confidence: Mapped[float | None] = mapped_column(REAL)

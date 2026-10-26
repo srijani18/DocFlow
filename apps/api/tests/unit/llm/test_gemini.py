@@ -9,6 +9,7 @@ import respx
 
 from app.llm.providers.gemini import GeminiProvider
 from app.llm.types import (
+    CredentialRejectedError,
     FilePart,
     PermanentLlmError,
     ProviderRequest,
@@ -26,6 +27,7 @@ REQUEST = ProviderRequest(
         "properties": {"doc_type": {"enum": ["invoice"], "x-eval": "exact"}},
         "required": ["doc_type"],
     },
+    api_key="test-key",
 )
 OK: dict[str, Any] = {
     "candidates": [
@@ -46,8 +48,8 @@ async def http() -> AsyncIterator[httpx.AsyncClient]:
         yield client
 
 
-def provider(http: httpx.AsyncClient, key: str | None = "test-key") -> GeminiProvider:
-    return GeminiProvider(api_key=key, http=http, base_url="https://gemini.test")
+def provider(http: httpx.AsyncClient) -> GeminiProvider:
+    return GeminiProvider(http=http, base_url="https://gemini.test")
 
 
 @respx.mock
@@ -125,6 +127,34 @@ async def test_ac5_timeout_is_transient(http: httpx.AsyncClient) -> None:
         await provider(http).generate(REQUEST)
 
 
+@pytest.mark.parametrize(
+    ("status", "body"),
+    [
+        (
+            400,
+            {"error": {"status": "INVALID_ARGUMENT", "details": [{"reason": "API_KEY_INVALID"}]}},
+        ),
+        (401, {"error": {"message": "unauthenticated"}}),
+        (403, {"error": {"message": "permission denied"}}),
+    ],
+)
+@respx.mock
+async def test_ac9_rejected_key_is_a_credential_error(
+    http: httpx.AsyncClient, status: int, body: dict[str, Any]
+) -> None:
+    respx.post(URL).respond(status, json=body)
+
+    with pytest.raises(CredentialRejectedError) as raised:
+        await provider(http).generate(REQUEST)
+
+    assert raised.value.provider == "gemini"
+    assert "test-key" not in str(raised.value)
+
+
+def test_api_key_never_in_request_repr() -> None:
+    assert "test-key" not in repr(REQUEST)
+
+
 @respx.mock
 async def test_bad_request_is_permanent(http: httpx.AsyncClient) -> None:
     respx.post(URL).respond(400, json={"error": {"message": "Unable to process input file"}})
@@ -156,8 +186,3 @@ async def test_max_tokens_marks_truncated(http: httpx.AsyncClient) -> None:
     )
 
     assert (await provider(http).generate(REQUEST)).truncated is True
-
-
-async def test_missing_key_is_transient(http: httpx.AsyncClient) -> None:
-    with pytest.raises(TransientLlmError, match="not configured"):
-        await provider(http, key=None).generate(REQUEST)

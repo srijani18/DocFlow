@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import APIRoute
 
+from app.aikeys import routes as aikey_routes
 from app.auth.jwks import JwksCache
 from app.auth.verifier import TokenVerifier
 from app.core import health
@@ -70,6 +71,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.worker = services.worker
     app.state.storage = services.storage
     app.state.events = services.events
+    app.state.keybox = services.keybox
+    app.state.http = services.http
     app.state.token_verifier = TokenVerifier(
         jwks, issuer=settings.auth_issuer, audience=settings.auth_jwt_audience
     )
@@ -83,7 +86,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_origins=settings.cors_allowed_origins,
         allow_origin_regex=settings.cors_allowed_origin_regex,
         allow_credentials=False,
-        allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type", "Idempotency-Key", REQUEST_ID_HEADER],
         expose_headers=[REQUEST_ID_HEADER],
     )
@@ -93,5 +96,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(document_routes.router)
     app.include_router(event_routes.router)
     app.include_router(extraction_routes.router)
+    app.include_router(aikey_routes.router)
     install_problem_openapi(app)
     return app

@@ -13,6 +13,7 @@ export function makeDocument(
     sha256: "a".repeat(64),
     status: "UPLOADED",
     failure_reason: null,
+    failure_code: null,
     doc_type: null,
     doc_type_confidence: null,
     vendor_name: null,

@@ -93,3 +93,24 @@ describe("DocumentDetail retry", () => {
     );
   });
 });
+
+describe("DocumentDetail missing key", () => {
+  it("links to Settings when no AI key is connected", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      Response.json(
+        makeDocument({
+          status: "FAILED",
+          failure_reason: "No AI provider key connected",
+          failure_code: "no_ai_key",
+        }),
+      ),
+    );
+
+    renderDetail();
+
+    expect(await screen.findByRole("link", { name: "Connect a key in Settings" })).toHaveAttribute(
+      "href",
+      "/app/settings",
+    );
+  });
+});

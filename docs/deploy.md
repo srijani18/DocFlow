@@ -9,7 +9,7 @@ Everything runs on free tiers, with no credit card. Do the steps in order: later
 | 3 | Render | API + worker | Phase 0 |
 | 4 | Vercel | Web app | Phase 0 |
 | 5 | cron-job.org | Keep-alive pings | Phase 0 |
-| 6 | Google AI Studio, Groq, OpenRouter | LLM keys | Phase 1–2 (you can create them now) |
+| 6 | BYOK master key; Google AI Studio, Groq, OpenRouter | Encrypting customers' AI keys; your own keys for evals | Phase 2 |
 | 7 | Langfuse, Sentry | Traces, errors | Phase 5 (you can create them now) |
 
 Region everywhere: **Singapore** (overview A5).
@@ -110,7 +110,7 @@ For Phase 1, but quick to do now. Go to **Storage → New bucket** and create tw
    | `CORS_ALLOWED_ORIGINS` | Your Vercel production URL, e.g. `https://docflow-web.vercel.app` (fill in after step 4, then redeploy) |
    | `CORS_ALLOWED_ORIGIN_REGEX` | `^https://docflow-web-[a-z0-9-]+-<your-vercel-scope>\.vercel\.app$` (preview deployments, overview A1) |
 
-   Phase 1 adds `SUPABASE_SECRET_KEY`, `SUPABASE_STORAGE_BUCKET=documents` and `GEMINI_API_KEY`. Add each under **Environment** when its feature ships; `.env.example` always lists the current set.
+   Phase 1 adds `SUPABASE_SECRET_KEY` and `SUPABASE_STORAGE_BUCKET=documents`; Phase 2 adds `BYOK_MASTER_KEYS` (§6). Add each under **Environment** when its feature ships; `.env.example` always lists the current set.
 4. **Apply.** The first deploy runs immediately. Later deploys wait for `ci-ok` on `main` (`autoDeployTrigger: checksPass`).
 5. Check, using the service URL from the dashboard (📋 `https://docflow-api-xxxx.onrender.com`):
    - `GET /healthz` returns `{"status":"ok"}`.
@@ -148,17 +148,22 @@ For Phase 1, but quick to do now. Go to **Storage → New bucket** and create tw
    - It keeps the project active even if Render is down for a week. An empty list `[]` as the response is expected (there are no policies).
 4. Enable failure notifications by email on both jobs.
 
-## 6. LLM keys (Phase 1–2, optional now)
+## 6. AI keys: bring your own (F15, ADR-0008)
 
-| Provider | Where | Variable |
+DocFlow has **no platform AI key**. Each workspace's admin connects their own Gemini, Groq or OpenRouter key in **DocFlow → Settings**. Those keys are encrypted with a master key that only the server has.
+
+1. **Generate the master key:** run `make byok-key` and copy the output (`v1:…`).
+2. Put it in **Render → Environment** as `BYOK_MASTER_KEYS` (**secret**), and in your password manager. If you lose it, every workspace has to re-enter its keys.
+3. **Rotation:** append a new key, `BYOK_MASTER_KEYS=v1:…,v2:…`. New saves use v2 and old keys still decrypt. Remove v1 only once every key has been re-saved.
+4. **Your own keys, for evals only (F11):** they never go on Render or Vercel.
+
+| Provider | Where | Used by |
 |---|---|---|
-| Google Gemini | <https://aistudio.google.com> → Get API key (no billing) | `GEMINI_API_KEY` |
-| Groq | <https://console.groq.com> → API Keys | `GROQ_API_KEY` |
-| OpenRouter | <https://openrouter.ai> → Keys (no credit purchase; 50 free requests a day, overview A6) | `OPENROUTER_API_KEY` |
+| Google Gemini | <https://aistudio.google.com/apikey> (no billing) | Settings in the app; `GEMINI_API_KEY` for evals |
+| Groq | <https://console.groq.com/keys> | Settings in the app; `GROQ_API_KEY` for evals |
+| OpenRouter | <https://openrouter.ai/keys> (50 free requests a day) | Settings in the app |
 
-- These keys go on **Render and in your local `.env` only.**
-- While you're in AI Studio, open **Rate limits** and note the free-tier limits for the Flash and Flash-Lite models. We'll record them in Phase 1 (overview §8).
-- Free tiers may train on what you send them: use only public or synthetic documents.
+For CI evals, add `GEMINI_API_KEY` and `GROQ_API_KEY` as **GitHub Actions secrets**. Free tiers may train on what they receive: evals use only public or synthetic documents.
 
 ## 7. Langfuse and Sentry (Phase 5, optional now)
 
@@ -169,7 +174,7 @@ For Phase 1, but quick to do now. Go to **Storage → New bucket** and create tw
 
 ## Local `.env`
 
-`make setup` copies `.env.example` to `.env`. The defaults already work for local development against Docker Postgres; your local database is never the Supabase one. Add your own values as features need them: Supabase URL and keys (F1), `documents-dev` as the bucket (Phase 1), and LLM keys.
+`make setup` copies `.env.example` to `.env`. The defaults already work for local development against Docker Postgres; your local database is never the Supabase one. Add your own values as features need them: Supabase URL and keys (F1), and `documents-dev` as the bucket (Phase 1). `BYOK_MASTER_KEYS` is generated with `make byok-key`. Your AI keys go into the app's Settings page, not `.env`.
 
 ## Rolling back
 

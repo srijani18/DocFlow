@@ -209,6 +209,7 @@ async def transition(
     expected: Collection[str],
     to: DocumentStatus,
     failure_reason: str | None = None,
+    failure_code: str | None = None,
     job_id: uuid.UUID | None = None,
     detail: str | None = None,
     bump_generation: bool = False,
@@ -227,6 +228,7 @@ async def transition(
         document_id,
         status=to,
         failure_reason=failure_reason,
+        failure_code=failure_code,
         bump_generation=bump_generation,
     )
     await repository.insert_event(
@@ -256,6 +258,7 @@ async def fail(
     reason: str,
     job_id: uuid.UUID | None,
     detail: str | None,
+    code: str | None = None,
 ) -> StatusEvent | None:
     """Mark a document FAILED from whichever processing step it reached (F3 AC3, AC4)."""
     try:
@@ -266,6 +269,7 @@ async def fail(
             expected=PROCESSING_STATUSES,
             to=DocumentStatus.FAILED,
             failure_reason=reason,
+            failure_code=code,
             job_id=job_id,
             detail=detail,
         )
@@ -345,3 +349,15 @@ async def set_current_extraction(
         total_amount=total_amount,
         currency=currency,
     )
+
+
+async def retry_failed_with_codes(
+    session: AsyncSession, scope: WorkspaceScope, codes: Collection[str]
+) -> list[StatusEvent]:
+    """Requeue every FAILED document whose failure has one of these codes, e.g. after an
+    admin connects an AI key (F15 AC8). Same effect as pressing Retry on each."""
+    events = []
+    for document_id in await repository.list_failed_with_codes(session, scope, codes):
+        _, event = await retry_document(session, scope, str(document_id))
+        events.append(event)
+    return events

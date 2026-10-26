@@ -119,3 +119,16 @@ app/llm/     credentials.py WorkspaceCredentials: keys for one workspace, decryp
   - `test_ac10_db_dump_has_no_plaintext`;
   - tenant meta-test.
 - **Web:** settings page states (admin and reviewer), save, remove and test flows, banner, and the failure link.
+
+
+## 9. Implementation notes
+
+- **Requeue covers both key failures.** Connecting a key requeues documents that failed with `no_ai_key` *or* `key_rejected`, since a new key can fix either.
+- **CORS allows PUT.** The live check found the browser's preflight for `PUT …/ai-keys/{provider}` rejected (400), because F1's CORS list predates PUT. A new test derives every method from the OpenAPI document and checks the preflight.
+- **Gemini rejected keys:** an unknown key comes back as `400 API_KEY_INVALID` and a key without access as `403`; both become `CredentialRejectedError`. A `429` during the check counts as a valid key (out of quota, not wrong).
+- **OpenRouter's check uses `GET /api/v1/key`,** because `/models` is public and would accept any key.
+- **`ProviderRequest.api_key` is excluded from `repr`** and tested, so a key can't leak through an error message.
+
+### Live check (2026-10-26, real Supabase and Gemini)
+
+An invoice uploaded with no key failed straight away with "No AI provider key connected" and a link to Settings. The Gemini key was saved through Settings: it was checked by Google and stored as 69 bytes of AES-GCM ciphertext with a 12-byte nonce. The document was requeued automatically (generation 2) and reached Needs review in about 8 s, on the workspace's key (`llm_calls`: classify 2.3 s, extract 5.6 s, estimated $0.0065). The plaintext key appeared neither in a `pg_dump` of the table nor in the API logs.

@@ -144,6 +144,10 @@ check-gen: gen ## Fail if generated code is out of date
 		test -z "$$(git ls-files --others --exclude-standard -- $(GENERATED))" || \
 		(echo "Generated code is out of date: run 'make gen' and commit the result." && exit 1)
 
+.PHONY: byok-key
+byok-key: ## Print a new BYOK master key for BYOK_MASTER_KEYS (F15, ADR-0008)
+	@cd $(API) && uv run python -c "from app.aikeys.crypto import generate_master_key; print(generate_master_key())"
+
 .PHONY: pre-commit
 pre-commit: ## Run every pre-commit hook on all files
 	cd $(API) && uv run pre-commit run --all-files
