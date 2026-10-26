@@ -22,16 +22,15 @@ from datetime import timedelta
 from decimal import Decimal
 from typing import Any, Protocol
 
-from sqlalchemy import insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.logging import get_logger
 from app.llm import cache
 from app.llm.circuit import CircuitBreaker
 from app.llm.inputs import adapt_parts
-from app.llm.models import LlmCall
 from app.llm.pricing import estimate_cost
 from app.llm.providers.base import Provider
+from app.llm.recording import CallRecord, CallRecorder, DbCallRecorder
 from app.llm.routing import RouteEntry
 from app.llm.types import (
     CredentialRejectedError,
@@ -67,14 +66,21 @@ class Gateway:
     def __init__(
         self,
         *,
-        sessionmaker: async_sessionmaker[AsyncSession],
+        sessionmaker: async_sessionmaker[AsyncSession] | None,
         providers: Mapping[str, Provider],
         routes: Mapping[Task, Sequence[RouteEntry]],
         credentials: Credentials,
         breaker: CircuitBreaker | None = None,
         cache_ttl: timedelta = DEFAULT_CACHE_TTL,
+        recorder: CallRecorder | None = None,
     ) -> None:
+        """Without a sessionmaker there's no cache, and calls go to `recorder` (evals)."""
+        if recorder is None:
+            if sessionmaker is None:
+                raise ValueError("a gateway without a database needs a recorder")
+            recorder = DbCallRecorder(sessionmaker)
         self._sessionmaker = sessionmaker
+        self._recorder = recorder
         self._providers = providers
         self._routes = routes
         self._credentials = credentials
@@ -98,7 +104,11 @@ class Gateway:
         if not usable:
             raise NoCredentialsError(f"no key for any of {', '.join(map(str, route))}")
 
-        key = cache.cache_key(request, route) if request.use_cache else None
+        key = (
+            cache.cache_key(request, route)
+            if request.use_cache and self._sessionmaker is not None
+            else None
+        )
         if key is not None:
             hit = await self._from_cache(request, key, validate_with)
             if hit is not None:
@@ -209,6 +219,7 @@ class Gateway:
         self, request: LlmRequest, key: str, validate_with: Validator
     ) -> LlmResult | None:
         started = time.monotonic()
+        assert self._sessionmaker is not None  # noqa: S101  # only called when caching
         async with self._sessionmaker() as session:
             entry = await cache.lookup(
                 session, key, request.context.workspace_id, ttl=self._cache_ttl
@@ -236,6 +247,7 @@ class Gateway:
     async def _store(
         self, request: LlmRequest, key: str, entry: RouteEntry, result: LlmResult
     ) -> None:
+        assert self._sessionmaker is not None  # noqa: S101  # only called when caching
         async with self._sessionmaker() as session, session.begin():
             await cache.store(
                 session,
@@ -292,33 +304,27 @@ class Gateway:
             )
         )
         ctx = request.context
-        # Its own short transaction: a failed attempt is kept even when the step rolls back.
-        async with self._sessionmaker() as session, session.begin():
-            call_id: uuid.UUID = (
-                await session.execute(
-                    insert(LlmCall)
-                    .values(
-                        workspace_id=ctx.workspace_id,
-                        document_id=ctx.document_id,
-                        job_id=ctx.job_id,
-                        task=request.task,
-                        provider=entry.provider,
-                        model=model,
-                        prompt_version=request.prompt.version,
-                        attempt=ctx.attempt,
-                        outcome=outcome,
-                        error_type=type(error).__name__ if error else None,
-                        input_tokens=input_tokens,
-                        output_tokens=output_tokens,
-                        cost_usd=cost,
-                        latency_ms=latency_ms,
-                        route_position=position,
-                        fallback=position > 0,
-                        input_mode=input_mode,
-                    )
-                    .returning(LlmCall.id)
-                )
-            ).scalar_one()
+        call_id = await self._recorder.record(
+            CallRecord(
+                workspace_id=ctx.workspace_id,
+                document_id=ctx.document_id,
+                job_id=ctx.job_id,
+                task=request.task,
+                provider=entry.provider,
+                model=model,
+                prompt_version=request.prompt.version,
+                attempt=ctx.attempt,
+                outcome=outcome,
+                error_type=type(error).__name__ if error else None,
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                cost_usd=cost,
+                latency_ms=latency_ms,
+                route_position=position,
+                fallback=position > 0,
+                input_mode=input_mode,
+            )
+        )
         log.info(
             "llm_call",
             task=request.task,

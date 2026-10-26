@@ -80,3 +80,13 @@ apps/api/evals/                        (runner: same toolchain as the API)
   - the manifest validates (every truth validates against its schema; files exist; licence present).
 - **Integration:** a full run on 3 documents with `FakeProvider` (no network, no database).
 - **Manual:** the first real baseline run, committed as the Phase 2 "done when".
+
+
+## 8. Implementation notes (F11-T1 to T5)
+
+- **Gateway hooks:** `CallRecorder` (`DbCallRecorder` for the app, `MemoryCallRecorder` for evals) and an optional sessionmaker. Without one there's no cache and no database at all (AC8).
+- **Failed extractions score every field wrong.** Otherwise truth fields that are legitimately `null` would "match" a missing answer and inflate accuracy. A test caught this.
+- **Rate limits:** `--pace` waits between calls (CI uses 4 s), and temporary errors are retried twice, honouring `retry_after`. The circuit breaker is disabled for evals so every document is measured.
+- **Sampling:** `--limit` rotates through (source, type) groups, so even 4 documents cover CORD and every synthetic type.
+- **Dataset v1** (`make eval-dataset`): 8 invoices, 6 receipts and 6 POs, synthetic, every second one a rotated, noisy JPEG "photo"; plus 10 CORD v2 test receipts (CC BY 4.0), resized to ≤1600 px. 1.4 MB in total. CORD masks merchant, dates, payment and currency fields, which CORD doesn't label (amounts are in IDR).
+- **CI:** `.github/workflows/evals.yml` runs nightly (02:00 IST), on demand, and on pull requests labelled `eval`. It uploads the report and comments it on the PR, and exits 0 with "Skipping evals" when no keys are configured.
