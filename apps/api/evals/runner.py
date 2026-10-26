@@ -128,7 +128,9 @@ async def _call(
         except TransientLlmError as exc:
             if attempt == retries:
                 raise
-            await sleep(exc.retry_after_seconds or 15)
+            # A provider's retry-after if it gave one, else 15 s, 30 s, 60 s, 120 s: long
+            # enough to ride out a brief network or provider outage mid-run.
+            await sleep(exc.retry_after_seconds or 15 * 2**attempt)
     raise AssertionError("unreachable")
 
 
@@ -139,7 +141,7 @@ async def run_model(
     providers: Mapping[str, Provider],
     credentials: Credentials,
     pace_seconds: float = 0,
-    retries: int = 2,
+    retries: int = 4,
     sleep: Sleep = asyncio.sleep,
 ) -> ModelRun:
     recorder = MemoryCallRecorder()
