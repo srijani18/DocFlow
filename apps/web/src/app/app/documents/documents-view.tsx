@@ -19,6 +19,7 @@ import {
 } from "@/lib/api/search";
 
 import { DocumentTable } from "./document-table";
+import { ExportMenu } from "./export-menu";
 import { SearchBar } from "./search-bar";
 
 const SEARCH_DELAY_MS = 300;
@@ -55,7 +56,12 @@ export function Documents({ workspaceId }: { workspaceId: string }) {
         <UploadDropzone workspaceId={workspaceId} />
       </Panel>
       <Panel className="flex flex-col gap-5">
-        <SearchBar value={search} onChange={setSearch} />
+        <div className="flex items-start gap-2">
+          <div className="flex-1">
+            <SearchBar value={search} onChange={setSearch} />
+          </div>
+          <ExportMenu workspaceId={workspaceId} search={applied} />
+        </div>
         {isSearching(applied) ? (
           <SearchResultsList workspaceId={workspaceId} params={applied} />
         ) : (
