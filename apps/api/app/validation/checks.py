@@ -14,7 +14,10 @@ from app.validation import gstin as gstin_rules
 
 ABSOLUTE_TOLERANCE = Decimal("1.00")
 RELATIVE_TOLERANCE = Decimal("0.005")
-FIXABLE = frozenset({"line_items", "totals", "gstin"})  # rereading may fix these (AC3)
+# Rereading may fix these (AC3).
+FIXABLE = frozenset({"line_items", "totals", "gstin", "amount_format"})
+# No currency on these documents has more than two minor-unit digits.
+MAX_AMOUNT_DECIMALS = 2
 
 DATE_FIELDS = {"invoice": "invoice_date", "receipt": "date", "purchase_order": "po_date"}
 LATER_FIELDS = {"invoice": "due_date", "purchase_order": "delivery_date"}
@@ -132,6 +135,49 @@ def check_totals(doc_type: str, data: Mapping[str, Any]) -> list[Issue]:
     ]
 
 
+def _money_amounts(value: Any, path: str = "") -> list[tuple[str, Any]]:
+    """(path, amount) of every Money object ({amount, currency}) in the data."""
+    if isinstance(value, Mapping):
+        if "amount" in value and "currency" in value:
+            return [(f"{path}.amount" if path else "amount", value["amount"])]
+        return [
+            found
+            for key, child in value.items()
+            for found in _money_amounts(child, f"{path}.{key}" if path else str(key))
+        ]
+    if isinstance(value, list):
+        return [
+            found
+            for index, child in enumerate(value)
+            for found in _money_amounts(child, f"{path}.{index}")
+        ]
+    return []
+
+
+def check_amount_format(doc_type: str, data: Mapping[str, Any]) -> list[Issue]:
+    """An amount like 60.000 is almost always 60,000 with a dot as the thousands
+    separator (common on Indonesian and European receipts). Every amount on the document
+    is usually read the same way, so the arithmetic still adds up: only the format shows it.
+    Found by the agent eval (F6 AC10)."""
+    issues = []
+    for path, value in _money_amounts(data):
+        amount = _amount(value)
+        if amount is None:
+            continue
+        exponent = amount.as_tuple().exponent
+        if isinstance(exponent, int) and -exponent > MAX_AMOUNT_DECIMALS:
+            issues.append(
+                Issue(
+                    "amount_format",
+                    "error",
+                    (path,),
+                    f"{path} is {amount}: more than two decimal places usually means a "
+                    "thousands separator was read as a decimal point.",
+                )
+            )
+    return issues
+
+
 def check_gstins(doc_type: str, data: Mapping[str, Any]) -> list[Issue]:
     issues = []
     for party in PARTY_FIELDS:
@@ -227,6 +273,7 @@ def party_of(doc_type: str, data: Mapping[str, Any]) -> Mapping[str, Any]:
 def run_checks(doc_type: str, data: Mapping[str, Any], *, today: date) -> list[Issue]:
     """The checks that need nothing but the data."""
     return [
+        *check_amount_format(doc_type, data),
         *check_line_items(doc_type, data),
         *check_totals(doc_type, data),
         *check_gstins(doc_type, data),

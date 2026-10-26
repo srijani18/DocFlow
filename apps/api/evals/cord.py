@@ -51,20 +51,27 @@ def _money(raw: object) -> dict[str, Any] | None:
     return None if amount is None else {"amount": float(amount), "currency": "IDR"}
 
 
+def _item(name: object, count: object, price: object) -> dict[str, Any]:
+    quantity = parse_amount(re.sub(r"[^0-9]", "", str(count or "")) or None)
+    return {
+        "description": str(name or "").strip() or None,
+        "quantity": None if quantity is None else float(quantity),
+        "amount": _money(price),
+    }
+
+
 def map_ground_truth(gt_parse: dict[str, Any]) -> dict[str, Any]:
     menu = gt_parse.get("menu") or []
     if isinstance(menu, dict):
         menu = [menu]
     items = []
     for line in menu:
-        quantity = parse_amount(re.sub(r"[^0-9]", "", str(line.get("cnt", ""))) or None)
-        items.append(
-            {
-                "description": str(line.get("nm", "")).strip() or None,
-                "quantity": None if quantity is None else float(quantity),
-                "amount": _money(line.get("price")),
-            }
-        )
+        items.append(_item(line.get("nm"), line.get("cnt"), line.get("price")))
+        # Add-ons ("+ coconut jelly") are labelled under the line they belong to, but are
+        # printed as lines of their own with their own price.
+        subs = line.get("sub") or []
+        for sub in [subs] if isinstance(subs, dict) else subs:
+            items.append(_item(sub.get("nm"), sub.get("cnt"), sub.get("price")))
     sub_total = gt_parse.get("sub_total") or {}
     total = gt_parse.get("total") or {}
     return {
