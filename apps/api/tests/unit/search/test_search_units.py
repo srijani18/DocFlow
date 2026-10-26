@@ -4,7 +4,7 @@ from decimal import Decimal
 import pytest
 
 from app.search.embed_text import embedding_text
-from app.search.service import decode_cursor, encode_cursor, fuse
+from app.search.service import close_enough, decode_cursor, encode_cursor, fuse
 from app.search.text import search_terms, to_tsquery
 from tests.support.samples import sample_truth
 
@@ -62,3 +62,12 @@ def test_d3_embedding_text_reads_like_a_sentence() -> None:
     assert "total INR 16,826.80" in text
     assert "dated 2026-08-14" in text
     assert embedding_text("receipt", RECEIPT).startswith("Receipt ")
+
+
+def test_meaning_keeps_documents_close_to_the_best_and_never_far() -> None:
+    a, b, c, d = (uuid.uuid4() for _ in range(4))
+
+    assert close_enough([(a, 0.30), (b, 0.33), (c, 0.36), (d, 0.50)]) == [a, b]
+    assert close_enough([(a, 0.44), (b, 0.46)]) == [a]  # the absolute cap still applies
+    assert close_enough([(a, 0.47)]) == []
+    assert close_enough([]) == []

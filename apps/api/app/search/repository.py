@@ -81,20 +81,6 @@ async def keyword_matches(
     return [(document_id, text) for document_id, text in rows]
 
 
-async def semantic_matches(
-    session: AsyncSession,
-    scope: WorkspaceScope,
-    vector: list[float],
-    filters: Filters,
-    *,
-    limit: int,
-    max_distance: float,
-) -> list[uuid.UUID]:
-    """Nearest documents by cosine distance, closest first, within `max_distance`."""
-    nearest = await semantic_distances(session, scope, vector, filters, limit=limit)
-    return [document_id for document_id, distance in nearest if distance <= max_distance]
-
-
 async def semantic_distances(
     session: AsyncSession,
     scope: WorkspaceScope,

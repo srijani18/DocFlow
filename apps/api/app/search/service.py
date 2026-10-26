@@ -18,9 +18,12 @@ RRF_K = 60  # spec D1
 CANDIDATES = 50  # per list, before fusion
 MAX_RESULTS = 200  # how deep a cursor can page
 SHORTEST_SEMANTIC_QUERY = 3  # characters (spec edge case: no meaning in one letter)
-# Cosine distance beyond which a document isn't "about" the query. Tuned with the search
-# eval (AC10); the same for every workspace.
+# Which documents count as "about" the query: within MARGIN of the closest one, and never
+# beyond MAX_DISTANCE (cosine). Chosen with the search eval (AC10): a fixed cut-off alone
+# kept recall but showed ~20 unrelated documents per query; the margin keeps recall@5 at
+# 95% with about one.
 MAX_DISTANCE = 0.45
+MARGIN = 0.04
 
 Matched = Literal["keyword", "meaning", "both"]
 QueryEmbedder = Callable[[str], Awaitable[list[float] | None]]
@@ -38,6 +41,14 @@ class SearchPage:
     hits: list[Hit]
     next_offset: int | None
     semantic: bool  # False: meaning search was wanted but unavailable (AC5)
+
+
+def close_enough(nearest: list[tuple[uuid.UUID, float]]) -> list[uuid.UUID]:
+    """The nearest documents that are about the query, closest first."""
+    if not nearest:
+        return []
+    limit = min(MAX_DISTANCE, nearest[0][1] + MARGIN)
+    return [document_id for document_id, distance in nearest if distance <= limit]
 
 
 def fuse(*rankings: list[uuid.UUID]) -> list[uuid.UUID]:
@@ -90,8 +101,8 @@ async def search(  # a search has this many inputs
     by_meaning = len(text.strip()) >= SHORTEST_SEMANTIC_QUERY
     vector = await embed_query(text.strip()) if by_meaning else None
     semantic_ids = (
-        await repository.semantic_matches(
-            session, scope, vector, filters, limit=CANDIDATES, max_distance=MAX_DISTANCE
+        close_enough(
+            await repository.semantic_distances(session, scope, vector, filters, limit=CANDIDATES)
         )
         if vector is not None
         else []

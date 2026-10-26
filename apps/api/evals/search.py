@@ -46,7 +46,17 @@ from evals.runner import StaticKeys
 QUERIES = REPO_ROOT / "evals" / "search_queries.v1.json"
 TEST_DATABASE_URL = "postgresql://postgres:postgres@localhost:54320/docflow_test"
 TOP = 5
-CUTOFFS = [0.30, 0.35, 0.40, 0.45, 0.50, 0.55, 0.60]
+# (max distance, margin from the closest); None = no margin. The current setting is marked.
+CUTOFFS = [
+    (0.35, None),
+    (0.40, None),
+    (0.45, None),
+    (0.45, 0.02),
+    (0.45, 0.03),
+    (0.45, 0.04),
+    (0.45, 0.06),
+    (0.45, 0.08),
+]
 BATCH = 50  # batchEmbedContents accepts up to 100 texts
 
 
@@ -199,36 +209,54 @@ def _fuse(keyword: list[str], meaning: list[str]) -> list[str]:
     return [back[i] for i in service.fuse([ids[n] for n in keyword], [ids[n] for n in meaning])]
 
 
-def score(rows: list[dict[str, Any]], cutoff: float) -> dict[str, dict[str, float]]:
-    modes: dict[str, list[tuple[float, float]]] = {"keyword": [], "meaning": [], "hybrid": []}
+Cutoff = tuple[float, float | None]
+
+
+def within(nearest: list[tuple[str, float]], cutoff: Cutoff) -> list[str]:
+    """The same rule as `service.close_enough`, for any cut-off."""
+    if not nearest:
+        return []
+    max_distance, margin = cutoff
+    limit = max_distance if margin is None else min(max_distance, nearest[0][1] + margin)
+    return [name for name, distance in nearest if distance <= limit]
+
+
+CURRENT: Cutoff = (service.MAX_DISTANCE, service.MARGIN)
+
+
+def score(rows: list[dict[str, Any]], cutoff: Cutoff) -> dict[str, dict[str, float]]:
+    modes: dict[str, list[tuple[float, float, float]]] = {
+        "keyword": [],
+        "meaning": [],
+        "hybrid": [],
+    }
     for row in rows:
         relevant = set(row["relevant"])
-        meaning = [name for name, distance in row["nearest"] if distance <= cutoff]
+        meaning = within(row["nearest"], cutoff)
         for mode, ranked in (
             ("keyword", row["keyword"]),
             ("meaning", meaning),
             ("hybrid", _fuse(row["keyword"], meaning)),
         ):
-            modes[mode].append((recall_at(ranked, relevant), reciprocal_rank(ranked, relevant)))
+            modes[mode].append(
+                (
+                    recall_at(ranked, relevant),
+                    reciprocal_rank(ranked, relevant),
+                    sum(1 for name in ranked if name not in relevant),
+                )
+            )
     return {
         mode: {
-            "recall_at_5": sum(r for r, _ in values) / len(values),
-            "mrr": sum(m for _, m in values) / len(values),
+            "recall_at_5": sum(r for r, _, _ in values) / len(values),
+            "mrr": sum(m for _, m, _ in values) / len(values),
+            "irrelevant_shown": sum(n for _, _, n in values) / len(values),
         }
         for mode, values in modes.items()
     }
 
 
-def noise(rows: list[dict[str, Any]], cutoff: float) -> float:
-    """Average number of irrelevant documents within the cut-off, per query."""
-    return sum(
-        sum(1 for name, d in row["nearest"] if d <= cutoff and name not in row["relevant"])
-        for row in rows
-    ) / len(rows)
-
-
 def to_markdown(meta: dict[str, Any], rows: list[dict[str, Any]]) -> str:
-    current = service.MAX_DISTANCE
+    current = CURRENT
     lines = [
         f"# Search eval `{meta['run_id']}`",
         "",
@@ -238,12 +266,15 @@ def to_markdown(meta: dict[str, Any], rows: list[dict[str, Any]]) -> str:
         f"**Embeddings:** `{meta['route']}`, {EMBEDDING_DIMENSIONS} dimensions · "
         f"**Created:** {meta['created_at']}",
         f"- Recall@5 counts the relevant documents in the top 5 (out of at most 5); MRR is "
-        f"1 / rank of the first relevant one. Meaning cut-off: cosine distance ≤ {current}.",
+        f"1 / rank of the first relevant one; *irrelevant shown* counts every result a person "
+        f"would have to skip. Meaning cut-off: within {current[1]} of the closest document, "
+        f"and at most {current[0]} (cosine distance).",
         "",
         "## Summary",
         "",
-        "| Mode | Recall@5 | MRR | Recall@5 (exact) | Recall@5 (meaning) |",
-        "|---|---|---|---|---|",
+        "| Mode | Recall@5 | MRR | Irrelevant shown / query | Recall@5 (exact) | "
+        "Recall@5 (meaning) |",
+        "|---|---|---|---|---|---|",
     ]
     overall = score(rows, current)
     exact = score([r for r in rows if r["kind"] == "exact"], current)
@@ -251,22 +282,24 @@ def to_markdown(meta: dict[str, Any], rows: list[dict[str, Any]]) -> str:
     for mode in ("keyword", "meaning", "hybrid"):
         lines.append(
             f"| {mode} | **{overall[mode]['recall_at_5']:.0%}** | {overall[mode]['mrr']:.2f} | "
+            f"{overall[mode]['irrelevant_shown']:.1f} | "
             f"{exact[mode]['recall_at_5']:.0%} | {meaning[mode]['recall_at_5']:.0%} |"
         )
     lines += [
         "",
         "## Choosing the meaning cut-off",
         "",
-        "| Cosine distance ≤ | Hybrid recall@5 | Hybrid MRR "
-        "| Irrelevant documents within the cut-off, per query |",
-        "|---|---|---|---|",
+        "| At most | Within of the closest | Hybrid recall@5 | Hybrid MRR "
+        "| Irrelevant shown / query |",
+        "|---|---|---|---|---|",
     ]
     for cutoff in CUTOFFS:
         hybrid = score(rows, cutoff)["hybrid"]
         mark = " (current)" if cutoff == current else ""
+        margin = "—" if cutoff[1] is None else f"{cutoff[1]:.2f}"
         lines.append(
-            f"| {cutoff:.2f}{mark} | {hybrid['recall_at_5']:.0%} | {hybrid['mrr']:.2f} | "
-            f"{noise(rows, cutoff):.1f} |"
+            f"| {cutoff[0]:.2f} | {margin}{mark} | {hybrid['recall_at_5']:.0%} | "
+            f"{hybrid['mrr']:.2f} | {hybrid['irrelevant_shown']:.1f} |"
         )
     lines += [
         "",
@@ -277,7 +310,7 @@ def to_markdown(meta: dict[str, Any], rows: list[dict[str, Any]]) -> str:
     ]
     for row in rows:
         relevant = set(row["relevant"])
-        meaning_ranked = [n for n, d in row["nearest"] if d <= current]
+        meaning_ranked = within(row["nearest"], current)
         cells = [
             f"{recall_at(r, relevant):.0%}"
             for r in (row["keyword"], meaning_ranked, _fuse(row["keyword"], meaning_ranked))
@@ -308,6 +341,7 @@ async def main(argv: list[str]) -> int:
         "created_at": created.isoformat(timespec="seconds"),
         "route": route,
         "max_distance": service.MAX_DISTANCE,
+        "margin": service.MARGIN,
     }
     print(f"wrote {_write(Path(args.out), meta, result)}")
     return 0

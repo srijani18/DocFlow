@@ -31,6 +31,7 @@ def lenient_meaning(monkeypatch: pytest.MonkeyPatch) -> None:
     """The fake embeddings are a bag of words: a short query is far from a long document
     even when it shares words, so these tests accept any shared word as "meaning"."""
     monkeypatch.setattr(service, "MAX_DISTANCE", 0.97)
+    monkeypatch.setattr(service, "MARGIN", 1.0)
 
 
 async def indexed(  # a searchable document needs all of these
