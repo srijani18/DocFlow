@@ -1,6 +1,6 @@
 # F15: Bring your own AI keys (tasks)
 
-**Status:** Draft (2026-10-26)
+**Status:** Approved (2026-10-26)
 **Prerequisite:** F4/F5 gateway. Built **before** F10.
 
 - [ ] **F15-T1: KeyBox and master keys** (AC10): `crypto.py`, `BYOK_MASTER_KEYS`, `make byok-key`.

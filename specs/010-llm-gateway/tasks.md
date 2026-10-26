@@ -1,6 +1,6 @@
 # F10: LLM gateway with fallback (tasks)
 
-**Status:** Draft (2026-10-26)
+**Status:** Approved (2026-10-26)
 **Prerequisite:** F15 (workspace keys). Manual (optional): connect Groq and OpenRouter keys in Settings.
 
 - [ ] **F10-T1: Routes and config** (AC1, AC9): `routing.py`; `LLM_ROUTE_*` settings replace the per-task model settings.

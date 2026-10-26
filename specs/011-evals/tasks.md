@@ -1,6 +1,6 @@
 # F11: Eval suite (tasks)
 
-**Status:** Draft (2026-10-26)
+**Status:** Approved (2026-10-26)
 **Prerequisite:** F10-T5 (gateway loop). Manual: GitHub secrets `GEMINI_API_KEY`, `GROQ_API_KEY` for CI evals.
 
 - [ ] **F11-T1: Gateway hooks** (AC6, AC8): `CallRecorder` (DB and memory), `use_cache`, explicit routes.

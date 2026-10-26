@@ -1,6 +1,6 @@
 # F15: Bring your own AI keys (spec)
 
-**Status:** Draft (2026-10-26)
+**Status:** Approved (2026-10-26)
 **Phase:** 2 (built before F10, which routes across the keys this adds)
 **Plan:** [plan.md](plan.md) · **Tasks:** [tasks.md](tasks.md) · **ADR:** [0008](../000-architecture/adr/0008-byok-encrypted-keys.md)
 
@@ -51,7 +51,7 @@ DocFlow stops using one platform-wide AI key. Each workspace connects its own Ge
 - BYOK for storage or sign-in.
 - Usage dashboards per key (F13 shows cost and usage from `llm_calls`).
 
-## Decisions (proposed defaults; approve or change)
+## Decisions (approved 2026-10-26)
 
 - **D1. Keys are per workspace, managed by admins.** Matches F1's roles; a team shares one account.
 - **D2. Encryption:** AES-256-GCM from the `cryptography` package (already a dependency), with a 32-byte master key in `BYOK_MASTER_KEYS` (versioned, for rotation) on the server only, and the workspace id as associated data so a ciphertext can't be moved to another workspace. See ADR-0008.

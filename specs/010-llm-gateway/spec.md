@@ -1,6 +1,6 @@
 # F10: LLM gateway with fallback (spec)
 
-**Status:** Draft (2026-10-26)
+**Status:** Approved (2026-10-26)
 **Phase:** 2
 **Plan:** [plan.md](plan.md) · **Tasks:** [tasks.md](tasks.md)
 
@@ -46,7 +46,7 @@ Phase 1 calls one provider (Gemini). Free tiers are unreliable: during the Phase
 - Embeddings (F8 adds them through the same gateway).
 - A persistent (database) circuit breaker shared across instances.
 
-## Decisions (proposed defaults; approve or change)
+## Decisions (approved 2026-10-26)
 
 - **D1. Routes:**
   - Classify: `gemini:gemini-flash-lite-latest` → `groq:meta-llama/llama-4-scout-17b-16e-instruct` → `openrouter:openrouter/free`.

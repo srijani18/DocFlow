@@ -1,6 +1,6 @@
 # F11: Eval suite (spec)
 
-**Status:** Draft (2026-10-26)
+**Status:** Approved (2026-10-26)
 **Phase:** 2
 **Plan:** [plan.md](plan.md) · **Tasks:** [tasks.md](tasks.md)
 
@@ -52,7 +52,7 @@ DocFlow claims to extract documents accurately; F11 measures it. A labelled data
 - Statistical significance testing beyond reporting the sample size.
 - Evaluating the validation agent (F6, Phase 3: before and after accuracy).
 
-## Decisions (proposed defaults; approve or change)
+## Decisions (approved 2026-10-26)
 
 - **D1. Dataset:** the first 10 receipts of the CORD v2 test split (CC BY 4.0, from Hugging Face `naver-clova-ix/cord-v2`), mapped to `receipt.v1` for the fields CORD labels (line items, subtotal, tax, total), plus 20 synthetic documents (8 invoices, 6 receipts, 6 purchase orders). Half of the synthetic ones are rendered as noisy, slightly rotated JPEG "photos". SROIE is left out because its licence is unclear.
 - **D2. Where things live:** the runner is a Python package at `apps/api/evals/` (linted and type-checked with the API, using the same gateway and schemas). Data and reports live in the repo-root `evals/` folder, as the brief laid out.

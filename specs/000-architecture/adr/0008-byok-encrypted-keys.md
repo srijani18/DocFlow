@@ -1,6 +1,6 @@
 # ADR-0008: Bring your own AI keys, encrypted per workspace
 
-**Status:** Proposed (2026-10-26)
+**Status:** Accepted (2026-10-26)
 
 ## Context
 

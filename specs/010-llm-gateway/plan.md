@@ -1,6 +1,6 @@
 # F10: LLM gateway with fallback (plan)
 
-**Status:** Draft (2026-10-26)
+**Status:** Approved (2026-10-26)
 **Spec:** [spec.md](spec.md) · **Tasks:** [tasks.md](tasks.md)
 
 ## 1. Approach
