@@ -1,6 +1,6 @@
 # F9: Export (tasks)
 
-**Status:** Draft (2026-10-27)
+**Status:** Approved (2026-10-27)
 **Prerequisite:** F8 (filters).
 
 - [ ] **F9-T1: Row mapping and CSV writer** (AC2, AC4, AC5): per-type mapping, tax sums, escaping, BOM.

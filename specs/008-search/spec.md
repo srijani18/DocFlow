@@ -1,6 +1,6 @@
 # F8: Search (spec)
 
-**Status:** Draft (2026-10-27)
+**Status:** Approved (2026-10-27)
 **Phase:** 4
 **Plan:** [plan.md](plan.md) · **Tasks:** [tasks.md](tasks.md)
 
@@ -54,7 +54,7 @@ Filters narrow the results by type, status, vendor, date and amount. The same se
 - Questions answered in natural language ("how much did we spend with Kaveri?"); that is the MCP server's `spend_summary` (F12).
 - Saved searches and alerts.
 
-## Decisions (proposed)
+## Decisions (approved 2026-10-27)
 
 - **D1. Hybrid, in Postgres only.** Postgres full-text search (`simple` dictionary, GIN index) plus pgvector (HNSW, cosine) in the same database, merged with reciprocal rank fusion (k = 60). There's no separate search service: one more moving part would buy nothing at this scale. *Alternative:* keyword only. It's cheaper, but fails US2.
 - **D2. Embedding model:** `gemini-embedding-001` at **768 dimensions** (normalised), with task type `RETRIEVAL_DOCUMENT` for documents and `RETRIEVAL_QUERY` for queries. 768 floats is about 3 KB per document, which fits the 500 MB database easily. The model id is configuration. Groq has no embeddings API, so semantic search needs a Gemini key; without one, AC5 applies.

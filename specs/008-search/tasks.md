@@ -1,6 +1,6 @@
 # F8: Search (tasks)
 
-**Status:** Draft (2026-10-27)
+**Status:** Approved (2026-10-27)
 **Prerequisite:** F7.
 
 - [ ] **F8-T1: Keyword index** (AC2, AC6): migration `0011_search`, `search_text` written with each current-extraction change, GIN index.

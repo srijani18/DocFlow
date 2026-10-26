@@ -1,6 +1,6 @@
 # F9: Export (spec)
 
-**Status:** Draft (2026-10-27)
+**Status:** Approved (2026-10-27)
 **Phase:** 4
 **Plan:** [plan.md](plan.md) · **Tasks:** [tasks.md](tasks.md)
 
@@ -47,7 +47,7 @@ An export takes the same filters as search (F8), so "everything from Kaveri appr
 - Scheduled or emailed exports.
 - Excel `.xlsx` files: CSV opens in Excel, and stays dependency-free.
 
-## Decisions (proposed)
+## Decisions (approved 2026-10-27)
 
 - **D1. Formats:** CSV (zipped pair) and JSON. A single flat CSV with repeated document columns per line item was considered: it is easier for some imports, but duplicates totals and confuses sums.
 - **D2. Synchronous streaming download**, not a background job with a link. 5,000 documents is a few MB, and a job would need storage, expiry and cleanup for no benefit at this size.
