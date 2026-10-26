@@ -11,6 +11,7 @@ MODEL_MODULES: tuple[str, ...] = (
     "app.extractions.models",
     "app.aikeys.models",
     "app.validation.models",
+    "app.review.models",
 )
 
 

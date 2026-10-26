@@ -1,7 +1,8 @@
 """Validation rules (F6). Other modules use this facade (ADR-0002)."""
 
 import uuid
-from collections.abc import Collection, Sequence
+from collections.abc import AsyncIterator, Callable, Collection, Sequence
+from contextlib import AbstractAsyncContextManager, asynccontextmanager
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -23,9 +24,30 @@ def lookups_for(
 ) -> WorkspaceLookups:
     """The duplicate and known-vendor lookups, limited to the document's workspace. Each opens
     its own short session, so no connection is held while the model rereads."""
+    return _lookups(sessionmaker, scope, document_id=document_id, doc_type=doc_type)
 
+
+def lookups_in(
+    session: AsyncSession, scope: WorkspaceScope, *, document_id: uuid.UUID, doc_type: str
+) -> WorkspaceLookups:
+    """The same lookups inside an open transaction (a reviewer's save, F7 AC4)."""
+
+    @asynccontextmanager
+    async def current() -> AsyncIterator[AsyncSession]:
+        yield session
+
+    return _lookups(current, scope, document_id=document_id, doc_type=doc_type)
+
+
+def _lookups(
+    open_session: Callable[[], AbstractAsyncContextManager[AsyncSession]],
+    scope: WorkspaceScope,
+    *,
+    document_id: uuid.UUID,
+    doc_type: str,
+) -> WorkspaceLookups:
     async def find_duplicates(gstin: str | None, name: str | None, number: str) -> list[str]:
-        async with sessionmaker() as session:
+        async with open_session() as session:
             ids = await repository.find_duplicates(
                 session,
                 scope,
@@ -39,7 +61,7 @@ def lookups_for(
         return [str(id_) for id_ in ids]
 
     async def vendor_seen(gstin: str | None, name: str | None) -> bool:
-        async with sessionmaker() as session:
+        async with open_session() as session:
             return await repository.vendor_seen(
                 session, scope, document_id=document_id, gstin=gstin, name=name
             )
@@ -96,3 +118,14 @@ async def open_issue_counts(
         }
         for extraction_id in extraction_ids
     }
+
+
+async def open_errors(
+    session: AsyncSession, scope: WorkspaceScope, extraction_id: uuid.UUID
+) -> list[ValidationIssue]:
+    """Unfixed `error` issues on a version: approving over them needs a confirmation (F7)."""
+    return [
+        issue
+        for issue in await repository.list_for_extraction(session, scope, extraction_id)
+        if issue.severity == "error" and not issue.fixed_by_agent
+    ]
