@@ -11,6 +11,8 @@ from typing import Annotated, Literal, overload
 from pydantic import ValidationError, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
+from app.llm.routing import parse_route
+
 
 def _repo_root_env_file() -> Path | None:
     # apps/api/app/core/config.py -> repo root is four levels up. Inside the Docker
@@ -36,6 +38,13 @@ class Role(StrEnum):
     @property
     def runs_worker(self) -> bool:
         return self in (Role.WORKER, Role.ALL)
+
+
+DEFAULT_ROUTE = (
+    "gemini:gemini-flash-lite-latest,"
+    "groq:meta-llama/llama-4-scout-17b-16e-instruct,"
+    "openrouter:openrouter/free"
+)
 
 
 class ConfigError(RuntimeError):
@@ -85,15 +94,22 @@ class Settings(DatabaseSettings):
     # Provider keys are not settings: each workspace brings its own (F15).
     gemini_base_url: str = "https://generativelanguage.googleapis.com"
     llm_timeout_seconds: float = 60
-    llm_classify_model: str = "gemini-flash-lite-latest"
+    # Ordered "provider:model" routes per task (F10). Flash-Lite first: on the free tier Flash
+    # timed out or returned 503 while Flash-Lite extracted correctly in ~6 s (F5 spec D1).
+    llm_route_classify: str = DEFAULT_ROUTE
+    llm_route_extract: str = DEFAULT_ROUTE
     llm_classify_prompt: str = "classify/v1"
-    # Flash-Lite, not Flash: on the free tier Flash timed out or returned 503 while Flash-Lite
-    # extracted the synthetic invoice correctly in about 6 s (F5 spec D1, measured 2026-10-26).
-    llm_extract_model: str = "gemini-flash-lite-latest"
     llm_extract_prompt: str = "extract/v1"
+    llm_cache_ttl_days: int = 30
 
     cors_allowed_origins: Annotated[list[str], NoDecode] = []
     cors_allowed_origin_regex: str | None = None
+
+    @field_validator("llm_route_classify", "llm_route_extract")
+    @classmethod
+    def _valid_route(cls, value: str) -> str:
+        parse_route(value)  # fail at startup, not on the first document
+        return value
 
     @field_validator("supabase_url")
     @classmethod

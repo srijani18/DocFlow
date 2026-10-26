@@ -95,3 +95,17 @@ LLM_CACHE_TTL_DAYS=30
 - **Unit:** route parsing; circuit breaker transitions with a fake clock; cache key stability and workspace separation; PDF to images (page count, PNG output); OpenAI-compatible adapter with `respx` (json_schema and json_object modes, images as data URIs, 429 with `retry-after`, 5xx, 400).
 - **Integration (FakeProviders, real Postgres):** fallback order (AC1, AC2), permanent then success on the next entry (AC3), every entry failing (transient vs permanent), circuit skipping is logged (AC4), cache hit with no provider call (AC6), no cross-workspace hit, `llm_calls` columns (AC7), and the F4/F5 steps unchanged (AC8).
 - **Manual (your keys):** one call per provider with the synthetic invoice; recorded in plan notes.
+
+
+## 8. Implementation notes (F10-T1 to T6)
+
+- **Migration number:** `0008_llm_gateway` (F15 took `0007`). Its downgrade deletes `cache_hit` and `skipped` rows, which the older CHECK can't hold.
+- **Cache clean-up without a job:** storing an entry deletes that workspace's expired entries, so there's no worker sweep. Reads ignore expired rows either way.
+- **Structured output for the OpenAI-compatible providers:** the schema goes into the instructions. Groq also gets JSON mode (`json_object`). OpenRouter's free router gets instructions only, because the model it picks may not support JSON mode; code fences are stripped. Our validation is the same for every provider.
+- **What the caller sees after every entry fails:** a transient error (with the longest `retry_after`) if anything was temporary; otherwise an invalid-output error; otherwise "key rejected" only if every entry rejected its key; otherwise permanent.
+- **Circuit breaker:** an invalid answer or a permanent error ends a half-open trial without counting as a failure; only temporary errors trip it.
+- `LLM_CLASSIFY_MODEL` and `LLM_EXTRACT_MODEL` are replaced by `LLM_ROUTE_CLASSIFY` and `LLM_ROUTE_EXTRACT`, validated at startup.
+
+### Live check (2026-10-26, Gemini only)
+
+A synthetic receipt went through the new gateway: classify 1.9 s and extract 3.5 s, both `gemini-3.5-flash-lite`, route position 0, `input_mode = pdf`. Both answers were cached. Groq and OpenRouter are covered by the `respx` and fake-provider tests; a live call waits for keys in Settings.

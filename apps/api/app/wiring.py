@@ -5,6 +5,7 @@ so the two roles can't be wired differently.
 """
 
 from dataclasses import dataclass
+from datetime import timedelta
 
 import httpx
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
@@ -15,8 +16,10 @@ from app.core.clock import SystemClock
 from app.core.config import Settings
 from app.core.db import create_engine, create_sessionmaker
 from app.events.broker import EventBroker
-from app.llm.gateway import Credentials, Gateway, Route
+from app.llm.gateway import Credentials, Gateway
+from app.llm.providers import openai_compat
 from app.llm.providers.gemini import GeminiProvider
+from app.llm.routing import parse_route
 from app.pipeline.runner import Pipeline
 from app.pipeline.steps.classify import ClassifyStep
 from app.pipeline.steps.extract import ExtractStep
@@ -82,12 +85,15 @@ def build_gateway(
         base_url=settings.gemini_base_url,
         timeout_seconds=settings.llm_timeout_seconds,
     )
+    groq = openai_compat.groq(http, timeout_seconds=settings.llm_timeout_seconds)
+    openrouter = openai_compat.openrouter(http, timeout_seconds=settings.llm_timeout_seconds)
     return Gateway(
         sessionmaker=sessionmaker,
-        providers={gemini.name: gemini},
-        credentials=credentials,
+        providers={provider.name: provider for provider in (gemini, groq, openrouter)},
         routes={
-            "classify": Route(gemini.name, settings.llm_classify_model),
-            "extract": Route(gemini.name, settings.llm_extract_model),
+            "classify": parse_route(settings.llm_route_classify),
+            "extract": parse_route(settings.llm_route_extract),
         },
+        credentials=credentials,
+        cache_ttl=timedelta(days=settings.llm_cache_ttl_days),
     )

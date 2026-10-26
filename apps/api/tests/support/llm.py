@@ -7,8 +7,9 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.llm.gateway import Credentials, Gateway, Route
+from app.llm.gateway import Credentials, Gateway
 from app.llm.providers.fake import FakeProvider, Script
+from app.llm.routing import RouteEntry
 
 
 @dataclass
@@ -35,7 +36,10 @@ def fake_gateway(
     gateway = Gateway(
         sessionmaker=sessionmaker,
         providers={"fake": provider},
-        routes={"classify": Route("fake", "fake-model"), "extract": Route("fake", "fake-model")},
+        routes={
+            "classify": (RouteEntry("fake", "fake-model"),),
+            "extract": (RouteEntry("fake", "fake-model"),),
+        },
         credentials=credentials or StaticCredentials(),
     )
     return gateway, provider

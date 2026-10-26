@@ -8,6 +8,7 @@ from typing import Any
 
 import httpx
 
+from app.llm.inputs import Capabilities
 from app.llm.providers.gemini_schema import adapt_schema
 from app.llm.types import (
     CredentialRejectedError,
@@ -48,6 +49,7 @@ def _part(part: TextPart | FilePart) -> dict[str, Any]:
 
 class GeminiProvider:
     name = "gemini"
+    capabilities = Capabilities(reads_pdf=True, max_images=16)
 
     def __init__(
         self,

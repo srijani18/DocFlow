@@ -5,6 +5,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
+from app.llm.inputs import Capabilities
 from app.llm.types import LlmError, ProviderRequest, ProviderResponse
 
 Script = Callable[[ProviderRequest], ProviderResponse | LlmError | dict[str, Any] | str]
@@ -17,6 +18,9 @@ class FakeProvider:
 
     script: Script
     name: str = "fake"
+    capabilities: Capabilities = field(
+        default_factory=lambda: Capabilities(reads_pdf=True, max_images=5)
+    )
     requests: list[ProviderRequest] = field(default_factory=list)
 
     async def generate(self, request: ProviderRequest) -> ProviderResponse:
