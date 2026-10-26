@@ -181,7 +181,8 @@ Library versions checked on the same date: FastAPI 0.162, Pydantic 2.14, **SQLAl
 | `SUPABASE_SECRET_KEY` (`sb_secret_…`) | api (Storage) | Render, local | **yes** |
 | `SUPABASE_STORAGE_BUCKET` | api | Render, local | no |
 | `CORS_ALLOWED_ORIGINS`, `CORS_ALLOWED_ORIGIN_REGEX` | api | Render, local | no |
-| `GEMINI_API_KEY`, `GROQ_API_KEY`, `OPENROUTER_API_KEY` | api | Render, local | **yes** |
+| `BYOK_MASTER_KEYS` (encrypts workspaces' own AI keys, ADR-0008) | api | Render, local | **yes** |
+| `GEMINI_API_KEY`, `GROQ_API_KEY` (operator keys, **eval CLI and CI only**; the app uses each workspace's own keys, F15) | evals | local, GitHub Actions | **yes** |
 | `SENTRY_DSN`, `LANGFUSE_*` | api (Phase 5) | Render | **yes** |
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_API_BASE_URL` | web | Vercel, local | no (public by design) |
 
