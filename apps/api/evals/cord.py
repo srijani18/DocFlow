@@ -81,6 +81,14 @@ def map_ground_truth(gt_parse: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def unlabelled_for(truth: dict[str, Any]) -> list[str]:
+    """CORD leaves some amounts unlabelled even when they're printed (e.g. no total_price on
+    a receipt that shows a total). A missing label means "unknown", not "not on the
+    document", so those paths are masked rather than expected to be null."""
+    extra = [name for name in ("subtotal", "tax_total", "total") if truth[name] is None]
+    return UNLABELLED + extra + [f"{name}.*" for name in extra]
+
+
 def fetch(count: int, http: httpx.Client) -> list[tuple[bytes, dict[str, Any]]]:
     """The first `count` test receipts as (JPEG bytes, mapped truth)."""
     response = http.get(

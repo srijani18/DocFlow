@@ -2,7 +2,7 @@ from decimal import Decimal
 
 import pytest
 
-from evals.cord import map_ground_truth, parse_amount
+from evals.cord import map_ground_truth, parse_amount, unlabelled_for
 
 
 @pytest.mark.parametrize(
@@ -59,3 +59,12 @@ def test_single_menu_item_given_as_an_object() -> None:
 
     assert [item["description"] for item in truth["line_items"]] == ["COFFEE"]
     assert truth["subtotal"] is None
+
+
+def test_missing_cord_labels_are_masked_not_expected_null() -> None:
+    truth = map_ground_truth({"menu": [], "sub_total": {"subtotal_price": "36.000"}})
+
+    masks = unlabelled_for(truth)
+
+    assert {"total", "total.*", "tax_total", "tax_total.*"} <= set(masks)
+    assert "subtotal" not in masks

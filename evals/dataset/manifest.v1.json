@@ -1970,7 +1970,11 @@
         "line_items.*.amount.currency",
         "subtotal.currency",
         "tax_total.currency",
-        "total.currency"
+        "total.currency",
+        "subtotal",
+        "tax_total",
+        "subtotal.*",
+        "tax_total.*"
       ],
       "truth": {
         "receipt_number": null,
@@ -2032,7 +2036,9 @@
         "line_items.*.amount.currency",
         "subtotal.currency",
         "tax_total.currency",
-        "total.currency"
+        "total.currency",
+        "tax_total",
+        "tax_total.*"
       ],
       "truth": {
         "receipt_number": null,
@@ -2081,7 +2087,9 @@
         "line_items.*.amount.currency",
         "subtotal.currency",
         "tax_total.currency",
-        "total.currency"
+        "total.currency",
+        "tax_total",
+        "tax_total.*"
       ],
       "truth": {
         "receipt_number": null,
@@ -2130,7 +2138,9 @@
         "line_items.*.amount.currency",
         "subtotal.currency",
         "tax_total.currency",
-        "total.currency"
+        "total.currency",
+        "tax_total",
+        "tax_total.*"
       ],
       "truth": {
         "receipt_number": null,
@@ -2247,7 +2257,11 @@
         "line_items.*.amount.currency",
         "subtotal.currency",
         "tax_total.currency",
-        "total.currency"
+        "total.currency",
+        "subtotal",
+        "tax_total",
+        "subtotal.*",
+        "tax_total.*"
       ],
       "truth": {
         "receipt_number": null,
@@ -2413,7 +2427,11 @@
         "line_items.*.amount.currency",
         "subtotal.currency",
         "tax_total.currency",
-        "total.currency"
+        "total.currency",
+        "tax_total",
+        "total",
+        "tax_total.*",
+        "total.*"
       ],
       "truth": {
         "receipt_number": null,

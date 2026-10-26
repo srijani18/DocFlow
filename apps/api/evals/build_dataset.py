@@ -67,7 +67,7 @@ def main() -> None:
                     "schema_id": SCHEMAS["receipt"],
                     "source": "cord-v2",
                     "licence": cord.LICENCE,
-                    "unlabelled": cord.UNLABELLED,
+                    "unlabelled": cord.unlabelled_for(truth),
                     "truth": truth,
                 }
             )
