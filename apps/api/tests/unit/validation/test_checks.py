@@ -17,17 +17,9 @@ from app.validation.checks import (
     run_checks,
     severity_score,
 )
-from app.validation.gstin import with_valid_checksum
-from tests.support.samples import sample_truth
+from tests.support.samples import clean_invoice, sample_truth
 
 TODAY = date(2026, 10, 26)
-
-
-def clean_invoice() -> dict[str, Any]:
-    data: dict[str, Any] = copy.deepcopy(sample_truth("synthetic-invoice-001")["data"])
-    data["vendor"]["gstin"] = with_valid_checksum("29ABCDE1234F1Z")
-    data["buyer"]["gstin"] = with_valid_checksum("29PQRSX6789K1Z")
-    return data
 
 
 def test_clean_invoice_passes_everything() -> None:

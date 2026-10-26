@@ -220,6 +220,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/workspaces/{workspace_id}/documents/{document_id}/issues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Issues
+         * @description Issues found on the document's current extraction (AC2); 404 until one exists.
+         */
+        get: operations["listIssues"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/workspaces/{workspace_id}/documents/{document_id}/retry": {
         parameters: {
             query?: never;
@@ -348,6 +368,16 @@ export interface components {
         DocType: "invoice" | "receipt" | "purchase_order" | "other";
         /** Document */
         Document: {
+            /**
+             * Approved At
+             * @description Set when approved (F6, F7)
+             */
+            approved_at: string | null;
+            /**
+             * Approved By Agent
+             * @description Approved automatically by the validation agent
+             */
+            approved_by_agent: boolean;
             content_type: components["schemas"]["ContentType"];
             /**
              * Created At
@@ -376,6 +406,8 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** @description Open issues on the current extraction; null before validation */
+            issue_counts?: components["schemas"]["IssueCounts"] | null;
             /** Sha256 */
             sha256: string;
             /** Size Bytes */
@@ -414,7 +446,7 @@ export interface components {
          * @description F3 statuses. F6 adds VALIDATING and APPROVED.
          * @enum {string}
          */
-        DocumentStatus: "UPLOADED" | "CLASSIFYING" | "EXTRACTING" | "NEEDS_REVIEW" | "FAILED";
+        DocumentStatus: "UPLOADED" | "CLASSIFYING" | "EXTRACTING" | "VALIDATING" | "NEEDS_REVIEW" | "APPROVED" | "FAILED";
         /**
          * Extraction
          * @description One version of a document's extracted data (ADR-0005).
@@ -465,6 +497,18 @@ export interface components {
             expires_at: string;
             /** Url */
             url: string;
+        };
+        /**
+         * IssueCounts
+         * @description Open validation issues on the current extraction, by severity (F6).
+         */
+        IssueCounts: {
+            /** Error */
+            error: number;
+            /** Info */
+            info: number;
+            /** Warning */
+            warning: number;
         };
         /** Me */
         Me: {
@@ -587,6 +631,46 @@ export interface components {
              * Format: uuid
              */
             id: string;
+        };
+        /**
+         * ValidationIssue
+         * @description A failed check on the current extraction, or one the agent fixed on the way to it.
+         */
+        ValidationIssue: {
+            /**
+             * Check Name
+             * @description line_items, totals, gstin, tax_type, dates, duplicate or known_vendor
+             */
+            check_name: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Fixed By Agent */
+            fixed_by_agent: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Message */
+            message: string;
+            /**
+             * Paths
+             * @description Field paths involved (dotted, zero-based indices)
+             */
+            paths: string[];
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "error" | "warning" | "info";
+        };
+        /** ValidationIssueList */
+        ValidationIssueList: {
+            /** Items */
+            items: components["schemas"]["ValidationIssue"][];
         };
         /** Workspace */
         Workspace: {
@@ -1260,6 +1344,56 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FileUrl"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    listIssues: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationIssueList"];
                 };
             };
             /** @description Unauthorized */

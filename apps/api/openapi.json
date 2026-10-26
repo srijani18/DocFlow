@@ -109,6 +109,24 @@
       },
       "Document": {
         "properties": {
+          "approved_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Set when approved (F6, F7)",
+            "title": "Approved At"
+          },
+          "approved_by_agent": {
+            "description": "Approved automatically by the validation agent",
+            "title": "Approved By Agent",
+            "type": "boolean"
+          },
           "content_type": {
             "$ref": "#/components/schemas/ContentType"
           },
@@ -194,6 +212,17 @@
             "title": "Id",
             "type": "string"
           },
+          "issue_counts": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IssueCounts"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Open issues on the current extraction; null before validation"
+          },
           "sha256": {
             "title": "Sha256",
             "type": "string"
@@ -256,6 +285,8 @@
           "document_date",
           "total_amount",
           "currency",
+          "approved_at",
+          "approved_by_agent",
           "created_at",
           "updated_at"
         ],
@@ -296,7 +327,9 @@
           "UPLOADED",
           "CLASSIFYING",
           "EXTRACTING",
+          "VALIDATING",
           "NEEDS_REVIEW",
+          "APPROVED",
           "FAILED"
         ],
         "title": "DocumentStatus",
@@ -388,6 +421,30 @@
           "expires_at"
         ],
         "title": "FileUrl",
+        "type": "object"
+      },
+      "IssueCounts": {
+        "description": "Open validation issues on the current extraction, by severity (F6).",
+        "properties": {
+          "error": {
+            "title": "Error",
+            "type": "integer"
+          },
+          "info": {
+            "title": "Info",
+            "type": "integer"
+          },
+          "warning": {
+            "title": "Warning",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "error",
+          "warning",
+          "info"
+        ],
+        "title": "IssueCounts",
         "type": "object"
       },
       "Me": {
@@ -656,6 +713,78 @@
           "display_name"
         ],
         "title": "User",
+        "type": "object"
+      },
+      "ValidationIssue": {
+        "description": "A failed check on the current extraction, or one the agent fixed on the way to it.",
+        "properties": {
+          "check_name": {
+            "description": "line_items, totals, gstin, tax_type, dates, duplicate or known_vendor",
+            "title": "Check Name",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "fixed_by_agent": {
+            "title": "Fixed By Agent",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "paths": {
+            "description": "Field paths involved (dotted, zero-based indices)",
+            "items": {
+              "type": "string"
+            },
+            "title": "Paths",
+            "type": "array"
+          },
+          "severity": {
+            "enum": [
+              "error",
+              "warning",
+              "info"
+            ],
+            "title": "Severity",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "check_name",
+          "severity",
+          "paths",
+          "message",
+          "fixed_by_agent",
+          "created_at"
+        ],
+        "title": "ValidationIssue",
+        "type": "object"
+      },
+      "ValidationIssueList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationIssue"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "ValidationIssueList",
         "type": "object"
       },
       "Workspace": {
@@ -1688,6 +1817,83 @@
         "summary": "Create Document File Url",
         "tags": [
           "documents"
+        ]
+      }
+    },
+    "/v1/workspaces/{workspace_id}/documents/{document_id}/issues": {
+      "get": {
+        "description": "Issues found on the document's current extraction (AC2); 404 until one exists.",
+        "operationId": "listIssues",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationIssueList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List Issues",
+        "tags": [
+          "validation"
         ]
       }
     },

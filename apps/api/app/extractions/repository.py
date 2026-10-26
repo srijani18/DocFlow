@@ -1,9 +1,11 @@
 """SQL for extractions. Append-only: there is no update or delete (ADR-0005)."""
 
+import json
 import uuid
+from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import cast, func, literal, select
+from sqlalchemy import Text, cast, func, literal, select
 from sqlalchemy.dialects.postgresql import JSONB, insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -77,3 +79,18 @@ async def get_by_id(
         )
     )
     return extraction
+
+
+async def get_exact_data(
+    session: AsyncSession, scope: WorkspaceScope, extraction_id: uuid.UUID
+) -> dict[str, Any]:
+    """The version's data with amounts as Decimals, read as JSON text so no float is involved."""
+    text = await session.scalar(
+        select(cast(Extraction.data, Text)).where(
+            Extraction.workspace_id == scope.workspace_id, Extraction.id == extraction_id
+        )
+    )
+    if text is None:
+        raise LookupError(extraction_id)
+    data: dict[str, Any] = json.loads(text, parse_float=Decimal)
+    return data

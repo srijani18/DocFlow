@@ -100,6 +100,7 @@ class Settings(DatabaseSettings):
     llm_route_extract: str = DEFAULT_ROUTE
     llm_classify_prompt: str = "classify/v1"
     llm_extract_prompt: str = "extract/v1"
+    llm_validate_prompt: str = "validate/v1"
     llm_cache_ttl_days: int = 30
 
     cors_allowed_origins: Annotated[list[str], NoDecode] = []

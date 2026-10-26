@@ -47,7 +47,7 @@ async def test_ac1_completed_upload_is_processed(committing_engine: AsyncEngine)
 
     assert ran == 1
     assert (await document_row(seeded, document_id)).status == "NEEDS_REVIEW"
-    assert recorder.statuses == ["CLASSIFYING", "EXTRACTING", "NEEDS_REVIEW"]
+    assert recorder.statuses == ["CLASSIFYING", "EXTRACTING", "VALIDATING", "NEEDS_REVIEW"]
     assert [job.status for job in await jobs_for(seeded, document_id)] == ["succeeded"]
 
 
@@ -61,7 +61,8 @@ async def test_ac2_transition_records_event_and_timestamp(committing_engine: Asy
         (None, "UPLOADED"),
         ("UPLOADED", "CLASSIFYING"),
         ("CLASSIFYING", "EXTRACTING"),
-        ("EXTRACTING", "NEEDS_REVIEW"),
+        ("EXTRACTING", "VALIDATING"),
+        ("VALIDATING", "NEEDS_REVIEW"),
     ]
     document = await document_row(seeded, document_id)
     assert document.status_changed_at >= document.created_at

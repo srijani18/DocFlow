@@ -28,6 +28,14 @@ class UploadStart(BaseModel):
     sha256: str = Field(pattern=r"^[0-9a-f]{64}$", description="Lowercase hex SHA-256 of the file")
 
 
+class IssueCounts(BaseModel):
+    """Open validation issues on the current extraction, by severity (F6)."""
+
+    error: int
+    warning: int
+    info: int
+
+
 class Document(BaseModel):
     id: uuid.UUID
     filename: str
@@ -44,6 +52,11 @@ class Document(BaseModel):
     document_date: date | None
     total_amount: Decimal | None = Field(description="Exact decimal, serialised as a string")
     currency: str | None
+    approved_at: datetime | None = Field(description="Set when approved (F6, F7)")
+    approved_by_agent: bool = Field(description="Approved automatically by the validation agent")
+    issue_counts: IssueCounts | None = Field(
+        default=None, description="Open issues on the current extraction; null before validation"
+    )
     created_at: datetime
     updated_at: datetime
 

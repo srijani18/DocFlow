@@ -29,7 +29,7 @@ class ExtractStep:
             )
         if existing is not None:
             # Stored by an earlier attempt of this run: no new call, no new version (AC5).
-            await ctx.advance(from_status=DocStatus.EXTRACTING, to=DocStatus.NEEDS_REVIEW)
+            await ctx.advance(from_status=DocStatus.EXTRACTING, to=DocStatus.VALIDATING)
             return
         doc_type = document.doc_type
         schema_id = envelope.SCHEMA_BY_DOC_TYPE.get(doc_type or "")
@@ -77,4 +77,4 @@ class ExtractStep:
                 generation=generation,
             )
 
-        await ctx.advance(from_status=DocStatus.EXTRACTING, to=DocStatus.NEEDS_REVIEW, write=store)
+        await ctx.advance(from_status=DocStatus.EXTRACTING, to=DocStatus.VALIDATING, write=store)

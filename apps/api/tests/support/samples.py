@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from app.validation.gstin import with_valid_checksum
+
 SAMPLES = Path(__file__).resolve().parents[4] / "evals" / "samples"
 
 
@@ -36,3 +38,11 @@ def envelope(data: dict[str, Any], **scores: float) -> dict[str, Any]:
         "data": data,
         "confidence": [{"field": f.replace("__", "."), "score": s} for f, s in scores.items()],
     }
+
+
+def clean_invoice() -> dict[str, Any]:
+    """The synthetic invoice with GSTINs that pass the checksum, so every check passes (F6)."""
+    data: dict[str, Any] = copy.deepcopy(sample_truth("synthetic-invoice-001")["data"])
+    data["vendor"]["gstin"] = with_valid_checksum("29ABCDE1234F1Z")
+    data["buyer"]["gstin"] = with_valid_checksum("29PQRSX6789K1Z")
+    return data

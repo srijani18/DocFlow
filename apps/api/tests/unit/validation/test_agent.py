@@ -4,7 +4,7 @@ from typing import Any
 
 from app.validation.agent import Fix, run_agent
 from app.validation.checks import Issue
-from tests.unit.validation.test_checks import clean_invoice
+from tests.support.samples import clean_invoice
 
 TODAY = date(2026, 10, 26)
 SCHEMA = "docflow/invoice/v1"
