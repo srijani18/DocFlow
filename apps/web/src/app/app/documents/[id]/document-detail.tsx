@@ -10,7 +10,7 @@ import { ExtractionView } from "./extraction-view";
 import { IssuesView } from "./issues-view";
 import { MeGate } from "@/components/me-gate";
 import { Panel } from "@/components/page-header";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { useDocumentEvents } from "@/hooks/use-document-events";
 import { documentKeys, fetchDocument, fetchFileUrl, retryDocument } from "@/lib/api/documents";
 import { currentWorkspace } from "@/lib/api/me";
@@ -98,6 +98,18 @@ export function DocumentDetail({
                 Retry
               </Button>
             )}
+            {(doc.status === "NEEDS_REVIEW" || doc.status === "APPROVED") &&
+              doc.doc_type !== null &&
+              doc.doc_type !== "other" && (
+                <Link
+                  href={`/app/documents/${doc.id}/review`}
+                  className={buttonVariants({
+                    variant: doc.status === "NEEDS_REVIEW" ? "default" : "outline",
+                  })}
+                >
+                  {doc.status === "NEEDS_REVIEW" ? "Review" : "Open review"}
+                </Link>
+              )}
           </div>
         </div>
         {openOriginal.isError && (

@@ -13,6 +13,7 @@ import type { components } from "@/generated/api";
 import { aiKeyKeys, fetchAiKeys } from "@/lib/api/ai-keys";
 import { documentKeys, fetchDocumentPage } from "@/lib/api/documents";
 import { currentWorkspace, type Me } from "@/lib/api/me";
+import { fetchReviewMetrics } from "@/lib/api/review";
 import { formatMoney } from "@/lib/format";
 
 type Role = components["schemas"]["Role"];
@@ -83,8 +84,51 @@ function Dashboard({ me }: { me: Me }) {
           </div>
         )}
       </div>
+      {membership !== undefined && <ReviewMetricsPanel workspaceId={membership.workspace.id} />}
       {membership !== undefined && <RecentDocuments workspaceId={membership.workspace.id} />}
     </div>
+  );
+}
+
+/** How much of the approved work needed a person to change something (F7 AC8). */
+function ReviewMetricsPanel({ workspaceId }: { workspaceId: string }) {
+  const metrics = useQuery({
+    queryKey: [...documentKeys.list(workspaceId), "review-metrics"],
+    queryFn: () => fetchReviewMetrics(workspaceId),
+  });
+  if (!metrics.isSuccess) return null;
+  const { approved, approved_without_edits, approved_by_agent, approved_without_edits_rate } =
+    metrics.data;
+  const tiles = [
+    {
+      label: "Approved without edits",
+      value:
+        approved_without_edits_rate === null
+          ? "—"
+          : `${Math.round(approved_without_edits_rate * 100)}%`,
+      note: `${approved_without_edits} of ${approved} approved`,
+    },
+    { label: "Approved", value: String(approved), note: "documents ready for export" },
+    {
+      label: "Approved by the agent",
+      value: String(approved_by_agent),
+      note: "every check passed, high confidence",
+    },
+  ];
+  return (
+    <Panel>
+      <dl className="grid gap-6 sm:grid-cols-3">
+        {tiles.map((tile) => (
+          <div key={tile.label}>
+            <dt className="text-sm text-muted-foreground">{tile.label}</dt>
+            <dd className="mt-1 text-3xl font-semibold tracking-tight tabular-nums">
+              {tile.value}
+            </dd>
+            <dd className="text-xs text-muted-foreground">{tile.note}</dd>
+          </div>
+        ))}
+      </dl>
+    </Panel>
   );
 }
 
