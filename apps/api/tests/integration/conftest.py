@@ -23,9 +23,14 @@ from app.auth.verifier import TokenVerifier
 from app.core.config import Settings
 from app.core.db import Base, create_engine
 from app.core.db_session import get_session
+from app.core.tenancy import WorkspaceScope
 from app.events.dependencies import get_events, get_job_waker
+from app.llm.providers.fake import fake_embedding
 from app.main import create_app
 from app.models import import_all_models
+from app.search.dependencies import get_query_embedder
+from app.search.models import EMBEDDING_DIMENSIONS
+from app.search.service import QueryEmbedder
 from app.storage.dependencies import get_clock, get_storage
 from app.storage.fake import FakeStorage
 from tests.conftest import asgi_client, make_settings
@@ -120,6 +125,27 @@ def wakeups() -> list[str]:
     return []
 
 
+class FakeQueryEmbedder:
+    """Query embeddings from the fake provider's bag of words; `available = False` acts
+    like a workspace without a usable key (F8 AC5)."""
+
+    def __init__(self) -> None:
+        self.available = True
+        self.queries: list[str] = []
+
+    def __call__(self, _scope: WorkspaceScope) -> QueryEmbedder:
+        async def embed(text: str) -> list[float] | None:
+            self.queries.append(text)
+            return fake_embedding(text, EMBEDDING_DIMENSIONS) if self.available else None
+
+        return embed
+
+
+@pytest.fixture
+def query_embedder() -> FakeQueryEmbedder:
+    return FakeQueryEmbedder()
+
+
 @pytest.fixture
 def db_app(db_settings: Settings) -> FastAPI:
     """The app behind `db_client`; feature conftests may add dependency overrides."""
@@ -134,6 +160,7 @@ async def db_client(
     clock: FrozenClock,
     published: Recorder,
     wakeups: list[str],
+    query_embedder: FakeQueryEmbedder,
 ) -> AsyncIterator[httpx.AsyncClient]:
     """API client whose requests run inside the test's rolled-back transaction, and which
     trusts tokens signed with TEST_SIGNING_KEY (see `tests.support.jwt.bearer`). Storage is
@@ -156,6 +183,7 @@ async def db_client(
     app.dependency_overrides[get_clock] = lambda: clock
     app.dependency_overrides[get_events] = lambda: published
     app.dependency_overrides[get_job_waker] = lambda: lambda: wakeups.append("wake")
+    app.dependency_overrides[get_query_embedder] = lambda: query_embedder
     async with app.router.lifespan_context(app), await asgi_client(app) as http:
         yield http
 

@@ -77,10 +77,14 @@ async def document_row(seeded: Seeded, document_id: uuid.UUID) -> Document:
         return (await session.scalars(select(Document).where(Document.id == document_id))).one()
 
 
-async def jobs_for(seeded: Seeded, document_id: uuid.UUID) -> list[Job]:
+async def jobs_for(
+    seeded: Seeded, document_id: uuid.UUID, kind: str = "process_document"
+) -> list[Job]:
     async with seeded.sessionmaker() as session:
         rows = await session.scalars(
-            select(Job).where(Job.document_id == document_id).order_by(Job.created_at)
+            select(Job)
+            .where(Job.document_id == document_id, Job.kind == kind)
+            .order_by(Job.created_at)
         )
         return list(rows)
 

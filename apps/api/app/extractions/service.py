@@ -11,6 +11,7 @@ from app.documents import service as documents
 from app.extractions import repository
 from app.extractions.models import Extraction
 from app.extractions.summary import summarize
+from app.jobs import service as jobs
 from app.search.text import search_terms
 
 
@@ -152,6 +153,9 @@ async def _record_version(
         total_amount=summary.total_amount,
         currency=summary.currency,
         search_text=search_terms(data),
+    )
+    await jobs.enqueue_embedding(
+        session, scope, document_id=document_id, extraction_id=extraction.id
     )
     return extraction
 

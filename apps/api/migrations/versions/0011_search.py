@@ -96,10 +96,23 @@ def upgrade() -> None:
         schema="docflow",
         postgresql_using="gin",
     )
+    # Autogenerate doesn't detect CHECK changes: allow embedding jobs.
+    op.drop_constraint(op.f("ck_jobs_kind"), "jobs", type_="check", schema="docflow")
+    op.create_check_constraint(
+        op.f("ck_jobs_kind"),
+        "jobs",
+        "kind IN ('process_document', 'embed_document')",
+        schema="docflow",
+    )
 
 
 def downgrade() -> None:
     # Constitution §7.1: every migration must be reversible.
+    op.execute("DELETE FROM docflow.jobs WHERE kind = 'embed_document'")
+    op.drop_constraint(op.f("ck_jobs_kind"), "jobs", type_="check", schema="docflow")
+    op.create_check_constraint(
+        op.f("ck_jobs_kind"), "jobs", "kind IN ('process_document')", schema="docflow"
+    )
     op.drop_index(
         "ix_documents_search", table_name="documents", schema="docflow", postgresql_using="gin"
     )

@@ -10,7 +10,7 @@ from app.core.db_session import DbSession
 from app.core.errors import problem_responses
 from app.documents.routes import with_issue_counts
 from app.documents.schemas import Document
-from app.events.dependencies import EventsDep
+from app.events.dependencies import EventsDep, JobWakerDep
 from app.extractions.routes import to_extraction
 from app.extractions.schemas import Extraction
 from app.review import service
@@ -42,6 +42,8 @@ async def save_corrections(
     scope: WorkspaceScopeDep,
     session: DbSession,
     clock: ClockDep,
+    background: BackgroundTasks,
+    wake_worker: JobWakerDep,
 ) -> Extraction:
     """Save the reviewer's corrections as a new version (AC4). 409 when the document changed
     since `base_version` (AC6); no new version when nothing changed."""
@@ -56,6 +58,8 @@ async def save_corrections(
         )
     except service.InvalidDataError as exc:
         raise _invalid(exc) from None
+    if saved.changed:
+        background.add_task(wake_worker)  # the new version's search embedding (F8)
     return to_extraction(saved.extraction)
 
 
@@ -71,6 +75,7 @@ async def approve_document(
     clock: ClockDep,
     background: BackgroundTasks,
     events: EventsDep,
+    wake_worker: JobWakerDep,
 ) -> Document:
     """Approve the document, saving `data` first if given (AC5)."""
     try:
@@ -86,6 +91,7 @@ async def approve_document(
     except service.InvalidDataError as exc:
         raise _invalid(exc) from None
     background.add_task(events.publish, event)
+    background.add_task(wake_worker)  # corrections saved here need embedding (F8)
     [approved] = await with_issue_counts(session, scope, [document])
     return approved
 
