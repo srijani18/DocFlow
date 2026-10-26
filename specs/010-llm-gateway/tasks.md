@@ -1,10 +1,10 @@
 # F10: LLM gateway with fallback (tasks)
 
 **Status:** Draft (2026-10-26)
-**Prerequisite:** F4, F5. Manual (optional): `GROQ_API_KEY`, `OPENROUTER_API_KEY` in `.env`.
+**Prerequisite:** F15 (workspace keys). Manual (optional): connect Groq and OpenRouter keys in Settings.
 
 - [ ] **F10-T1: Routes and config** (AC1, AC9): `routing.py`; `LLM_ROUTE_*` settings replace the per-task model settings.
-  - Tests: `test_route_parsing`, `test_provider_without_key_is_unavailable`.
+  - Tests: `test_route_parsing`, `test_ac9_unconnected_providers_skipped`.
 - [ ] **F10-T2: Circuit breaker** (AC4)
   - Tests: `test_ac4_opens_after_three_transient_failures`, `test_ac4_half_open_trial_closes_or_reopens`, `test_ac4_permanent_errors_dont_trip`.
 - [ ] **F10-T3: PDF to images and capabilities** (AC5): `pypdfium2`; Docker smoke test still passes.

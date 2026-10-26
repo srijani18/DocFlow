@@ -52,7 +52,7 @@ These rules are not optional. To change one, edit this file in a pull request of
 2. **Every LLM call is logged** to `llm_calls` with: workspace, document (if any), task, provider, model, prompt version, input and output tokens, estimated cost, latency, outcome (ok, error, fallback) and attempt number.
 3. **Prompts are versioned files** (`app/llm/prompts/<task>/v<N>.md`). Changing a prompt means adding a new version, so evals can compare versions.
 4. Structured outputs are validated against `schemas/`. A validation failure is an explicit, logged outcome, never silently dropped.
-5. **Only public datasets (SROIE, CORD) and synthetic documents** are sent to free-tier providers, because those providers may train on what they receive.
+5. **Only public datasets and synthetic documents** are used in evals, tests and demos. Workspaces process documents on their own provider keys (F15) under their own provider's terms; the upload screen still recommends sample data, because free tiers may train on what they receive.
 6. **Measure before claiming.** Every accuracy, cost or latency figure in the README or in a PR cites an `eval_runs` id or a query over `llm_calls`.
 7. Model IDs and rate limits are configuration, not code. Providers retire models often.
 
@@ -66,6 +66,7 @@ These rules are not optional. To change one, edit this file in a pull request of
 4. Every input has a size or length limit. Uploads are limited by the storage bucket and checked again by the backend.
 5. **Logs contain IDs, not personal data:** no emails, tokens, document contents or extracted values. A log processor removes known sensitive keys.
 6. Dependencies are locked (`uv.lock`, `pnpm-lock.yaml`) and updated by Dependabot. Each new dependency gets a one-line justification in its PR.
+7. **Customers' AI provider keys are encrypted at rest** with a server-held master key (ADR-0008), never returned by the API, never logged, and used only for that workspace's own calls.
 
 ## 7. Database and migrations
 

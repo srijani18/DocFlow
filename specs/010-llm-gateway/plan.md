@@ -68,14 +68,12 @@ The cache key includes the workspace, so a cached answer can never cross tenants
 ## 4. Configuration
 
 ```
-GROQ_API_KEY=            # [secret] optional
-OPENROUTER_API_KEY=      # [secret] optional
 LLM_ROUTE_CLASSIFY=gemini:gemini-flash-lite-latest,groq:meta-llama/llama-4-scout-17b-16e-instruct,openrouter:openrouter/free
 LLM_ROUTE_EXTRACT=gemini:gemini-flash-lite-latest,groq:meta-llama/llama-4-scout-17b-16e-instruct,openrouter:openrouter/free
 LLM_CACHE_TTL_DAYS=30
 ```
 
-`LLM_CLASSIFY_MODEL` and `LLM_EXTRACT_MODEL` from F4/F5 are replaced by the routes.
+`LLM_CLASSIFY_MODEL` and `LLM_EXTRACT_MODEL` from F4/F5 are replaced by the routes. There are no provider keys in the app's environment: keys are per workspace (F15).
 
 ## 5. Security
 
