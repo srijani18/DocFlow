@@ -338,6 +338,7 @@ async def set_current_extraction(
     document_date: date | None,
     total_amount: Decimal | None,
     currency: str | None,
+    search_text: str,
 ) -> None:
     await repository.set_current_extraction(
         session,
@@ -348,6 +349,7 @@ async def set_current_extraction(
         document_date=document_date,
         total_amount=total_amount,
         currency=currency,
+        search_text=search_text,
     )
 
 

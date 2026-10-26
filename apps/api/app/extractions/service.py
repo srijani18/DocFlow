@@ -11,6 +11,7 @@ from app.documents import service as documents
 from app.extractions import repository
 from app.extractions.models import Extraction
 from app.extractions.summary import summarize
+from app.search.text import search_terms
 
 
 async def find_model_extraction(
@@ -150,6 +151,7 @@ async def _record_version(
         document_date=summary.document_date,
         total_amount=summary.total_amount,
         currency=summary.currency,
+        search_text=search_terms(data),
     )
     return extraction
 

@@ -99,6 +99,7 @@ def build_gateway(
             "extract": parse_route(settings.llm_route_extract),
             # Rereading uses the extraction route (F6 D4).
             "validate": parse_route(settings.llm_route_extract),
+            "embed": parse_route(settings.llm_route_embed),
         },
         credentials=credentials,
         cache_ttl=timedelta(days=settings.llm_cache_ttl_days),
