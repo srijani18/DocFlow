@@ -1,6 +1,6 @@
 # F6: Validation agent (tasks)
 
-**Status:** Draft (2026-10-26)
+**Status:** Approved (2026-10-26)
 **Prerequisite:** F5, F10, F11.
 
 - [ ] **F6-T1: GSTIN, money and checks** (AC1, AC2, AC5): pure functions and test vectors.

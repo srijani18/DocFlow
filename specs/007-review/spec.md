@@ -1,6 +1,6 @@
 # F7: Human review (spec)
 
-**Status:** Draft (2026-10-26)
+**Status:** Approved (2026-10-26)
 **Phase:** 3
 **Plan:** [plan.md](plan.md) · **Tasks:** [tasks.md](tasks.md)
 
@@ -51,7 +51,7 @@ A reviewer opens a document that needs review and sees the original on one side 
 - Reopening or un-approving documents; deleting documents.
 - Assignment queues and multi-step approval.
 
-## Decisions (proposed defaults; approve or change)
+## Decisions (approved 2026-10-26)
 
 - **D1. Document viewer:** the browser's own PDF viewer (an `<iframe>` of the signed URL) and `<img>` for images. There's no PDF.js bundle: zero dependencies, and it works on phones.
 - **D2. The form is generated from the JSON Schema** (labels from `x-ui` where present, else humanised names), so new document types need no new UI. It reuses the F5 field layout.

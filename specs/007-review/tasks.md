@@ -1,6 +1,6 @@
 # F7: Human review (tasks)
 
-**Status:** Draft (2026-10-26)
+**Status:** Approved (2026-10-26)
 **Prerequisite:** F6.
 
 - [ ] **F7-T1: Corrections table and diff** (AC4): migration `0010_corrections`, server-side diff by path.

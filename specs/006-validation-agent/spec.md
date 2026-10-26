@@ -1,6 +1,6 @@
 # F6: Validation agent (spec)
 
-**Status:** Draft (2026-10-26)
+**Status:** Approved (2026-10-26)
 **Phase:** 3
 **Plan:** [plan.md](plan.md) · **Tasks:** [tasks.md](tasks.md)
 
@@ -70,7 +70,7 @@ When a check fails on something the model may simply have misread, the agent ask
 - Learning from corrections (F7 feeds the eval set; prompt changes stay manual and are measured).
 - Custom per-workspace rules.
 
-## Decisions (proposed defaults; approve or change)
+## Decisions (approved 2026-10-26)
 
 - **D1. Checks are deterministic Python "tools"; the model only rereads.** The agent loop is: run the tools, decide what's fixable, ask the model for corrected values of specific fields (structured output), re-run the tools, and keep the correction only if it helps. This is provider-agnostic, testable without an LLM, and easy to explain. Free-form function calling isn't used, because it differs across Gemini, Groq and OpenRouter.
 - **D2. Thresholds:** ₹1.00 or 0.5% tolerance; auto-approve at confidence ≥ 0.90 with no errors or warnings; 2 fixing rounds.
