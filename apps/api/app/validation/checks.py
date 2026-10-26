@@ -120,6 +120,17 @@ def check_totals(doc_type: str, data: Mapping[str, Any]) -> list[Issue]:
         tax_lines = data.get("taxes") or []
         taxes = sum((_amount(t.get("amount")) or Decimal(0) for t in tax_lines), Decimal(0))
         tax_paths = tuple(f"taxes.{i}.amount.amount" for i in range(len(tax_lines)))
+    if taxes > 0 and total > 0 and taxes > total:
+        # Impossible on any document, and what a misread scale looks like when the
+        # amounts still add up otherwise (60.0 read for 60,000 with 5,455 tax).
+        return [
+            Issue(
+                "totals",
+                "error",
+                ("total.amount", "subtotal.amount", *tax_paths),
+                f"Taxes of {taxes} are more than the total of {total}.",
+            )
+        ]
     if amounts_match(subtotal + taxes, total):
         return []
     if doc_type == "receipt" and amounts_match(subtotal, total):

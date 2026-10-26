@@ -203,3 +203,16 @@ def test_two_decimals_and_whole_amounts_are_fine() -> None:
         )
         == []
     )
+
+
+def test_taxes_larger_than_the_total_are_an_error_even_when_tax_is_included() -> None:
+    receipt = {
+        "subtotal": {"amount": Decimal("60.0"), "currency": "IDR"},
+        "tax_total": {"amount": Decimal("5455"), "currency": "IDR"},
+        "total": {"amount": Decimal("60.0"), "currency": "IDR"},
+    }
+
+    [issue] = check_totals("receipt", receipt)
+
+    assert (issue.check, issue.severity, issue.fixable) == ("totals", "error", True)
+    assert "more than the total" in issue.message
