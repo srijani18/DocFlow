@@ -7,6 +7,7 @@ import pytest
 
 from app.validation.checks import (
     WorkspaceLookups,
+    all_checks,
     amounts_match,
     check_dates,
     check_gstins,
@@ -133,15 +134,18 @@ def test_no_line_items_skips_line_checks() -> None:
     assert check_totals("invoice", data) == []
 
 
-def test_duplicate_and_known_vendor_lookups() -> None:
+async def test_duplicate_and_known_vendor_lookups() -> None:
     seen: list[tuple[Any, ...]] = []
 
-    def find_duplicates(gstin: str | None, name: str | None, number: str) -> list[str]:
+    async def find_duplicates(gstin: str | None, name: str | None, number: str) -> list[str]:
         seen.append((gstin, name, number))
         return ["other-doc"]
 
-    lookups = WorkspaceLookups(find_duplicates=find_duplicates, vendor_seen=lambda _g, _n: False)
-    issues = run_checks("invoice", clean_invoice(), today=TODAY, lookups=lookups)
+    async def vendor_seen(_gstin: str | None, _name: str | None) -> bool:
+        return False
+
+    lookups = WorkspaceLookups(find_duplicates=find_duplicates, vendor_seen=vendor_seen)
+    issues = await all_checks("invoice", clean_invoice(), today=TODAY, lookups=lookups)
 
     assert {(i.check, i.severity) for i in issues} == {
         ("duplicate", "warning"),

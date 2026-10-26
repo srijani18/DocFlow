@@ -4,7 +4,7 @@ Each check returns issues and never calls a model. A check that doesn't apply (n
 items, no GSTIN, not INR) returns nothing.
 """
 
-from collections.abc import Callable, Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal, InvalidOperation
@@ -214,50 +214,65 @@ def check_dates(doc_type: str, data: Mapping[str, Any], *, today: date) -> list[
 class WorkspaceLookups:
     """Questions only the workspace's other documents can answer (F6 AC1)."""
 
-    find_duplicates: Callable[[str | None, str | None, str], list[str]]  # gstin, name, number → ids
-    vendor_seen: Callable[[str | None, str | None], bool]
+    find_duplicates: Callable[[str | None, str | None, str], Awaitable[list[str]]]
+    vendor_seen: Callable[[str | None, str | None], Awaitable[bool]]
 
 
 def party_of(doc_type: str, data: Mapping[str, Any]) -> Mapping[str, Any]:
     return (data.get("merchant") if doc_type == "receipt" else data.get("vendor")) or {}
 
 
-def run_checks(
-    doc_type: str, data: Mapping[str, Any], *, today: date, lookups: WorkspaceLookups | None = None
-) -> list[Issue]:
-    issues = [
+def run_checks(doc_type: str, data: Mapping[str, Any], *, today: date) -> list[Issue]:
+    """The checks that need nothing but the data."""
+    return [
         *check_line_items(doc_type, data),
         *check_totals(doc_type, data),
         *check_gstins(doc_type, data),
         *check_tax_types(doc_type, data),
         *check_dates(doc_type, data, today=today),
     ]
+
+
+async def check_workspace(
+    doc_type: str, data: Mapping[str, Any], lookups: WorkspaceLookups
+) -> list[Issue]:
+    """Duplicate and known-vendor checks against the workspace's other documents."""
+    issues = []
+    party = party_of(doc_type, data)
+    number_field = NUMBER_FIELDS[doc_type]
+    number = data.get(number_field)
+    if number and (
+        duplicates := await lookups.find_duplicates(party.get("gstin"), party.get("name"), number)
+    ):
+        issues.append(
+            Issue(
+                "duplicate",
+                "warning",
+                (number_field,),
+                f"Possible duplicate of {len(duplicates)} other document(s) with number "
+                f"{number} from the same vendor.",
+            )
+        )
+    if (party.get("gstin") or party.get("name")) and not await lookups.vendor_seen(
+        party.get("gstin"), party.get("name")
+    ):
+        issues.append(
+            Issue(
+                "known_vendor",
+                "info",
+                ("merchant" if doc_type == "receipt" else "vendor",),
+                "First document from this vendor in the workspace.",
+            )
+        )
+    return issues
+
+
+async def all_checks(
+    doc_type: str, data: Mapping[str, Any], *, today: date, lookups: WorkspaceLookups | None
+) -> list[Issue]:
+    issues = run_checks(doc_type, data, today=today)
     if lookups is not None:
-        party = party_of(doc_type, data)
-        number = data.get(NUMBER_FIELDS[doc_type])
-        if number and (
-            duplicates := lookups.find_duplicates(party.get("gstin"), party.get("name"), number)
-        ):
-            issues.append(
-                Issue(
-                    "duplicate",
-                    "warning",
-                    (NUMBER_FIELDS[doc_type],),
-                    f"Possible duplicate of {len(duplicates)} other document(s) with number "
-                    f"{number} from the same vendor.",
-                )
-            )
-        if (party.get("gstin") or party.get("name")) and not lookups.vendor_seen(
-            party.get("gstin"), party.get("name")
-        ):
-            issues.append(
-                Issue(
-                    "known_vendor",
-                    "info",
-                    ("vendor" if doc_type != "receipt" else "merchant",),
-                    "First document from this vendor in the workspace.",
-                )
-            )
+        issues += await check_workspace(doc_type, data, lookups)
     return issues
 
 

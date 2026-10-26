@@ -11,7 +11,7 @@ from datetime import date
 from typing import Any, Protocol
 
 from app.schemas_registry import validation_errors
-from app.validation.checks import Issue, WorkspaceLookups, run_checks, severity_score
+from app.validation.checks import Issue, WorkspaceLookups, all_checks, severity_score
 
 
 @dataclass(frozen=True)
@@ -87,7 +87,7 @@ async def run_agent(  # the loop's whole context
     lookups: WorkspaceLookups | None = None,
     max_rounds: int = 2,
 ) -> AgentResult:
-    issues = run_checks(doc_type, data, today=today, lookups=lookups)
+    issues = await all_checks(doc_type, data, today=today, lookups=lookups)
     result = AgentResult(data=data, issues=issues)
     original = list(issues)
     for _ in range(max_rounds):
@@ -100,7 +100,7 @@ async def run_agent(  # the loop's whole context
         candidate, applied = _apply(result.data, proposals, allowed)
         if not applied or validation_errors(schema_id, candidate):
             break  # no progress, or the "fix" doesn't fit the schema
-        new_issues = run_checks(doc_type, candidate, today=today, lookups=lookups)
+        new_issues = await all_checks(doc_type, candidate, today=today, lookups=lookups)
         if severity_score(new_issues) >= severity_score(result.issues):
             break  # a correction must make things better, or it's discarded (AC4)
         result.data, result.issues = candidate, new_issues
