@@ -10,6 +10,7 @@ import httpx
 
 from app.llm.providers.gemini_schema import adapt_schema
 from app.llm.types import (
+    CredentialRejectedError,
     FilePart,
     PermanentLlmError,
     ProviderRequest,
@@ -51,19 +52,15 @@ class GeminiProvider:
     def __init__(
         self,
         *,
-        api_key: str | None,
         http: httpx.AsyncClient,
         base_url: str = DEFAULT_BASE_URL,
         timeout_seconds: float = 60,
     ) -> None:
-        self._api_key = api_key
         self._http = http
         self._base_url = base_url.rstrip("/")
         self._timeout_seconds = timeout_seconds
 
     async def generate(self, request: ProviderRequest) -> ProviderResponse:
-        if not self._api_key:
-            raise TransientLlmError("GEMINI_API_KEY is not configured")
         body = {
             "systemInstruction": {"parts": [{"text": request.instructions}]},
             "contents": [{"role": "user", "parts": [_part(part) for part in request.parts]}],
@@ -78,7 +75,7 @@ class GeminiProvider:
             response = await self._http.post(
                 url,
                 json=body,
-                headers={"x-goog-api-key": self._api_key},
+                headers={"x-goog-api-key": request.api_key},
                 timeout=self._timeout_seconds,
             )
         except httpx.TimeoutException as exc:
@@ -91,12 +88,24 @@ class GeminiProvider:
             raise TransientLlmError(
                 f"Gemini returned {response.status_code}", retry_after_seconds=_retry_after(payload)
             )
+        message = _error_message(payload)
+        if response.status_code in (401, 403) or "API_KEY_INVALID" in str(payload):
+            # The workspace's own key was refused (F15 AC9). Gemini answers 400
+            # API_KEY_INVALID for unknown keys and 403 for keys without access.
+            raise CredentialRejectedError(
+                f"Gemini rejected the key ({response.status_code})", provider=self.name
+            )
         if response.status_code >= 400:
-            message = (payload or {}).get("error", {}).get("message", "") if payload else ""
             raise PermanentLlmError(
                 f"Gemini rejected the request ({response.status_code}): {message}"
             )
         return _parse(payload)
+
+
+def _error_message(payload: Any) -> str:
+    if isinstance(payload, dict):
+        return str(payload.get("error", {}).get("message", ""))
+    return ""
 
 
 def _json_or_none(response: httpx.Response) -> Any:

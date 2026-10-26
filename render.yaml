@@ -30,7 +30,7 @@ services:
         sync: false
       - key: SUPABASE_SECRET_KEY  # sb_secret_… (Storage)
         sync: false
-      - key: GEMINI_API_KEY
+      - key: BYOK_MASTER_KEYS  # encrypts workspaces' own AI keys (ADR-0008); `make byok-key`
         sync: false
       - key: CORS_ALLOWED_ORIGINS
         sync: false

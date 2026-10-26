@@ -141,6 +141,8 @@ type = "forbidden"
 source_modules = [
   "app.documents.service", "app.documents.repository", "app.documents.models",
   "app.extractions.service", "app.extractions.repository", "app.extractions.models",
+  "app.aikeys.service", "app.aikeys.repository", "app.aikeys.models", "app.aikeys.crypto",
+  "app.aikeys.checks",
   "app.storage.client", "app.storage.supabase", "app.storage.fake",
 ]
 forbidden_modules = ["fastapi", "starlette"]

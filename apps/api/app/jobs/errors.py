@@ -6,10 +6,12 @@ Technical detail goes in `detail`, which is stored in `jobs.last_error` and logg
 
 
 class StepError(Exception):
-    def __init__(self, reason: str, *, detail: str | None = None) -> None:
+    def __init__(self, reason: str, *, detail: str | None = None, code: str | None = None) -> None:
         super().__init__(detail or reason)
         self.reason = reason
         self.detail = detail or reason
+        # Stored as documents.failure_code, e.g. no_ai_key (F15 AC7, AC8).
+        self.code = code
 
 
 class TransientError(StepError):

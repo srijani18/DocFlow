@@ -2,7 +2,7 @@
 
 import uuid
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Literal
 
 Task = Literal["classify", "extract"]
@@ -53,6 +53,9 @@ class ProviderRequest:
     instructions: str
     parts: Sequence[TextPart | FilePart]
     response_schema: Mapping[str, Any]
+    # The workspace's own key (F15), for this call only. Kept out of repr so it can't
+    # end up in a log or an error message by accident.
+    api_key: str = field(default="", repr=False)
 
 
 @dataclass(frozen=True)
@@ -91,3 +94,15 @@ class PermanentLlmError(LlmError):
 
 class InvalidOutputError(LlmError):
     """The answer didn't match the schema. Retried like a transient error (F4 AC2)."""
+
+
+class NoCredentialsError(LlmError):
+    """The workspace hasn't connected a key for any provider in the task's route (F15 AC7)."""
+
+
+class CredentialRejectedError(PermanentLlmError):
+    """The provider refused the workspace's key (revoked, wrong project): F15 AC9."""
+
+    def __init__(self, message: str, *, provider: str) -> None:
+        super().__init__(message)
+        self.provider = provider

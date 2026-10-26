@@ -1,3 +1,4 @@
+import base64
 from collections.abc import AsyncIterator
 from typing import Any
 
@@ -11,6 +12,8 @@ from tests.support.jwt import TEST_SUPABASE_URL
 
 # Points at a closed port: unit tests must never need a database.
 UNREACHABLE_DATABASE_URL = "postgresql://postgres:postgres@127.0.0.1:1/unreachable"
+# A fixed, test-only master key (32 zero-to-31 bytes); never used outside tests.
+TEST_BYOK_MASTER_KEYS = "v1:" + base64.b64encode(bytes(range(32))).decode()
 
 
 def make_settings(**overrides: Any) -> Settings:
@@ -20,6 +23,7 @@ def make_settings(**overrides: Any) -> Settings:
         "role": "api",
         "database_url": UNREACHABLE_DATABASE_URL,
         "supabase_url": TEST_SUPABASE_URL,
+        "byok_master_keys": TEST_BYOK_MASTER_KEYS,
     }
     return Settings.model_validate(values | overrides)
 

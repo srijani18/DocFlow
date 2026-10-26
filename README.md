@@ -35,6 +35,8 @@ Open <http://localhost:3000>. It should show **"API: ok"**. API docs are at <htt
 
 **Signing in locally** uses a free Supabase project for Auth (the database stays in Docker). Do steps 2a and 2c–2f of [docs/deploy.md](docs/deploy.md) (skip 2b), set `Site URL` to `http://localhost:3000`, then put the project URL in `SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_URL`, and the publishable key in `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, in `.env`.
 
+**AI processing uses your own keys** (bring your own key). Set `BYOK_MASTER_KEYS` in `.env` to the output of `make byok-key`, then open **Settings** in the app and connect a Gemini key (free at <https://aistudio.google.com/apikey>). Groq and OpenRouter keys are optional fallbacks.
+
 ## Everyday commands
 
 ```bash

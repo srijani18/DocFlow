@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRightIcon, CloudUploadIcon } from "lucide-react";
+import { ArrowRightIcon, CloudUploadIcon, KeyRoundIcon } from "lucide-react";
 import Link from "next/link";
 
 import { DocTypeLabel } from "@/components/doc-type";
@@ -10,6 +10,7 @@ import { MeGate } from "@/components/me-gate";
 import { PageHeader, Panel } from "@/components/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import type { components } from "@/generated/api";
+import { aiKeyKeys, fetchAiKeys } from "@/lib/api/ai-keys";
 import { documentKeys, fetchDocumentPage } from "@/lib/api/documents";
 import { currentWorkspace, type Me } from "@/lib/api/me";
 import { formatMoney } from "@/lib/format";
@@ -37,6 +38,7 @@ function Dashboard({ me }: { me: Me }) {
         }
         description="Here's what's happening in your workspace."
       />
+      {membership !== undefined && <ConnectKeyBanner workspaceId={membership.workspace.id} />}
       <div className="grid gap-5 lg:grid-cols-[1fr_1fr]">
         <Panel>
           <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-3 text-sm">
@@ -132,5 +134,37 @@ function RecentDocuments({ workspaceId }: { workspaceId: string }) {
         </ul>
       )}
     </Panel>
+  );
+}
+
+/** Shown until the workspace connects an AI provider: nothing is processed before then (F15). */
+function ConnectKeyBanner({ workspaceId }: { workspaceId: string }) {
+  const keys = useQuery({
+    queryKey: aiKeyKeys.list(workspaceId),
+    queryFn: () => fetchAiKeys(workspaceId),
+  });
+  if (!keys.isSuccess || keys.data.some((key) => key.connected && key.status !== "rejected")) {
+    return null;
+  }
+  return (
+    <div className="bg-brand-gradient flex flex-col items-start justify-between gap-4 rounded-3xl p-6 text-white shadow-lg shadow-primary/20 sm:flex-row sm:items-center">
+      <div className="flex items-center gap-3">
+        <span className="inline-flex size-10 items-center justify-center rounded-xl bg-white text-primary">
+          <KeyRoundIcon className="size-5" aria-hidden />
+        </span>
+        <div>
+          <p className="font-semibold">Connect an AI provider to start processing</p>
+          <p className="text-sm text-white/85">
+            DocFlow runs on your own Gemini, Groq or OpenRouter key.
+          </p>
+        </div>
+      </div>
+      <Link
+        href="/app/settings"
+        className={`${buttonVariants({ variant: "subtle" })} text-foreground`}
+      >
+        Connect a key <ArrowRightIcon aria-hidden />
+      </Link>
+    </div>
   );
 }

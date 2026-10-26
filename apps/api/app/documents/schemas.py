@@ -37,6 +37,7 @@ class Document(BaseModel):
     status: DocumentStatus
     status_changed_at: datetime
     failure_reason: str | None
+    failure_code: str | None = Field(description="Machine-readable cause, e.g. no_ai_key (F15)")
     doc_type: DocType | None = Field(description="Set by classification (F4)")
     doc_type_confidence: float | None
     vendor_name: str | None = Field(description="From the current extraction (F5)")

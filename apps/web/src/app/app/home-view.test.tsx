@@ -148,3 +148,33 @@ describe("HomeView dashboard", () => {
     expect(screen.getByText("₹16,826.80")).toBeInTheDocument();
   });
 });
+
+describe("HomeView key banner", () => {
+  it("asks to connect an AI provider when none is connected", async () => {
+    routeFetch({
+      "/v1/me": () => Response.json(ME),
+      "/ai-keys": () =>
+        Response.json(
+          ["gemini", "groq", "openrouter"].map((provider) => ({
+            provider,
+            connected: false,
+            last4: null,
+            status: null,
+            checked_at: null,
+            updated_at: null,
+          })),
+        ),
+      "/documents": () => Response.json({ items: [], next_cursor: null }),
+    });
+
+    renderHome();
+
+    expect(
+      await screen.findByText("Connect an AI provider to start processing"),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Connect a key/ })).toHaveAttribute(
+      "href",
+      "/app/settings",
+    );
+  });
+});

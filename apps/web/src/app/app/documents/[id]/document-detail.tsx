@@ -111,6 +111,15 @@ export function DocumentDetail({
           <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800 dark:bg-red-950 dark:text-red-200">
             <span className="font-medium">Problem: </span>
             {doc.failure_reason}
+            {(doc.failure_code === "no_ai_key" || doc.failure_code === "key_rejected") && (
+              <>
+                {" "}
+                <Link href="/app/settings" className="font-medium underline underline-offset-4">
+                  Connect a key in Settings
+                </Link>
+                . The document is retried automatically once one is connected.
+              </>
+            )}
           </p>
         )}
         <dl className="mt-6 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">

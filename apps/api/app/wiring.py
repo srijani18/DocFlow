@@ -9,11 +9,13 @@ from dataclasses import dataclass
 import httpx
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
+from app.aikeys.crypto import KeyBox
+from app.aikeys.service import WorkspaceCredentials
 from app.core.clock import SystemClock
 from app.core.config import Settings
 from app.core.db import create_engine, create_sessionmaker
 from app.events.broker import EventBroker
-from app.llm.gateway import Gateway, Route
+from app.llm.gateway import Credentials, Gateway, Route
 from app.llm.providers.gemini import GeminiProvider
 from app.pipeline.runner import Pipeline
 from app.pipeline.steps.classify import ClassifyStep
@@ -30,6 +32,7 @@ class Services:
     http: httpx.AsyncClient
     storage: SupabaseStorage
     events: EventBroker
+    keybox: KeyBox | None
     worker: Worker | None
 
     async def aclose(self) -> None:
@@ -49,9 +52,13 @@ def build_services(settings: Settings) -> Services:
         clock=SystemClock(),
     )
     events = EventBroker()
+    keybox = KeyBox.from_setting(settings.byok_master_keys) if settings.byok_master_keys else None
     worker = None
     if settings.role.runs_worker:
-        gateway = build_gateway(settings, sessionmaker=sessionmaker, http=http)
+        credentials = WorkspaceCredentials(sessionmaker=sessionmaker, keybox=keybox)
+        gateway = build_gateway(
+            settings, sessionmaker=sessionmaker, http=http, credentials=credentials
+        )
         pipeline = Pipeline(
             sessionmaker=sessionmaker,
             storage=storage,
@@ -60,14 +67,17 @@ def build_services(settings: Settings) -> Services:
             extract=ExtractStep(gateway, prompt_version=settings.llm_extract_prompt),
         )
         worker = Worker(sessionmaker=sessionmaker, pipeline=pipeline, events=events)
-    return Services(engine, sessionmaker, http, storage, events, worker)
+    return Services(engine, sessionmaker, http, storage, events, keybox, worker)
 
 
 def build_gateway(
-    settings: Settings, *, sessionmaker: async_sessionmaker[AsyncSession], http: httpx.AsyncClient
+    settings: Settings,
+    *,
+    sessionmaker: async_sessionmaker[AsyncSession],
+    http: httpx.AsyncClient,
+    credentials: Credentials,
 ) -> Gateway:
     gemini = GeminiProvider(
-        api_key=settings.gemini_api_key,
         http=http,
         base_url=settings.gemini_base_url,
         timeout_seconds=settings.llm_timeout_seconds,
@@ -75,6 +85,7 @@ def build_gateway(
     return Gateway(
         sessionmaker=sessionmaker,
         providers={gemini.name: gemini},
+        credentials=credentials,
         routes={
             "classify": Route(gemini.name, settings.llm_classify_model),
             "extract": Route(gemini.name, settings.llm_extract_model),

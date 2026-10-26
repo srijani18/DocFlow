@@ -158,6 +158,7 @@ class Worker:
                         reason=reason or exc.reason,
                         job_id=job.id,
                         detail=exc.detail,
+                        code=exc.code,
                     )
         if event is not None:
             self._events.publish(event)
