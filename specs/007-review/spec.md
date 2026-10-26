@@ -1,6 +1,6 @@
 # F7: Human review (spec)
 
-**Status:** Approved (2026-10-26)
+**Status:** Implemented (2026-10-26)
 **Phase:** 3
 **Plan:** [plan.md](plan.md) · **Tasks:** [tasks.md](tasks.md)
 

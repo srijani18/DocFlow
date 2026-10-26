@@ -1,6 +1,6 @@
 # F7: Human review (tasks)
 
-**Status:** Approved (2026-10-26)
+**Status:** Implemented (2026-10-26)
 **Prerequisite:** F6.
 
 - [x] **F7-T1: Corrections table and diff** (AC4): migration `0010_corrections`, server-side diff by path.
@@ -17,4 +17,9 @@
   - Notes:
     - Exports every document a *person* approved (with or without edits): both are verified truth. Each entry records its correction count.
     - Output goes to `evals/imported/<id>/`, which is git-ignored, since it holds your own documents. Run it with `make eval MANIFEST=…`.
-- [ ] **F7-T7: Live check and close-out:** fix and approve a sample with an error; check the corrections and the metric; spec status `Implemented`.
+- [x] **F7-T7: Live check and close-out:** fix and approve a sample with an error; check the corrections and the metric; spec status `Implemented`.
+  - **Done (2026-10-26), locally with Gemini Flash-Lite, in a real browser:**
+    1. `broken-invoice-wrong-total.pdf` went through classify → extract → validate. The agent asked the model to reread the total, and the model correctly reported nothing misread: the total is printed wrong. The document went to review with a `totals` error.
+    2. In review, the reviewer corrected the total from 3524.95 to 3424.95 and approved.
+    3. The result: version 2 (`human`), one correction row (`total.amount`), the `totals` error gone from version 2, and `APPROVED` with the approved version recorded. The dashboard shows "Approved without edits: 0% (0 of 1)".
+  - The PDF pane was blank only in headless Chromium, which has no PDF viewer. The signed URL is served as `application/pdf` with no framing restrictions.
