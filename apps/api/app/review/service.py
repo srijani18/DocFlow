@@ -169,3 +169,26 @@ class ReviewMetrics:
 async def review_metrics(session: AsyncSession, scope: WorkspaceScope) -> ReviewMetrics:
     approved, edited, by_agent = await repository.approval_counts(session, scope)
     return ReviewMetrics(approved, approved - edited, by_agent)
+
+
+@dataclass(frozen=True)
+class ApprovedDocument:
+    document: Document
+    schema_id: str
+    data: dict[str, Any]
+    corrections: int
+
+
+async def approved_by_people(
+    session: AsyncSession, scope: WorkspaceScope
+) -> list[ApprovedDocument]:
+    """What a person checked and approved: verified truth for evals (AC9)."""
+    return [
+        ApprovedDocument(
+            document=document,
+            schema_id=extraction.schema_id,
+            data=await extractions.get_exact_data(session, scope, extraction.id),
+            corrections=corrections,
+        )
+        for document, extraction, corrections in await repository.approved_by_people(session, scope)
+    ]

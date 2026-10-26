@@ -69,6 +69,7 @@ async def main(argv: list[str]) -> int:
     parser.add_argument(
         "--agent", action="store_true", help="also run the validation agent (before / after)"
     )
+    parser.add_argument("--manifest", default=str(MANIFEST), help="dataset manifest to run")
     parser.add_argument("--out", default=str(REPORTS_DIR))
     args = parser.parse_args(argv)
 
@@ -82,7 +83,7 @@ async def main(argv: list[str]) -> int:
         if route not in runnable:
             print(f"Skipping {route}: no {KEY_VARIABLES[route.provider]}")
 
-    version, documents = load_manifest(MANIFEST)
+    version, documents = load_manifest(Path(args.manifest))
     sample = select(documents, args.limit)
     commit = _commit()
     created = datetime.now(UTC)
