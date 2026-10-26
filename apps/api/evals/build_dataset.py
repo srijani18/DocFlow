@@ -1,18 +1,25 @@
-"""Builds evals/dataset (F11-T2): 20 synthetic documents plus 10 CORD receipts.
+"""Builds evals/dataset: 20 synthetic documents, 4 deliberately broken invoices (v2, F6 D3)
+and 10 CORD receipts.
 
     cd apps/api && uv run python -m evals.build_dataset
 
-Writes the files and `manifest.v1.json`. Deterministic for the synthetic part; CORD rows are
-fetched from Hugging Face (network needed) and recorded with their licence.
+Writes the files and `manifest.v2.json`. Deterministic for the synthetic part. CORD receipts
+are kept from the existing manifest when present, otherwise fetched from Hugging Face
+(network needed), and recorded with their licence.
 """
 
 import json
+from datetime import date
+from decimal import Decimal
 from typing import Any
 
 import httpx
 
+from app.validation.checks import run_checks
 from evals import cord, synthetic
 from evals.paths import DATASET_DIR, MANIFEST
+
+VERSION = 2
 
 SCHEMAS = {
     "invoice": "docflow/invoice/v1",
@@ -26,13 +33,60 @@ PLAN = [
     ("purchase_order", synthetic.purchase_order, 6),
 ]
 CORD_COUNT = 10
+# Deliberately broken invoices for the validation agent to catch (F6 D3).
+BROKEN = [
+    ("wrong-total", "wrong_total"),
+    ("bad-gstin", "bad_gstin"),
+    ("tax-mix", "tax_mix"),
+]
+CHECKED_ON = date(2026, 12, 31)  # after every document date, so "future" never fires
+
+
+def expected_issues(doc_type: str, truth: dict[str, Any]) -> list[str]:
+    """The errors and warnings a perfect extraction would raise: the deliberate defects, and
+    real inconsistencies on CORD receipts (discounts, unlabelled lines). Duplicates are
+    added separately, since they depend on the rest of the set."""
+    exact = json.loads(json.dumps(truth), parse_float=Decimal)
+    issues = run_checks(doc_type, exact, today=CHECKED_ON)
+    return sorted({issue.check for issue in issues if issue.severity != "info"})
+
+
+def _synthetic_entry(
+    name: str, doc_type: str, photo: bool, truth: dict[str, Any]
+) -> dict[str, Any]:
+    return {
+        "id": name.rsplit(".", 1)[0],
+        "file": f"files/{name}",
+        "content_type": "image/jpeg" if photo else "application/pdf",
+        "doc_type": doc_type,
+        "schema_id": SCHEMAS[doc_type],
+        "source": "synthetic",
+        "licence": SYNTHETIC_LICENCE,
+        "unlabelled": [],
+        "expected_issues": expected_issues(doc_type, truth),
+        "truth": truth,
+    }
+
+
+def _existing_cord() -> list[tuple[dict[str, Any], bytes]]:
+    """CORD entries (and their files) from the manifests already in the repo, if any."""
+    for manifest in sorted(DATASET_DIR.glob("manifest.v*.json"), reverse=True):
+        entries = [
+            e for e in json.loads(manifest.read_text())["documents"] if e["source"] == "cord-v2"
+        ]
+        if len(entries) == CORD_COUNT:
+            return [(e, (DATASET_DIR / e["file"]).read_bytes()) for e in entries]
+    return []
 
 
 def main() -> None:
     files = DATASET_DIR / "files"
     files.mkdir(parents=True, exist_ok=True)
+    cord_kept = _existing_cord()
     for old in files.iterdir():
         old.unlink()
+    for old_manifest in DATASET_DIR.glob("manifest.v*.json"):
+        old_manifest.unlink()
     entries: list[dict[str, Any]] = []
     for doc_type, make, count in PLAN:
         for index in range(count):
@@ -41,19 +95,35 @@ def main() -> None:
             photo = index % 2 == 1  # every second one as a phone-photo JPEG
             name = f"syn-{doc_type.replace('_', '-')}-{index + 1:02d}.{'jpg' if photo else 'pdf'}"
             (files / name).write_bytes(synthetic.as_photo(pdf, seed) if photo else pdf)
-            entries.append(
-                {
-                    "id": name.rsplit(".", 1)[0],
-                    "file": f"files/{name}",
-                    "content_type": "image/jpeg" if photo else "application/pdf",
-                    "doc_type": doc_type,
-                    "schema_id": SCHEMAS[doc_type],
-                    "source": "synthetic",
-                    "licence": SYNTHETIC_LICENCE,
-                    "unlabelled": [],
-                    "truth": truth,
-                }
-            )
+            entries.append(_synthetic_entry(name, doc_type, photo, truth))
+    for label, defect in BROKEN:
+        seed = 90_000 + len(entries)
+        pdf, truth = synthetic.invoice(seed, defect)
+        name = f"broken-invoice-{label}.pdf"
+        (files / name).write_bytes(pdf)
+        entries.append(_synthetic_entry(name, "invoice", False, truth))
+    # The first invoice again, photographed: a duplicate of a document already in the set.
+    pdf, truth = synthetic.invoice(0)
+    name = "broken-invoice-duplicate.jpg"
+    (files / name).write_bytes(synthetic.as_photo(pdf, 4242))
+    entries.append(_synthetic_entry(name, "invoice", True, truth))
+    for entry in (entries[0], entries[-1]):  # syn-invoice-01 and its copy flag each other
+        entry["expected_issues"] = sorted([*entry["expected_issues"], "duplicate"])
+
+    for entry, jpeg in cord_kept:
+        (DATASET_DIR / entry["file"]).write_bytes(jpeg)
+        entries.append(
+            {**entry, "expected_issues": expected_issues(entry["doc_type"], entry["truth"])}
+        )
+    if not cord_kept:
+        _fetch_cord(files, entries)
+    MANIFEST.write_text(
+        json.dumps({"version": VERSION, "documents": entries}, indent=2, ensure_ascii=False) + "\n"
+    )
+    print(f"wrote {len(entries)} documents to {DATASET_DIR}")
+
+
+def _fetch_cord(files: Any, entries: list[dict[str, Any]]) -> None:
     with httpx.Client(follow_redirects=True) as http:
         for index, (jpeg, truth) in enumerate(cord.fetch(CORD_COUNT, http)):
             name = f"cord-test-{index:03d}.jpg"
@@ -68,13 +138,10 @@ def main() -> None:
                     "source": "cord-v2",
                     "licence": cord.LICENCE,
                     "unlabelled": cord.unlabelled_for(truth),
+                    "expected_issues": expected_issues("receipt", truth),
                     "truth": truth,
                 }
             )
-    MANIFEST.write_text(
-        json.dumps({"version": 1, "documents": entries}, indent=2, ensure_ascii=False) + "\n"
-    )
-    print(f"wrote {len(entries)} documents to {DATASET_DIR}")
 
 
 if __name__ == "__main__":

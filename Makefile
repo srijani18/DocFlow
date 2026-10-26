@@ -148,10 +148,10 @@ check-gen: gen ## Fail if generated code is out of date
 MODELS ?= gemini:gemini-flash-lite-latest
 LIMIT ?=
 PACE ?= 0
-eval: ## Run evals (F11): make eval MODELS=gemini:…,groq:… LIMIT=20 PACE=4
-	cd $(API) && uv run python -m evals --models "$(MODELS)" $(if $(LIMIT),--limit $(LIMIT)) --pace $(PACE)
+eval: ## Run evals (F11): make eval MODELS=gemini:…,groq:… LIMIT=20 PACE=4 AGENT=1
+	cd $(API) && uv run python -m evals --models "$(MODELS)" $(if $(LIMIT),--limit $(LIMIT)) --pace $(PACE) $(if $(AGENT),--agent)
 
-eval-dataset: ## Rebuild evals/dataset (synthetic documents + CORD download)
+eval-dataset: ## Rebuild evals/dataset v2 (synthetic + broken documents; CORD kept or downloaded)
 	cd $(API) && uv run python -m evals.build_dataset
 
 .PHONY: byok-key

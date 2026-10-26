@@ -8,15 +8,15 @@ alternating weights 1 and 2 (each product is split into quotient and remainder o
 import re
 
 PATTERN = re.compile(r"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$")
-_CHARS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+GSTIN_CHARACTERS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 
 def check_character(first14: str) -> str:
     total = 0
     for index, char in enumerate(first14):
-        product = _CHARS.index(char) * (1 if index % 2 == 0 else 2)
+        product = GSTIN_CHARACTERS.index(char) * (1 if index % 2 == 0 else 2)
         total += product // 36 + product % 36
-    return _CHARS[(36 - total % 36) % 36]
+    return GSTIN_CHARACTERS[(36 - total % 36) % 36]
 
 
 def has_valid_format(value: str) -> bool:

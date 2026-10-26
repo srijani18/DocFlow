@@ -60,6 +60,14 @@ def test_total_that_doesnt_add_up() -> None:
     assert issue.paths[0] == "total.amount"
 
 
+def test_receipt_with_tax_included_in_prices_passes() -> None:
+    data = copy.deepcopy(sample_truth("synthetic-receipt-001")["data"])
+    data["total"]["amount"] = data["subtotal"]["amount"]  # tax shown, but already included
+
+    assert check_totals("receipt", data) == []
+    assert check_totals("invoice", {**clean_invoice(), "total": clean_invoice()["subtotal"]})
+
+
 def test_receipt_totals_use_tax_total() -> None:
     data = copy.deepcopy(sample_truth("synthetic-receipt-001")["data"])
     assert check_totals("receipt", data) == []

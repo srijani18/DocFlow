@@ -119,6 +119,8 @@ def check_totals(doc_type: str, data: Mapping[str, Any]) -> list[Issue]:
         tax_paths = tuple(f"taxes.{i}.amount.amount" for i in range(len(tax_lines)))
     if amounts_match(subtotal + taxes, total):
         return []
+    if doc_type == "receipt" and amounts_match(subtotal, total):
+        return []  # prices include tax; the tax line is for information (common on receipts)
     return [
         Issue(
             "totals",
@@ -168,7 +170,7 @@ def check_tax_types(doc_type: str, data: Mapping[str, Any]) -> list[Issue]:
     if "IGST" in kinds and kinds & {"CGST", "SGST"}:
         issues.append(
             Issue(
-                "tax_types",
+                "tax_type",
                 "warning",
                 ("taxes",),
                 "IGST is charged together with CGST/SGST; a supply is either inter-state "
@@ -177,7 +179,7 @@ def check_tax_types(doc_type: str, data: Mapping[str, Any]) -> list[Issue]:
         )
     if ("CGST" in kinds) != ("SGST" in kinds):
         issues.append(
-            Issue("tax_types", "warning", ("taxes",), "CGST and SGST should appear together.")
+            Issue("tax_type", "warning", ("taxes",), "CGST and SGST should appear together.")
         )
     return issues
 

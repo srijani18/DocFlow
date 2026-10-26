@@ -120,7 +120,7 @@ async def test_ac5_non_fixable_issues_never_reach_the_model() -> None:
     result = await run_agent("invoice", SCHEMA, data, today=TODAY, rereader=rereader)
 
     assert rereader.calls == []
-    assert {i.check for i in result.issues} == {"tax_types"}
+    assert {i.check for i in result.issues} == {"tax_type"}
 
 
 async def test_fix_that_breaks_the_schema_is_discarded() -> None:

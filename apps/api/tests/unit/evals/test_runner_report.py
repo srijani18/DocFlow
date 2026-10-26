@@ -1,5 +1,6 @@
 import json
 import re
+from decimal import Decimal
 from typing import Any
 
 import pytest
@@ -33,8 +34,8 @@ def perfect(documents_by_type: dict[str, dict[str, Any]]) -> Any:
 @pytest.fixture
 def sample() -> list[Any]:
     _, documents = load_manifest(MANIFEST)
-    picked = [d for d in select(documents, None) if d.source == "synthetic"]
-    return [next(d for d in picked if d.doc_type == t) for t in ("invoice", "receipt")]
+    by_id = {d.id: d for d in select(documents, None)}
+    return [by_id["syn-invoice-01"], by_id["syn-receipt-01"]]
 
 
 async def no_sleep(_seconds: float) -> None:
@@ -142,6 +143,61 @@ async def test_ac7_skips_cleanly_without_keys(
 
     assert code == 0
     assert "Skipping evals: no provider keys configured" in capsys.readouterr().out
+
+
+async def test_f6_ac10_agent_before_and_after(sample: list[Any]) -> None:
+    invoice = next(d for d in sample if d.doc_type == "invoice")
+    printed_total = invoice.truth["total"]["amount"]
+    extracting = perfect({d.doc_type: d.truth for d in sample})
+
+    def script(request: ProviderRequest) -> Any:
+        if request.instructions.startswith("You check extracted data"):
+            return {
+                "fixes": [
+                    {
+                        "path": "total.amount",
+                        "value": printed_total,
+                        "confidence": 0.95,
+                        "reason": "6 not 8",
+                    }
+                ]
+            }
+        answer = extracting(request)
+        if isinstance(answer, dict) and answer.get("data", {}).get("invoice_number"):
+            answer["data"]["total"]["amount"] = printed_total + 2000  # a misread digit
+        return answer
+
+    run = await run_model(
+        ROUTE,
+        sample,
+        providers={"fake": FakeProvider(script)},
+        credentials=StaticKeys({"fake": "k"}),
+        sleep=no_sleep,
+        agent=True,
+    )
+    agent = report.summarise_agent(run)
+    meta = {
+        "run_id": "20261026-1200-abc1234-beef",
+        "commit": "abc1234",
+        "created_at": "2026-10-26T12:00:00+00:00",
+        "dataset_version": 2,
+        "documents": 2,
+        "prompt_versions": ["classify/v1", "extract/v1", "validate/v1"],
+        "models": ["fake:fake-model"],
+    }
+
+    assert agent is not None
+    assert (agent.fields_fixed, agent.fields_broken, agent.documents_changed) == (1, 0, 1)
+    assert agent.accuracy_after > agent.accuracy_before
+    assert agent.calls == 1  # only the invoice needed a reread
+    assert "## Validation agent (before / after)" in report.to_markdown(meta, [run])
+    record = report.to_json(meta, [run])
+    [invoice_record] = [
+        d for d in record["documents"]["fake:fake-model"] if d["doc_type"] == "invoice"
+    ]
+    assert invoice_record["agent"]["changed_fields"] == [
+        {"path": "total.amount", "actual": Decimal(str(printed_total)), "correct": True}
+    ]
 
 
 def test_ac5_run_id_format() -> None:

@@ -6,7 +6,15 @@ from typing import Any
 from app.core.logging import get_logger
 from app.extractions.exact_json import dumps_exact
 from app.llm.gateway import Gateway
-from app.llm.types import CallContext, FilePart, LlmError, LlmRequest, Prompt, TextPart
+from app.llm.types import (
+    CallContext,
+    FilePart,
+    LlmError,
+    LlmRequest,
+    LlmResult,
+    Prompt,
+    TextPart,
+)
 from app.schemas_registry import bundle
 from app.validation.agent import Fix, get_path
 from app.validation.checks import Issue
@@ -51,17 +59,15 @@ class GatewayRereader:
     async def reread(
         self, *, doc_type: str, issues: list[Issue], data: dict[str, Any]
     ) -> list[Fix]:
+        request = LlmRequest(
+            task="validate",
+            prompt=self._prompt,
+            parts=[TextPart(describe(doc_type, issues, data)), self._file],
+            response_schema=bundle(FIXES_SCHEMA_ID),
+            context=self._context,
+        )
         try:
-            result = await self._gateway.generate(
-                LlmRequest(
-                    task="validate",
-                    prompt=self._prompt,
-                    parts=[TextPart(describe(doc_type, issues, data)), self._file],
-                    response_schema=bundle(FIXES_SCHEMA_ID),
-                    context=self._context,
-                ),
-                validate_with=FIXES_SCHEMA_ID,
-            )
+            result = await self._generate(request)
         except LlmError as exc:
             log.warning("agent_reread_failed", error_type=type(exc).__name__)
             return []
@@ -75,3 +81,6 @@ class GatewayRereader:
             )
             for fix in result.data["fixes"]
         ]
+
+    async def _generate(self, request: LlmRequest) -> LlmResult:
+        return await self._gateway.generate(request, validate_with=FIXES_SCHEMA_ID)

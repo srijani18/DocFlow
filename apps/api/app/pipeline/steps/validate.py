@@ -1,8 +1,6 @@
 """Validation step (F6): checks, the rereading agent, then auto-approval or review."""
 
 from datetime import timedelta
-from decimal import Decimal
-from typing import Any
 
 from app.core.clock import Clock
 from app.documents import service as documents
@@ -15,33 +13,13 @@ from app.llm.prompts import load_prompt
 from app.llm.types import CallContext, FilePart
 from app.pipeline.runner import StepContext
 from app.validation import service as validation
-from app.validation.agent import AgentResult, run_agent
+from app.validation.agent import run_agent
+from app.validation.approval import can_auto_approve, corrected_confidence
 from app.validation.rereader import GatewayRereader
 
-AUTO_APPROVE_CONFIDENCE = Decimal("0.90")  # spec D2
 # The latest calendar date anywhere (UTC+14), so a document dated "today" in any time zone
 # isn't reported as being in the future.
 LATEST_OFFSET = timedelta(hours=14)
-
-
-def corrected_confidence(confidence: dict[str, Any], result: AgentResult) -> dict[str, Any]:
-    """The model's scores, with each corrected field scored by the agent's reread (AC3)."""
-    return {
-        **confidence,
-        **{fix.path: Decimal(str(fix.confidence)) for fix in result.fixes},
-    }
-
-
-def can_auto_approve(result: AgentResult, confidence: dict[str, Any]) -> bool:
-    """No errors or warnings, every field at least 0.90 sure, and not a possible duplicate
-    (AC6, AC7). A duplicate is a warning, but it's excluded explicitly, so a change of
-    severity can't let one through."""
-    if any(issue.severity in {"error", "warning"} for issue in result.issues):
-        return False
-    if any(issue.check == "duplicate" for issue in result.issues):
-        return False
-    scores = [Decimal(str(score)) for score in confidence.values()]
-    return bool(scores) and min(scores) >= AUTO_APPROVE_CONFIDENCE
 
 
 class ValidateStep:
