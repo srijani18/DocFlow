@@ -50,3 +50,57 @@ def to_tsquery(query: str) -> str | None:
     if len(words) == 1:
         return all_words
     return f"({all_words}) | {''.join(words)}:*"
+
+
+MAX_SNIPPET_FIELDS = 2
+SQUASHED_MINIMUM = 4  # characters, so "ab" doesn't match inside every value
+
+
+def _labelled_leaves(value: Any, path: str = "") -> list[tuple[str, str]]:
+    if isinstance(value, dict):
+        return [
+            leaf
+            for key, child in value.items()
+            for leaf in _labelled_leaves(child, f"{path}.{key}" if path else str(key))
+        ]
+    if isinstance(value, list):
+        return [
+            leaf
+            for index, child in enumerate(value)
+            for leaf in _labelled_leaves(child, f"{path}.{index}")
+        ]
+    if value is None or isinstance(value, bool):
+        return []
+    return [(path, str(value))]
+
+
+def _label(path: str) -> str:
+    """line_items.1.description → "Line items 2 > Description"."""
+    parts: list[str] = []
+    for part in path.split("."):
+        if part.isdigit() and parts:
+            parts[-1] += f" {int(part) + 1}"  # the row number belongs to its table
+        else:
+            parts.append(part.replace("_", " ").capitalize())
+    text = " > ".join(parts)
+    return text.replace("Gstin", "GSTIN")
+
+
+def snippet(data: dict[str, Any], query: str) -> str | None:
+    """Up to two fields whose value matches every word of the query (or the query squashed),
+    as "Label: [[value]]", for a person to see why a document matched (AC1)."""
+    words = _WORDS.findall(query.lower())
+    if not words:
+        return None
+    squashed = "".join(words)
+    found = []
+    for path, value in _labelled_leaves(data):
+        value_words = _WORDS.findall(value.lower())
+        joined = "".join(value_words)
+        if all(any(v.startswith(w) for v in value_words) for w in words) or (
+            len(squashed) >= SQUASHED_MINIMUM and squashed in joined
+        ):
+            found.append(f"{_label(path)}: [[{value}]]")
+        if len(found) == MAX_SNIPPET_FIELDS:
+            break
+    return " · ".join(found) or None

@@ -5,7 +5,7 @@ import pytest
 
 from app.search.embed_text import embedding_text
 from app.search.service import close_enough, decode_cursor, encode_cursor, fuse
-from app.search.text import search_terms, to_tsquery
+from app.search.text import search_terms, snippet, to_tsquery
 from tests.support.samples import sample_truth
 
 INVOICE = sample_truth("synthetic-invoice-001")["data"]
@@ -71,3 +71,13 @@ def test_meaning_keeps_documents_close_to_the_best_and_never_far() -> None:
     assert close_enough([(a, 0.44), (b, 0.46)]) == [a]  # the absolute cap still applies
     assert close_enough([(a, 0.47)]) == []
     assert close_enough([]) == []
+
+
+def test_ac1_snippets_name_the_fields_that_matched() -> None:
+    assert snippet(INVOICE, "SYN/2026-27/0142") == "Invoice number: [[SYN/2026-27/0142]]"
+    assert snippet(INVOICE, "syn2026270142") == "Invoice number: [[SYN/2026-27/0142]]"
+    assert (
+        snippet(INVOICE, "hex bolts")
+        == "Line items 2 > Description: [[Hex bolts M10 (box of 100)]]"
+    )
+    assert snippet(INVOICE, "nothing like this") is None

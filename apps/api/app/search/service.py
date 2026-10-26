@@ -12,7 +12,7 @@ from app.core.tenancy import WorkspaceScope
 from app.documents.models import Document
 from app.search import repository
 from app.search.repository import Filters
-from app.search.text import to_tsquery
+from app.search.text import snippet, to_tsquery
 
 RRF_K = 60  # spec D1
 CANDIDATES = 50  # per list, before fusion
@@ -97,7 +97,7 @@ async def search(  # a search has this many inputs
         )
 
     keyword = await repository.keyword_matches(session, scope, tsquery, filters, limit=CANDIDATES)
-    keyword_ids = [document_id for document_id, _ in keyword]
+    keyword_ids = keyword
     by_meaning = len(text.strip()) >= SHORTEST_SEMANTIC_QUERY
     vector = await embed_query(text.strip()) if by_meaning else None
     semantic_ids = (
@@ -109,7 +109,6 @@ async def search(  # a search has this many inputs
     )
     ranked = fuse(keyword_ids, semantic_ids)[:MAX_RESULTS]
     page = ranked[offset : offset + limit]
-    snippets = dict(keyword)
     in_keyword, in_semantic = set(keyword_ids), set(semantic_ids)
 
     def matched(document_id: uuid.UUID) -> Matched:
@@ -118,9 +117,15 @@ async def search(  # a search has this many inputs
         return "keyword" if document_id in in_keyword else "meaning"
 
     documents = await repository.documents_by_id(session, scope, page)
+    data = await repository.current_data(session, scope, [i for i in page if i in in_keyword])
     return SearchPage(
         hits=[
-            Hit(document, matched(document.id), snippets.get(document.id)) for document in documents
+            Hit(
+                document,
+                matched(document.id),
+                snippet(data[document.id], text) if document.id in data else None,
+            )
+            for document in documents
         ],
         next_offset=offset + limit if offset + limit < len(ranked) else None,
         # False only when meaning search was wanted but unavailable (AC5 notice).

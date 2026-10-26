@@ -23,6 +23,7 @@ from app.core.config import load_settings
 from app.core.db import create_engine, create_sessionmaker
 from app.core.tenancy import WorkspaceScope
 from app.extractions.exact_json import dumps_exact
+from app.models import import_all_models
 from app.review import service as review
 from app.storage.client import Storage
 from app.storage.supabase import SupabaseStorage
@@ -65,6 +66,7 @@ async def export(
 
 
 async def main(argv: list[str]) -> int:
+    import_all_models()  # the ORM needs every table to resolve foreign keys
     parser = argparse.ArgumentParser(prog="python -m evals.import_reviews")
     parser.add_argument("--workspace", required=True, help="your own workspace id")
     parser.add_argument("--out", default=None)

@@ -121,7 +121,7 @@ async def test_ac1_ac2_keyword_matches_numbers_prefixes_and_gstins(
         assert body["items"][0]["matched"] in {"keyword", "both"}
 
     snippet = (await search(db_client, w, q="kaveri"))["items"][0]["snippet"]
-    assert "[[Kaveri]]" in snippet
+    assert snippet == "Vendor > Name: [[Kaveri Fasteners Private Limited]]"
 
 
 async def test_ac3_meaning_finds_what_keywords_miss(

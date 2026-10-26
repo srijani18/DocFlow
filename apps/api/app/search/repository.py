@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.tenancy import WorkspaceScope
 from app.documents.models import Document
+from app.extractions.models import Extraction
 from app.search.models import DocumentEmbedding
 
 SIMPLE: ColumnElement[Any] = literal_column("'simple'::regconfig")
@@ -63,22 +64,34 @@ class Filters:
 
 async def keyword_matches(
     session: AsyncSession, scope: WorkspaceScope, tsquery: str, filters: Filters, *, limit: int
-) -> list[tuple[uuid.UUID, str]]:
-    """(document id, snippet), best first."""
+) -> list[uuid.UUID]:
+    """Best first."""
     query = func.to_tsquery(SIMPLE, tsquery)
-    snippet = func.ts_headline(
-        SIMPLE,
-        Document.search_text,
-        query,
-        "StartSel=[[, StopSel=]], MaxWords=14, MinWords=4, MaxFragments=1",
-    )
-    rows = await session.execute(
-        select(Document.id, snippet)
+    rows = await session.scalars(
+        select(Document.id)
         .where(*filters.conditions(scope), Document.search_vector.op("@@")(query))
         .order_by(func.ts_rank_cd(Document.search_vector, query).desc(), Document.id)
         .limit(limit)
     )
-    return [(document_id, text) for document_id, text in rows]
+    return list(rows)
+
+
+async def current_data(
+    session: AsyncSession, scope: WorkspaceScope, ids: list[uuid.UUID]
+) -> dict[uuid.UUID, dict[str, Any]]:
+    """Each document's current extraction data, for snippets."""
+    if not ids:
+        return {}
+    rows = await session.execute(
+        select(Document.id, Extraction.data)
+        .join(Extraction, Extraction.id == Document.current_extraction_id)
+        .where(
+            Document.workspace_id == scope.workspace_id,
+            Extraction.workspace_id == scope.workspace_id,
+            Document.id.in_(ids),
+        )
+    )
+    return {row.id: row.data for row in rows}
 
 
 async def semantic_distances(

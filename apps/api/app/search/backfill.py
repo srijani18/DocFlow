@@ -19,6 +19,7 @@ from app.core.tenancy import WorkspaceScope
 from app.documents.models import Document
 from app.extractions import service as extractions
 from app.jobs import service as jobs
+from app.models import import_all_models
 from app.search.models import DocumentEmbedding
 from app.search.text import search_terms
 
@@ -53,6 +54,7 @@ async def backfill(session: AsyncSession) -> tuple[int, int]:
 
 
 async def main() -> int:
+    import_all_models()  # the ORM needs every table to resolve foreign keys
     engine = create_engine(load_settings())
     async with create_sessionmaker(engine)() as session, session.begin():
         indexed, queued = await backfill(session)

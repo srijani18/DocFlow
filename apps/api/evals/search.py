@@ -183,7 +183,7 @@ async def run(database_url: str, route: str, keys: dict[str, str]) -> dict[str, 
                     keyword = (
                         [
                             names[i]
-                            for i, _ in await repository.keyword_matches(
+                            for i in await repository.keyword_matches(
                                 session, scope, tsquery, Filters(), limit=service.CANDIDATES
                             )
                         ]
