@@ -1,0 +1,61 @@
+name: Evals
+
+# F11: measure extraction accuracy on the labelled dataset with the operator's own keys.
+# Nightly, on demand, and on pull requests labelled `eval`. Skips cleanly without keys.
+on:
+  schedule:
+    - cron: "30 20 * * *"  # 02:00 IST
+  workflow_dispatch:
+    inputs:
+      models:
+        description: "Comma-separated provider:model routes"
+        default: "gemini:gemini-flash-lite-latest,groq:meta-llama/llama-4-scout-17b-16e-instruct"
+      limit:
+        description: "Documents per model"
+        default: "20"
+  pull_request:
+    types: [labeled, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: evals-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  evals:
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'eval')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      MODELS: ${{ inputs.models || 'gemini:gemini-flash-lite-latest,groq:meta-llama/llama-4-scout-17b-16e-instruct' }}
+      LIMIT: ${{ inputs.limit || '20' }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.2
+        with:
+          enable-cache: true
+      - name: Install
+        run: cd apps/api && uv sync --frozen
+      - name: Run evals
+        run: |
+          mkdir -p evals/reports/ci
+          cd apps/api && uv run python -m evals --models "$MODELS" --limit "$LIMIT" --pace 4 --out ../../evals/reports/ci
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: eval-report
+          path: evals/reports/ci/
+          if-no-files-found: ignore
+      - name: Comment on the pull request
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          report=$(ls evals/reports/ci/*.md 2>/dev/null | head -1)
+          if [ -n "$report" ]; then gh pr comment "${{ github.event.pull_request.number }}" --body-file "$report"; fi

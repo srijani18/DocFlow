@@ -144,6 +144,16 @@ check-gen: gen ## Fail if generated code is out of date
 		test -z "$$(git ls-files --others --exclude-standard -- $(GENERATED))" || \
 		(echo "Generated code is out of date: run 'make gen' and commit the result." && exit 1)
 
+.PHONY: eval eval-dataset
+MODELS ?= gemini:gemini-flash-lite-latest
+LIMIT ?=
+PACE ?= 0
+eval: ## Run evals (F11): make eval MODELS=gemini:…,groq:… LIMIT=20 PACE=4
+	cd $(API) && uv run python -m evals --models "$(MODELS)" $(if $(LIMIT),--limit $(LIMIT)) --pace $(PACE)
+
+eval-dataset: ## Rebuild evals/dataset (synthetic documents + CORD download)
+	cd $(API) && uv run python -m evals.build_dataset
+
 .PHONY: byok-key
 byok-key: ## Print a new BYOK master key for BYOK_MASTER_KEYS (F15, ADR-0008)
 	@cd $(API) && uv run python -c "from app.aikeys.crypto import generate_master_key; print(generate_master_key())"

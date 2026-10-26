@@ -56,6 +56,8 @@ ignore = [
 # PLR0913/PLR0917: pytest injects fixtures by parameter name, so long signatures are normal.
 "tests/**" = ["S101", "S105", "S106", "PLR2004", "PLR0913", "PLR0917"]
 "migrations/**" = ["N999"]
+# Eval data is generated from seeded random numbers on purpose (reproducible, not crypto).
+"evals/**" = ["S311"]
 
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 # Constitution §5.1: provider SDKs only inside app/llm/providers/ (exempted per-file when added).
@@ -97,8 +99,9 @@ addopts = "-ra --strict-markers"
 filterwarnings = ["error"]
 
 [tool.coverage.run]
-source = ["app"]
-omit = ["app/generated/*"]
+source = ["app", "evals"]
+# build_dataset.py downloads CORD and writes files: run by hand, not in tests.
+omit = ["app/generated/*", "evals/build_dataset.py"]
 branch = true
 
 [tool.coverage.report]
