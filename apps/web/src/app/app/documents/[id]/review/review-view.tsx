@@ -67,13 +67,14 @@ export function problemsFor(
     );
     return index === -1 ? order.length : index;
   };
+  // Info notes (e.g. a first-time vendor) stay on the detail page: nothing to fix here.
   const fromIssues = issues
-    .filter((issue) => !issue.fixed_by_agent)
+    .filter((issue) => !issue.fixed_by_agent && issue.severity !== "info")
     .map((issue) => ({
       id: issue.id,
       path: issue.paths[0] ?? "",
       message: issue.message,
-      tone: issue.severity,
+      tone: issue.severity as "error" | "warning",
     }));
   const fromConfidence = Object.entries(extraction.confidence)
     .filter(([, score]) => score < LOW_CONFIDENCE)

@@ -59,6 +59,15 @@ const ISSUES = {
       fixed_by_agent: false,
       created_at: "2026-10-26T10:00:00Z",
     },
+    {
+      id: "i2",
+      check_name: "known_vendor",
+      severity: "info",
+      paths: ["vendor"],
+      message: "First document from this vendor in the workspace.",
+      fixed_by_agent: false,
+      created_at: "2026-10-26T10:00:00Z",
+    },
   ],
 };
 
@@ -113,7 +122,8 @@ describe("Review", () => {
       "https://storage.test/x.pdf",
     );
     expect(screen.getByLabelText("Invoice number")).toHaveValue("INV-1");
-    expect(screen.getByText("2 things to check")).toBeInTheDocument();
+    expect(screen.getByText("2 things to check")).toBeInTheDocument(); // not the info note
+    expect(screen.queryByText(/First document from this vendor/)).not.toBeInTheDocument();
     expect(screen.getByText(/invoice_date is only 60% certain/)).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Next problem" }));
