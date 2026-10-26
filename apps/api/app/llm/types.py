@@ -45,6 +45,8 @@ class LlmRequest:
     # but always validated in its original, stricter form.
     response_schema: Mapping[str, Any]
     context: CallContext
+    # Evals turn this off so every run measures real calls (F11 AC6).
+    use_cache: bool = True
 
 
 @dataclass(frozen=True)
