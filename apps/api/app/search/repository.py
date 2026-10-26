@@ -91,21 +91,34 @@ async def semantic_matches(
     max_distance: float,
 ) -> list[uuid.UUID]:
     """Nearest documents by cosine distance, closest first, within `max_distance`."""
+    nearest = await semantic_distances(session, scope, vector, filters, limit=limit)
+    return [document_id for document_id, distance in nearest if distance <= max_distance]
+
+
+async def semantic_distances(
+    session: AsyncSession,
+    scope: WorkspaceScope,
+    vector: list[float],
+    filters: Filters,
+    *,
+    limit: int,
+) -> list[tuple[uuid.UUID, float]]:
+    """(document id, cosine distance), closest first. The search eval reads the distances
+    to choose the cut-off (AC10)."""
     distance = DocumentEmbedding.embedding.cosine_distance(vector)
-    rows = await session.scalars(
-        select(Document.id)
+    rows = await session.execute(
+        select(Document.id, distance)
         .join(DocumentEmbedding, DocumentEmbedding.document_id == Document.id)
         .where(
             *filters.conditions(scope),
             DocumentEmbedding.workspace_id == scope.workspace_id,
             # Only the version on screen: a stale embedding would match old values.
             DocumentEmbedding.extraction_id == Document.current_extraction_id,
-            distance <= max_distance,
         )
         .order_by(distance, Document.id)
         .limit(limit)
     )
-    return list(rows)
+    return [(document_id, float(value)) for document_id, value in rows]
 
 
 async def newest(
