@@ -1,6 +1,6 @@
 # F14: Row-level security and hardening (spec)
 
-**Status:** Draft (2026-10-27)
+**Status:** Approved (2026-10-28)
 **Phase:** 6
 **Plan:** [plan.md](plan.md) · **Tasks:** [tasks.md](tasks.md) · **ADR:** [0009](../000-architecture/adr/0009-row-level-security.md)
 
@@ -71,7 +71,7 @@ F14 also delivers the hardening items earlier specs deferred to it:
 - Automated database backups (ADR-0007: data is synthetic).
 - A distributed rate limiter (one API instance, ADR-0002).
 
-## Decisions (proposed)
+## Decisions
 
 - **D1. RLS with a non-owner role and a per-transaction setting** (ADR-0009): the migration creates `docflow_app` (NOLOGIN, NOBYPASSRLS). Tenant transactions run `SET LOCAL ROLE docflow_app` and `set_config('docflow.workspace_id', …, true)`. Policies compare `workspace_id` with that setting. This is safe with the session pooler, because `SET LOCAL` ends with the transaction.
 - **D2. Fail closed by default.** Sessions are tenant sessions unless explicitly opened as system sessions, so forgetting to bind a workspace returns nothing rather than everything.

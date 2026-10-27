@@ -1,6 +1,6 @@
 # F14: Row-level security and hardening (tasks)
 
-**Status:** Draft (2026-10-27)
+**Status:** Approved (2026-10-28)
 **Prerequisite:** F12 (its `api_tokens` table is covered by the RLS migration).
 
 - [ ] **F14-T1: RLS migration** (AC1, AC5): role, grants, `current_workspace()`, policies on every tenant table, meta-test. Verified against the Supabase dev project.

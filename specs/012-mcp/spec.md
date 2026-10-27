@@ -1,6 +1,6 @@
 # F12: MCP server (spec)
 
-**Status:** Draft (2026-10-27)
+**Status:** Approved (2026-10-28)
 **Phase:** 6
 **Plan:** [plan.md](plan.md) · **Tasks:** [tasks.md](tasks.md)
 
@@ -51,7 +51,7 @@ The server is **read-only**. It acts as one member of one workspace, through an 
 - MCP resources and prompts; tools only.
 - Per-token scopes beyond read-only.
 
-## Decisions (proposed)
+## Decisions
 
 - **D1. Mounted in the API process** at `/mcp` (overview §3, ADR-0002), with the official **MCP Python SDK 2.3** (`MCPServer`, stateless Streamable HTTP, JSON responses). No second service, no extra cold start.
 - **D2. Workspace access tokens, not OAuth, for now.** MCP clients that take a header (Claude Code, Claude Desktop through `mcp-remote`, Cursor, VS Code) work with a bearer token, which needs nothing beyond our own database and is easy to explain, test and revoke. OAuth through Supabase's OAuth 2.1 server would let web connectors (claude.ai) sign in without copying a token. But it needs a consent page, dynamic client registration and a choice of workspace at sign-in, and Supabase doesn't say whether the free plan includes it. The SDK's `TokenVerifier` is the single place a Supabase OAuth token could be accepted later, so this choice doesn't block it.

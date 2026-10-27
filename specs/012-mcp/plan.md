@@ -1,6 +1,6 @@
 # F12: MCP server (plan)
 
-**Status:** Draft (2026-10-27)
+**Status:** Approved (2026-10-28)
 **Spec:** [spec.md](spec.md) · **Tasks:** [tasks.md](tasks.md)
 
 ## 1. Library

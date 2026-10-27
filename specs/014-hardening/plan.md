@@ -1,6 +1,6 @@
 # F14: Row-level security and hardening (plan)
 
-**Status:** Draft (2026-10-27)
+**Status:** Approved (2026-10-28)
 **Spec:** [spec.md](spec.md) · **Tasks:** [tasks.md](tasks.md) · **ADR:** [0009](../000-architecture/adr/0009-row-level-security.md)
 
 ## 1. RLS in the database (migration `0013_row_level_security`)

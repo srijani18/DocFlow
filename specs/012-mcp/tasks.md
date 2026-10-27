@@ -1,6 +1,6 @@
 # F12: MCP server (tasks)
 
-**Status:** Draft (2026-10-27)
+**Status:** Approved (2026-10-28)
 **Prerequisite:** F8 (search), F7 (approved versions).
 
 - [ ] **F12-T1: Access tokens** (AC1–AC3): migration `0012_api_tokens`, create/list/revoke endpoints, hashing and verification, tests.

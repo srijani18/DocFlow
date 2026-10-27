@@ -1,6 +1,6 @@
 # ADR-0009: Row-level security as a second isolation layer
 
-**Status:** Proposed (2026-10-27)
+**Status:** Accepted (2026-10-28)
 **Feature:** [F14](../../014-hardening/spec.md)
 
 ## Context
