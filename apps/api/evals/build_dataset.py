@@ -9,6 +9,7 @@ are kept from the existing manifest when present, otherwise fetched from Hugging
 """
 
 import json
+import sys
 from datetime import date
 from decimal import Decimal
 from typing import Any
@@ -79,10 +80,11 @@ def _existing_cord() -> list[tuple[dict[str, Any], bytes]]:
     return []
 
 
-def main() -> None:
+def main(argv: list[str]) -> None:
+    refetch = "--refetch-cord" in argv  # e.g. after changing how CORD labels are mapped
     files = DATASET_DIR / "files"
     files.mkdir(parents=True, exist_ok=True)
-    cord_kept = _existing_cord()
+    cord_kept = [] if refetch else _existing_cord()
     for old in files.iterdir():
         old.unlink()
     for old_manifest in DATASET_DIR.glob("manifest.v*.json"):
@@ -145,4 +147,4 @@ def _fetch_cord(files: Any, entries: list[dict[str, Any]]) -> None:
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])

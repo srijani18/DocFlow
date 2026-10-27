@@ -9,6 +9,7 @@ from app.validation.checks import (
     WorkspaceLookups,
     all_checks,
     amounts_match,
+    check_amount_format,
     check_dates,
     check_gstins,
     check_line_items,
@@ -166,3 +167,52 @@ def test_severity_score() -> None:
     assert severity_score(issues) == 10 * errors + warnings
     assert errors >= 1
     assert warnings >= 1
+
+
+def test_amount_with_three_decimals_looks_like_a_thousands_separator() -> None:
+    receipt = {
+        "line_items": [
+            {"description": "TICKET", "amount": {"amount": Decimal("60.000"), "currency": "IDR"}}
+        ],
+        "subtotal": {"amount": Decimal("60.000"), "currency": "IDR"},
+        "tax_total": {"amount": Decimal("5.455"), "currency": "IDR"},
+        "total": {"amount": Decimal("60.000"), "currency": "IDR"},
+    }
+
+    issues = check_amount_format("receipt", receipt)
+
+    assert [i.paths for i in issues] == [
+        ("line_items.0.amount.amount",),
+        ("subtotal.amount",),
+        ("tax_total.amount",),
+        ("total.amount",),
+    ]
+    assert all(i.fixable and i.severity == "error" for i in issues)
+
+
+def test_two_decimals_and_whole_amounts_are_fine() -> None:
+    assert check_amount_format("invoice", clean_invoice()) == []
+    assert (
+        check_amount_format("receipt", {"total": {"amount": Decimal("60000"), "currency": "IDR"}})
+        == []
+    )
+    # Quantities may have three decimals (1.250 kg): only money is checked.
+    assert (
+        check_amount_format(
+            "invoice", {"line_items": [{"quantity": Decimal("1.250"), "amount": None}]}
+        )
+        == []
+    )
+
+
+def test_taxes_larger_than_the_total_are_an_error_even_when_tax_is_included() -> None:
+    receipt = {
+        "subtotal": {"amount": Decimal("60.0"), "currency": "IDR"},
+        "tax_total": {"amount": Decimal("5455"), "currency": "IDR"},
+        "total": {"amount": Decimal("60.0"), "currency": "IDR"},
+    }
+
+    [issue] = check_totals("receipt", receipt)
+
+    assert (issue.check, issue.severity, issue.fixable) == ("totals", "error", True)
+    assert "more than the total" in issue.message
