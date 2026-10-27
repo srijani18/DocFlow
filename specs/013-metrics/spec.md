@@ -1,6 +1,6 @@
 # F13: Metrics (spec)
 
-**Status:** Approved (2026-10-27)
+**Status:** Implemented (2026-10-27)
 **Phase:** 5
 **Plan:** [plan.md](plan.md) · **Tasks:** [tasks.md](tasks.md)
 
@@ -55,5 +55,5 @@ It also shows document volume, how reliable the AI providers are, and the health
 ## Decisions
 
 - **D1. Computed on request with SQL, not stored.** The tables are indexed by workspace, and the sizes are small (AC7). A rollup table would add a job and a way to be wrong. If AC7 fails, add a materialised daily rollup then.
-- **D2. Charts are inline SVG** in the page (bars and a line), with no chart library: about 100 lines, no dependency, and readable in light and dark mode.
+- **D2. Charts are plain markup** in the page, with no chart library: about 100 lines, no dependency, and readable in light and dark mode. *As built:* the one chart (uploads per day) is a row of HTML bars rather than SVG, so the rounded bar ends don't stretch when the page is resized; a hidden table carries the same numbers for screen readers.
 - **D3. Who sees it:** admins and reviewers, like everything else in the workspace (F1 Q3). The numbers are about the work, not about people. Per-reviewer statistics are a non-goal.

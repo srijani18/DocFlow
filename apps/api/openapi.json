@@ -131,6 +131,25 @@
         "title": "ContentType",
         "type": "string"
       },
+      "DayCount": {
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "uploaded": {
+            "title": "Uploaded",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "date",
+          "uploaded"
+        ],
+        "title": "DayCount",
+        "type": "object"
+      },
       "DocType": {
         "description": "F4 classification labels.",
         "enum": [
@@ -439,6 +458,24 @@
         "title": "Extraction",
         "type": "object"
       },
+      "FailureReason": {
+        "properties": {
+          "documents": {
+            "title": "Documents",
+            "type": "integer"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason",
+          "documents"
+        ],
+        "title": "FailureReason",
+        "type": "object"
+      },
       "FileUrl": {
         "properties": {
           "expires_at": {
@@ -456,6 +493,128 @@
           "expires_at"
         ],
         "title": "FileUrl",
+        "type": "object"
+      },
+      "Headline": {
+        "description": "The four headline metrics (constitution \u00a710.2).",
+        "properties": {
+          "approved": {
+            "title": "Approved",
+            "type": "integer"
+          },
+          "approved_by_agent": {
+            "title": "Approved By Agent",
+            "type": "integer"
+          },
+          "approved_without_edits": {
+            "title": "Approved Without Edits",
+            "type": "integer"
+          },
+          "approved_without_edits_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "approved_without_edits / approved; null when nothing was approved",
+            "title": "Approved Without Edits Rate"
+          },
+          "cost_per_document_usd": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Per Document Usd"
+          },
+          "cost_usd": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Estimated at list prices",
+            "title": "Cost Usd"
+          },
+          "documents_processed": {
+            "description": "Documents with AI calls in the period",
+            "title": "Documents Processed",
+            "type": "integer"
+          },
+          "field_accuracy": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "fields_unchanged / fields_reviewed; agent approvals are not included",
+            "title": "Field Accuracy"
+          },
+          "fields_reviewed": {
+            "description": "Fields on documents a person approved",
+            "title": "Fields Reviewed",
+            "type": "integer"
+          },
+          "fields_unchanged": {
+            "title": "Fields Unchanged",
+            "type": "integer"
+          },
+          "processing_runs": {
+            "description": "Processing runs that finished in the period",
+            "title": "Processing Runs",
+            "type": "integer"
+          },
+          "processing_seconds_p50": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Processing Seconds P50"
+          },
+          "processing_seconds_p95": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Processing Seconds P95"
+          }
+        },
+        "required": [
+          "approved",
+          "approved_without_edits",
+          "approved_by_agent",
+          "approved_without_edits_rate",
+          "fields_reviewed",
+          "fields_unchanged",
+          "field_accuracy",
+          "documents_processed",
+          "cost_usd",
+          "cost_per_document_usd",
+          "processing_runs",
+          "processing_seconds_p50",
+          "processing_seconds_p95"
+        ],
+        "title": "Headline",
         "type": "object"
       },
       "IssueCounts": {
@@ -516,6 +675,29 @@
           "role"
         ],
         "title": "Membership",
+        "type": "object"
+      },
+      "ModelShare": {
+        "properties": {
+          "calls": {
+            "title": "Calls",
+            "type": "integer"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "model",
+          "calls"
+        ],
+        "title": "ModelShare",
         "type": "object"
       },
       "Problem": {
@@ -607,6 +789,56 @@
         ],
         "title": "Provider",
         "type": "string"
+      },
+      "Queue": {
+        "properties": {
+          "dead": {
+            "title": "Dead",
+            "type": "integer"
+          },
+          "failed": {
+            "description": "Documents that failed in the period",
+            "title": "Failed",
+            "type": "integer"
+          },
+          "failure_reasons": {
+            "description": "The most common, at most 5",
+            "items": {
+              "$ref": "#/components/schemas/FailureReason"
+            },
+            "title": "Failure Reasons",
+            "type": "array"
+          },
+          "oldest_queued_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Oldest Queued Seconds"
+          },
+          "queued": {
+            "title": "Queued",
+            "type": "integer"
+          },
+          "running": {
+            "title": "Running",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "queued",
+          "running",
+          "dead",
+          "oldest_queued_seconds",
+          "failed",
+          "failure_reasons"
+        ],
+        "title": "Queue",
+        "type": "object"
       },
       "ReviewMetrics": {
         "properties": {
@@ -750,6 +982,68 @@
           "semantic"
         ],
         "title": "SearchResults",
+        "type": "object"
+      },
+      "TaskReliability": {
+        "properties": {
+          "calls": {
+            "title": "Calls",
+            "type": "integer"
+          },
+          "fallback_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Share of answers that came from a fallback in the route",
+            "title": "Fallback Rate"
+          },
+          "latency_ms_p50": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Of fresh answers",
+            "title": "Latency Ms P50"
+          },
+          "outcomes": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "description": "Every outcome, zero included",
+            "title": "Outcomes",
+            "type": "object"
+          },
+          "served_by": {
+            "description": "Answers (fresh or cached), most first",
+            "items": {
+              "$ref": "#/components/schemas/ModelShare"
+            },
+            "title": "Served By",
+            "type": "array"
+          },
+          "task": {
+            "title": "Task",
+            "type": "string"
+          }
+        },
+        "required": [
+          "task",
+          "calls",
+          "outcomes",
+          "fallback_rate",
+          "served_by",
+          "latency_ms_p50"
+        ],
+        "title": "TaskReliability",
         "type": "object"
       },
       "UploadDuplicate": {
@@ -958,6 +1252,41 @@
         "title": "ValidationIssueList",
         "type": "object"
       },
+      "Volume": {
+        "properties": {
+          "by_doc_type": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "description": "As by_status; 'unclassified' when unknown",
+            "title": "By Doc Type",
+            "type": "object"
+          },
+          "by_status": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "description": "Documents uploaded in the period, by their status now",
+            "title": "By Status",
+            "type": "object"
+          },
+          "per_day": {
+            "description": "Every day of the period, oldest first",
+            "items": {
+              "$ref": "#/components/schemas/DayCount"
+            },
+            "title": "Per Day",
+            "type": "array"
+          }
+        },
+        "required": [
+          "per_day",
+          "by_status",
+          "by_doc_type"
+        ],
+        "title": "Volume",
+        "type": "object"
+      },
       "Workspace": {
         "properties": {
           "created_at": {
@@ -988,6 +1317,58 @@
           "created_at"
         ],
         "title": "Workspace",
+        "type": "object"
+      },
+      "WorkspaceMetrics": {
+        "properties": {
+          "headline": {
+            "$ref": "#/components/schemas/Headline"
+          },
+          "llm": {
+            "items": {
+              "$ref": "#/components/schemas/TaskReliability"
+            },
+            "title": "Llm",
+            "type": "array"
+          },
+          "period": {
+            "enum": [
+              "7d",
+              "30d",
+              "all"
+            ],
+            "title": "Period",
+            "type": "string"
+          },
+          "queue": {
+            "$ref": "#/components/schemas/Queue"
+          },
+          "since": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Start of the period; null for all time",
+            "title": "Since"
+          },
+          "volume": {
+            "$ref": "#/components/schemas/Volume"
+          }
+        },
+        "required": [
+          "period",
+          "since",
+          "headline",
+          "volume",
+          "llm",
+          "queue"
+        ],
+        "title": "WorkspaceMetrics",
         "type": "object"
       },
       "WorkspaceSummary": {
@@ -2723,6 +3104,99 @@
         "summary": "Export Documents",
         "tags": [
           "export"
+        ]
+      }
+    },
+    "/v1/workspaces/{workspace_id}/metrics": {
+      "get": {
+        "description": "The workspace's headline metrics, volume, AI provider reliability and queue (AC1-AC4).",
+        "operationId": "getWorkspaceMetrics",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "period",
+            "required": false,
+            "schema": {
+              "default": "30d",
+              "enum": [
+                "7d",
+                "30d",
+                "all"
+              ],
+              "title": "Period",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceMetrics"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get Workspace Metrics",
+        "tags": [
+          "metrics"
         ]
       }
     },

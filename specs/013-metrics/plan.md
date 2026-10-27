@@ -1,6 +1,6 @@
 # F13: Metrics (plan)
 
-**Status:** Approved (2026-10-27)
+**Status:** Implemented (2026-10-27)
 **Spec:** [spec.md](spec.md) · **Tasks:** [tasks.md](tasks.md)
 
 ## 1. API contract
@@ -35,11 +35,11 @@ Every query starts with `workspace_id = :ws`. Each answers one block, so the pag
 - **LLM block:** a `GROUP BY task, outcome`, plus `provider, model`.
 - **Queue:** counts by status, plus `min(created_at)` of queued jobs. Failures are grouped by `documents.failure_reason`.
 
-New index: `llm_calls (workspace_id, created_at)` (migration `0012_metrics_indexes`), if the AC7 measurement needs it.
+New index: `llm_calls (workspace_id, created_at)` (migration `0012_metrics_indexes`), if the AC7 measurement needs it. *Result:* not needed; the slowest run was 432 ms (tasks.md T4).
 
 ## 3. Web
 
-`/app/metrics`: the period switch, four stat tiles, a volume bar chart (SVG), the provider table, and the queue panel. A new "Metrics" item goes in the sidebar.
+`/app/metrics`: the period switch, four stat tiles, a volume bar chart (HTML bars, spec D2), the provider table, and the queue panel. A new "Metrics" item goes in the sidebar.
 
 ## 4. Testing
 

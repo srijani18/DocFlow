@@ -347,6 +347,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/workspaces/{workspace_id}/metrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Workspace Metrics
+         * @description The workspace's headline metrics, volume, AI provider reliability and queue (AC1-AC4).
+         */
+        get: operations["getWorkspaceMetrics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/workspaces/{workspace_id}/metrics/review": {
         parameters: {
             query?: never;
@@ -488,6 +508,16 @@ export interface components {
          * @enum {string}
          */
         ContentType: "application/pdf" | "image/png" | "image/jpeg";
+        /** DayCount */
+        DayCount: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Uploaded */
+            uploaded: number;
+        };
         /**
          * DocType
          * @description F4 classification labels.
@@ -616,6 +646,13 @@ export interface components {
             /** Version */
             version: number;
         };
+        /** FailureReason */
+        FailureReason: {
+            /** Documents */
+            documents: number;
+            /** Reason */
+            reason: string;
+        };
         /** FileUrl */
         FileUrl: {
             /**
@@ -625,6 +662,56 @@ export interface components {
             expires_at: string;
             /** Url */
             url: string;
+        };
+        /**
+         * Headline
+         * @description The four headline metrics (constitution §10.2).
+         */
+        Headline: {
+            /** Approved */
+            approved: number;
+            /** Approved By Agent */
+            approved_by_agent: number;
+            /** Approved Without Edits */
+            approved_without_edits: number;
+            /**
+             * Approved Without Edits Rate
+             * @description approved_without_edits / approved; null when nothing was approved
+             */
+            approved_without_edits_rate: number | null;
+            /** Cost Per Document Usd */
+            cost_per_document_usd: number | null;
+            /**
+             * Cost Usd
+             * @description Estimated at list prices
+             */
+            cost_usd: number | null;
+            /**
+             * Documents Processed
+             * @description Documents with AI calls in the period
+             */
+            documents_processed: number;
+            /**
+             * Field Accuracy
+             * @description fields_unchanged / fields_reviewed; agent approvals are not included
+             */
+            field_accuracy: number | null;
+            /**
+             * Fields Reviewed
+             * @description Fields on documents a person approved
+             */
+            fields_reviewed: number;
+            /** Fields Unchanged */
+            fields_unchanged: number;
+            /**
+             * Processing Runs
+             * @description Processing runs that finished in the period
+             */
+            processing_runs: number;
+            /** Processing Seconds P50 */
+            processing_seconds_p50: number | null;
+            /** Processing Seconds P95 */
+            processing_seconds_p95: number | null;
         };
         /**
          * IssueCounts
@@ -648,6 +735,15 @@ export interface components {
         Membership: {
             role: components["schemas"]["Role"];
             workspace: components["schemas"]["WorkspaceSummary"];
+        };
+        /** ModelShare */
+        ModelShare: {
+            /** Calls */
+            calls: number;
+            /** Model */
+            model: string;
+            /** Provider */
+            provider: string;
         };
         /**
          * Problem
@@ -688,6 +784,27 @@ export interface components {
          * @enum {string}
          */
         Provider: "gemini" | "groq" | "openrouter";
+        /** Queue */
+        Queue: {
+            /** Dead */
+            dead: number;
+            /**
+             * Failed
+             * @description Documents that failed in the period
+             */
+            failed: number;
+            /**
+             * Failure Reasons
+             * @description The most common, at most 5
+             */
+            failure_reasons: components["schemas"]["FailureReason"][];
+            /** Oldest Queued Seconds */
+            oldest_queued_seconds: number | null;
+            /** Queued */
+            queued: number;
+            /** Running */
+            running: number;
+        };
         /** ReviewMetrics */
         ReviewMetrics: {
             /** Approved */
@@ -747,6 +864,35 @@ export interface components {
              * @description False when matching by meaning was unavailable: keyword matches only
              */
             semantic: boolean;
+        };
+        /** TaskReliability */
+        TaskReliability: {
+            /** Calls */
+            calls: number;
+            /**
+             * Fallback Rate
+             * @description Share of answers that came from a fallback in the route
+             */
+            fallback_rate: number | null;
+            /**
+             * Latency Ms P50
+             * @description Of fresh answers
+             */
+            latency_ms_p50: number | null;
+            /**
+             * Outcomes
+             * @description Every outcome, zero included
+             */
+            outcomes: {
+                [key: string]: number;
+            };
+            /**
+             * Served By
+             * @description Answers (fresh or cached), most first
+             */
+            served_by: components["schemas"]["ModelShare"][];
+            /** Task */
+            task: string;
         };
         /**
          * UploadDuplicate
@@ -855,6 +1001,28 @@ export interface components {
             /** Items */
             items: components["schemas"]["ValidationIssue"][];
         };
+        /** Volume */
+        Volume: {
+            /**
+             * By Doc Type
+             * @description As by_status; 'unclassified' when unknown
+             */
+            by_doc_type: {
+                [key: string]: number;
+            };
+            /**
+             * By Status
+             * @description Documents uploaded in the period, by their status now
+             */
+            by_status: {
+                [key: string]: number;
+            };
+            /**
+             * Per Day
+             * @description Every day of the period, oldest first
+             */
+            per_day: components["schemas"]["DayCount"][];
+        };
         /** Workspace */
         Workspace: {
             /**
@@ -871,6 +1039,24 @@ export interface components {
             name: string;
             /** @description The caller's role in this workspace. */
             role: components["schemas"]["Role"];
+        };
+        /** WorkspaceMetrics */
+        WorkspaceMetrics: {
+            headline: components["schemas"]["Headline"];
+            /** Llm */
+            llm: components["schemas"]["TaskReliability"][];
+            /**
+             * Period
+             * @enum {string}
+             */
+            period: "7d" | "30d" | "all";
+            queue: components["schemas"]["Queue"];
+            /**
+             * Since
+             * @description Start of the period; null for all time
+             */
+            since: string | null;
+            volume: components["schemas"]["Volume"];
         };
         /** WorkspaceSummary */
         WorkspaceSummary: {
@@ -1932,6 +2118,66 @@ export interface operations {
                 content: {
                     "application/json": unknown;
                     "application/zip": unknown;
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getWorkspaceMetrics: {
+        parameters: {
+            query?: {
+                period?: "7d" | "30d" | "all";
+            };
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceMetrics"];
                 };
             };
             /** @description Unauthorized */
