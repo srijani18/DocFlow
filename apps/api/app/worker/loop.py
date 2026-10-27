@@ -15,6 +15,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.logging import get_logger
 from app.core.observability import report_exception
+from app.core.rls import acting_for
+from app.core.rls_system import system_session
 from app.documents import service as documents
 from app.jobs import repository as queue
 from app.jobs.backoff import backoff_seconds
@@ -92,16 +94,19 @@ class Worker:
         """Run every job that is due now. Returns how many ran."""
         ran = 0
         while (job := await self._claim()) is not None:
-            await self._run_job(job)
+            # Everything the job does, including the queue update, is limited to its workspace.
+            with acting_for(job.workspace_id):
+                await self._run_job(job)
             ran += 1
         return ran
 
     async def _claim(self) -> queue.ClaimedJob | None:
-        async with self._sessionmaker() as session, session.begin():
+        # The queue is shared by every workspace: claiming is a system operation (F14).
+        async with system_session(self._sessionmaker) as session, session.begin():
             return await queue.claim(session, worker_id=self.worker_id)
 
     async def _seconds_until_next_due(self) -> float:
-        async with self._sessionmaker() as session:
+        async with system_session(self._sessionmaker) as session:
             due = await queue.seconds_until_next_due(session)
         return self._sweep_seconds if due is None else min(due, self._sweep_seconds)
 

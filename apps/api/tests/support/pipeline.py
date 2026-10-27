@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
-from app.core.db import create_sessionmaker
+from app.core.rls_system import system_sessionmaker
 from app.core.tenancy import WorkspaceScope
 from app.documents import service
 from app.documents.models import Document, DocumentEvent
@@ -42,7 +42,8 @@ class Seeded:
 
 
 async def seed_workspaces(engine: AsyncEngine) -> Seeded:
-    sessionmaker = create_sessionmaker(engine)
+    # System by default for seeding; the worker under test acts for each job's workspace.
+    sessionmaker = system_sessionmaker(engine)
     async with sessionmaker() as session, session.begin():
         w = await make_two_workspaces(session)
     scope = WorkspaceScope(workspace_id=w.a.id, user_id=w.a_admin.id, role="admin")

@@ -13,6 +13,7 @@ from app.auth.verifier import TokenVerifier, VerifiedClaims
 from app.core.db_session import DbSession
 from app.core.errors import ForbiddenError, NotFoundError
 from app.core.logging import get_logger
+from app.core.rls import bind_workspace
 from app.core.tenancy import WorkspaceScope
 from app.identity import service as identity_service
 from app.identity.service import CurrentUser
@@ -69,6 +70,9 @@ async def require_workspace_member(
         parsed_id = uuid.UUID(workspace_id)
     except ValueError:
         raise NotFoundError() from None
+    # From here on the request acts for this workspace only (F14). A non-member then
+    # simply finds no membership row.
+    await bind_workspace(session, parsed_id)
     role = await identity_service.get_member_role(
         session, workspace_id=parsed_id, user_id=current_user.id
     )

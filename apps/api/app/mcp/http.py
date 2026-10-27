@@ -22,6 +22,7 @@ from starlette.routing import Route
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from app.core.errors import PROBLEM_TYPE_BASE
+from app.core.rls_system import become_system
 from app.mcp import tokens
 from app.mcp.server import STATE_KEY, McpDeps, build_mcp
 
@@ -105,6 +106,8 @@ class TokenAuth:
         verified = None
         if scheme.lower() == "bearer" and token:
             async with self.deps.open_session() as session:
+                # The token names the workspace, so it is looked up across all (F14 AC3).
+                await become_system(session)
                 verified = await tokens.verify_token(
                     session, token.strip(), now=self.deps.clock.now()
                 )

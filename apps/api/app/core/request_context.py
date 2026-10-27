@@ -12,6 +12,7 @@ import structlog
 from starlette.datastructures import Headers, MutableHeaders
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+from app.core import rls
 from app.core.error_handlers import internal_error_response
 from app.core.observability import report_exception
 
@@ -46,6 +47,7 @@ class RequestContextMiddleware:
                 MutableHeaders(scope=message)[REQUEST_ID_HEADER] = request_id
             await send(message)
 
+        workspace = rls.start_request()  # each request starts acting for no workspace
         with structlog.contextvars.bound_contextvars(request_id=request_id):
             try:
                 await self.app(scope, receive, send_with_request_id)
@@ -56,6 +58,7 @@ class RequestContextMiddleware:
                 response = internal_error_response(request_id)
                 await response(scope, receive, send_with_request_id)
             finally:
+                rls.end_request(workspace)
                 # Path only, never the query string: it may carry tokens.
                 log.info(
                     "request",

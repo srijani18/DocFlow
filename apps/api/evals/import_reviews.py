@@ -20,7 +20,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.clock import SystemClock
 from app.core.config import load_settings
-from app.core.db import create_engine, create_sessionmaker
+from app.core.db import create_engine
+from app.core.rls_system import system_sessionmaker
 from app.core.tenancy import WorkspaceScope
 from app.extractions.exact_json import dumps_exact
 from app.models import import_all_models
@@ -84,7 +85,7 @@ async def main(argv: list[str]) -> int:
             http=http,
             clock=SystemClock(),
         )
-        async with create_sessionmaker(engine)() as session:
+        async with system_sessionmaker(engine)() as session:
             entries = await export(session, storage, workspace_id, out)
     await engine.dispose()
     corrected = sum(1 for entry in entries if entry["corrections"])

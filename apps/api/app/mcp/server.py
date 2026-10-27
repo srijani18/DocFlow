@@ -24,6 +24,7 @@ from app.core.clock import Clock
 from app.core.errors import NotFoundError
 from app.core.logging import get_logger
 from app.core.observability import report_exception
+from app.core.rls import acting_for, bind_workspace
 from app.core.tenancy import WorkspaceScope
 from app.documents import service as documents
 from app.documents.models import DocType, Document, DocumentStatus
@@ -100,8 +101,10 @@ def build_mcp(deps: McpDeps) -> MCPServer:
         started = time.perf_counter()
         outcome, count = "ok", 0
         try:
-            async with deps.open_session() as session:
-                result, count = await work(session, token.scope)
+            with acting_for(token.scope.workspace_id):
+                async with deps.open_session() as session:
+                    await bind_workspace(session, token.scope.workspace_id)
+                    result, count = await work(session, token.scope)
         except NotFoundError:
             outcome = "not_found"
             raise ToolError("Not found in this workspace.") from None

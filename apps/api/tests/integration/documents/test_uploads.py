@@ -7,6 +7,7 @@ import pytest
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 
+from app.core import rls
 from app.core.tenancy import WorkspaceScope
 from app.documents import service
 from app.documents.models import Document
@@ -145,40 +146,43 @@ async def test_ac5_concurrent_identical_uploads_one_document(
     committing_engine: AsyncEngine,
 ) -> None:
     """Two completions racing on separate connections, as two browser tabs would."""
-    async with AsyncSession(committing_engine, expire_on_commit=False) as setup:
+    system = {rls.DEFAULT: rls.SYSTEM}
+    async with AsyncSession(committing_engine, expire_on_commit=False, info=system) as setup:
         w = await make_two_workspaces(setup)
         await setup.commit()
     scope_a = WorkspaceScope(workspace_id=w.a.id, user_id=w.a_admin.id, role="admin")
     storage, clock = FakeStorage(), FrozenClock()
-    async with AsyncSession(committing_engine, expire_on_commit=False) as session:
-        tickets = [
-            await service.start_upload(
-                session,
-                storage,
-                clock,
-                scope_a,
-                filename="x.pdf",
-                content_type="application/pdf",
-                size_bytes=len(PDF),
-                sha256=hashlib.sha256(PDF).hexdigest(),
-            )
-            for _ in range(2)
-        ]
-        await session.commit()
-    upload_ids = []
-    for ticket in tickets:
-        assert isinstance(ticket, service.NewUpload)
-        storage.put(ticket.signed.path, PDF)
-        upload_ids.append(str(ticket.upload.id))
+    # As in the app, under row-level security for workspace A (F14).
+    with rls.acting_for(w.a.id):
+        async with AsyncSession(committing_engine, expire_on_commit=False) as session:
+            tickets = [
+                await service.start_upload(
+                    session,
+                    storage,
+                    clock,
+                    scope_a,
+                    filename="x.pdf",
+                    content_type="application/pdf",
+                    size_bytes=len(PDF),
+                    sha256=hashlib.sha256(PDF).hexdigest(),
+                )
+                for _ in range(2)
+            ]
+            await session.commit()
+        upload_ids = []
+        for ticket in tickets:
+            assert isinstance(ticket, service.NewUpload)
+            storage.put(ticket.signed.path, PDF)
+            upload_ids.append(str(ticket.upload.id))
 
-    async def complete_in_own_transaction(upload_id: str) -> tuple[str, bool]:
-        async with AsyncSession(committing_engine) as session, session.begin():
-            document, created = await service.complete_upload(
-                session, storage, clock, scope_a, upload_id
-            )
-            return str(document.id), created
+        async def complete_in_own_transaction(upload_id: str) -> tuple[str, bool]:
+            async with AsyncSession(committing_engine) as session, session.begin():
+                document, created = await service.complete_upload(
+                    session, storage, clock, scope_a, upload_id
+                )
+                return str(document.id), created
 
-    results = await asyncio.gather(*(complete_in_own_transaction(u) for u in upload_ids * 2))
+        results = await asyncio.gather(*(complete_in_own_transaction(u) for u in upload_ids * 2))
 
     assert len({document_id for document_id, _ in results}) == 1
     assert sum(created for _, created in results) == 1
