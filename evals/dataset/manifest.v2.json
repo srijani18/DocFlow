@@ -2323,6 +2323,7 @@
         "tax_total.currency",
         "total.currency"
       ],
+      "expected_issues": [],
       "truth": {
         "receipt_number": null,
         "date": null,
@@ -2352,8 +2353,7 @@
           "currency": "IDR"
         },
         "payment_method": null
-      },
-      "expected_issues": []
+      }
     },
     {
       "id": "cord-test-001",
@@ -2380,6 +2380,7 @@
         "subtotal.*",
         "tax_total.*"
       ],
+      "expected_issues": [],
       "truth": {
         "receipt_number": null,
         "date": null,
@@ -2419,8 +2420,7 @@
           "currency": "IDR"
         },
         "payment_method": null
-      },
-      "expected_issues": []
+      }
     },
     {
       "id": "cord-test-002",
@@ -2445,6 +2445,7 @@
         "tax_total",
         "tax_total.*"
       ],
+      "expected_issues": [],
       "truth": {
         "receipt_number": null,
         "date": null,
@@ -2459,6 +2460,14 @@
               "amount": 24000.0,
               "currency": "IDR"
             }
+          },
+          {
+            "description": "COCONUT JELLY ( L )",
+            "quantity": null,
+            "amount": {
+              "amount": 4000.0,
+              "currency": "IDR"
+            }
           }
         ],
         "subtotal": {
@@ -2471,10 +2480,7 @@
           "currency": "IDR"
         },
         "payment_method": null
-      },
-      "expected_issues": [
-        "line_items"
-      ]
+      }
     },
     {
       "id": "cord-test-003",
@@ -2499,6 +2505,7 @@
         "tax_total",
         "tax_total.*"
       ],
+      "expected_issues": [],
       "truth": {
         "receipt_number": null,
         "date": null,
@@ -2525,8 +2532,7 @@
           "currency": "IDR"
         },
         "payment_method": null
-      },
-      "expected_issues": []
+      }
     },
     {
       "id": "cord-test-004",
@@ -2550,6 +2556,9 @@
         "total.currency",
         "tax_total",
         "tax_total.*"
+      ],
+      "expected_issues": [
+        "totals"
       ],
       "truth": {
         "receipt_number": null,
@@ -2593,10 +2602,7 @@
           "currency": "IDR"
         },
         "payment_method": null
-      },
-      "expected_issues": [
-        "totals"
-      ]
+      }
     },
     {
       "id": "cord-test-005",
@@ -2619,6 +2625,7 @@
         "tax_total.currency",
         "total.currency"
       ],
+      "expected_issues": [],
       "truth": {
         "receipt_number": null,
         "date": null,
@@ -2648,8 +2655,7 @@
           "currency": "IDR"
         },
         "payment_method": null
-      },
-      "expected_issues": []
+      }
     },
     {
       "id": "cord-test-006",
@@ -2676,6 +2682,7 @@
         "subtotal.*",
         "tax_total.*"
       ],
+      "expected_issues": [],
       "truth": {
         "receipt_number": null,
         "date": null,
@@ -2715,8 +2722,7 @@
           "currency": "IDR"
         },
         "payment_method": null
-      },
-      "expected_issues": []
+      }
     },
     {
       "id": "cord-test-007",
@@ -2739,6 +2745,7 @@
         "tax_total.currency",
         "total.currency"
       ],
+      "expected_issues": [],
       "truth": {
         "receipt_number": null,
         "date": null,
@@ -2751,6 +2758,14 @@
             "quantity": null,
             "amount": {
               "amount": 100000.0,
+              "currency": "IDR"
+            }
+          },
+          {
+            "description": "ADD CHICKEN BOX",
+            "quantity": null,
+            "amount": {
+              "amount": 909.0,
               "currency": "IDR"
             }
           }
@@ -2768,10 +2783,7 @@
           "currency": "IDR"
         },
         "payment_method": null
-      },
-      "expected_issues": [
-        "line_items"
-      ]
+      }
     },
     {
       "id": "cord-test-008",
@@ -2794,6 +2806,7 @@
         "tax_total.currency",
         "total.currency"
       ],
+      "expected_issues": [],
       "truth": {
         "receipt_number": null,
         "date": null,
@@ -2806,6 +2819,22 @@
             "quantity": 1.0,
             "amount": {
               "amount": 45455.0,
+              "currency": "IDR"
+            }
+          },
+          {
+            "description": "COOKIE DOH SAUCES",
+            "quantity": 1.0,
+            "amount": {
+              "amount": 0.0,
+              "currency": "IDR"
+            }
+          },
+          {
+            "description": "NATA DE COCO",
+            "quantity": 1.0,
+            "amount": {
+              "amount": 0.0,
               "currency": "IDR"
             }
           }
@@ -2823,8 +2852,7 @@
           "currency": "IDR"
         },
         "payment_method": null
-      },
-      "expected_issues": []
+      }
     },
     {
       "id": "cord-test-009",
@@ -2851,6 +2879,7 @@
         "tax_total.*",
         "total.*"
       ],
+      "expected_issues": [],
       "truth": {
         "receipt_number": null,
         "date": null,
@@ -2874,8 +2903,7 @@
         "tax_total": null,
         "total": null,
         "payment_method": null
-      },
-      "expected_issues": []
+      }
     }
   ]
 }
