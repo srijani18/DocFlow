@@ -1,6 +1,6 @@
 # F13: Metrics (spec)
 
-**Status:** Draft (2026-10-27)
+**Status:** Approved (2026-10-27)
 **Phase:** 5
 **Plan:** [plan.md](plan.md) · **Tasks:** [tasks.md](tasks.md)
 
@@ -52,7 +52,7 @@ It also shows document volume, how reliable the AI providers are, and the health
 - Exporting the metrics.
 - Real billing figures from providers.
 
-## Decisions (proposed)
+## Decisions
 
 - **D1. Computed on request with SQL, not stored.** The tables are indexed by workspace, and the sizes are small (AC7). A rollup table would add a job and a way to be wrong. If AC7 fails, add a materialised daily rollup then.
 - **D2. Charts are inline SVG** in the page (bars and a line), with no chart library: about 100 lines, no dependency, and readable in light and dark mode.

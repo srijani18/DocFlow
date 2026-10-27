@@ -1,6 +1,6 @@
 # F13: Metrics (tasks)
 
-**Status:** Draft (2026-10-27)
+**Status:** Approved (2026-10-27)
 **Prerequisite:** F7, F10.
 
 - [ ] **F13-T1: Metrics queries** (AC1–AC6): headline, volume, LLM, queue; integration tests with known answers.

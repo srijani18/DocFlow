@@ -1,6 +1,6 @@
 # F16: Observability (spec)
 
-**Status:** Draft (2026-10-27)
+**Status:** Approved (2026-10-27)
 **Phase:** 5
 **Plan:** [plan.md](plan.md) · **Tasks:** [tasks.md](tasks.md)
 
@@ -56,7 +56,7 @@ Both are optional. Without their settings, DocFlow runs exactly as now. Neither 
 - Uptime checks (the deploy guide's cron ping covers keep-alive).
 - Prompt management or evals in the LLM tool.
 
-## Decisions (proposed)
+## Decisions
 
 - **D1. Sentry for errors** (Developer plan: 5,000 errors a month, 1 user), with `sentry-sdk` for FastAPI and the worker, and `@sentry/nextjs` for the web app. Performance tracing is off (errors only), to stay in the free tier and keep it simple.
 - **D2. Langfuse Cloud for AI traces** (Hobby plan: 50,000 units a month). It's open source, with an official Python SDK, and the overview and ADR-0003 already name it. At about 4 observations per document, 50,000 units is roughly 10,000 documents a month.

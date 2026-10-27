@@ -1,6 +1,6 @@
 # F16: Observability (tasks)
 
-**Status:** Draft (2026-10-27)
+**Status:** Approved (2026-10-27)
 **Prerequisite:** F10. Manual, at deploy time: a Sentry project (DSN) and a Langfuse project (keys).
 
 - [ ] **F16-T1: Settings and Sentry for the API and worker** (AC1, AC3, AC7, AC8): init, tags, ignore rules, scrubber, tests with a fake transport.
