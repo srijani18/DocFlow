@@ -109,6 +109,7 @@ For Phase 1, but quick to do now. Go to **Storage → New bucket** and create tw
    | `SUPABASE_URL` | 📋 `https://<ref>.supabase.co` (step 2d) |
    | `CORS_ALLOWED_ORIGINS` | Your Vercel production URL, e.g. `https://docflow-web.vercel.app` (fill in after step 4, then redeploy) |
    | `CORS_ALLOWED_ORIGIN_REGEX` | `^https://docflow-web-[a-z0-9-]+-<your-vercel-scope>\.vercel\.app$` (preview deployments, overview A1) |
+   | `WEB_BASE_URL` | Your Vercel production URL, like `CORS_ALLOWED_ORIGINS`. MCP tool results link to documents there (F12). |
 
    Phase 1 adds `SUPABASE_SECRET_KEY` and `SUPABASE_STORAGE_BUCKET=documents`; Phase 2 adds `BYOK_MASTER_KEYS` (§6). Add each under **Environment** when its feature ships; `.env.example` always lists the current set.
 4. **Apply.** The first deploy runs immediately. Later deploys wait for `ci-ok` on `main` (`autoDeployTrigger: checksPass`).

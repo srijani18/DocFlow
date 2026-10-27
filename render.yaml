@@ -36,6 +36,8 @@ services:
         sync: false
       - key: CORS_ALLOWED_ORIGIN_REGEX
         sync: false
+      - key: WEB_BASE_URL  # the Vercel production URL: MCP results link there (F12)
+        sync: false
       # Observability (F16): optional; both are off while these are empty.
       - key: SENTRY_DSN
         sync: false
