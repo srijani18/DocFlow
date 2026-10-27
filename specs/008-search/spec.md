@@ -1,6 +1,6 @@
 # F8: Search (spec)
 
-**Status:** Approved (2026-10-27)
+**Status:** Implemented (2026-10-27)
 **Phase:** 4
 **Plan:** [plan.md](plan.md) · **Tasks:** [tasks.md](tasks.md)
 
