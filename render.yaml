@@ -36,3 +36,10 @@ services:
         sync: false
       - key: CORS_ALLOWED_ORIGIN_REGEX
         sync: false
+      # Observability (F16): optional; both are off while these are empty.
+      - key: SENTRY_DSN
+        sync: false
+      - key: LANGFUSE_PUBLIC_KEY
+        sync: false
+      - key: LANGFUSE_SECRET_KEY
+        sync: false

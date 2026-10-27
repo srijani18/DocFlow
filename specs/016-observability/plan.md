@@ -18,17 +18,25 @@ The release is the git commit, set at build time: `RENDER_GIT_COMMIT` and `VERCE
 ## 2. Components
 
 ```
-app/core/observability.py   init_sentry(settings): FastAPI + asyncio integrations, before_send scrubber,
-                            ignore 4xx/StepError/TransientError; tags request_id/workspace/document/job
-                            from structlog contextvars
-app/llm/tracing.py          Tracer protocol (no-op default) + LangfuseTracer: on_attempt(CallRecord)
-                            → observation in trace keyed by job_id (or a per-request id for search)
-app/llm/recording.py        CallRecorder fans out to the tracer after the DB/memory record
-apps/web                    instrumentation.ts + sentry.client/server config with beforeSend scrubber,
-                            only when NEXT_PUBLIC_SENTRY_DSN is set
+app/core/observability.py   init_sentry(settings), report_exception(exc, **ids), scrub_event; tags
+                            request_id/workspace/document/job from structlog contextvars or the job
+app/llm/tracing.py          LangfuseTracer: CallRecord -> trace-create + generation-create events,
+                            batched in the background through the SDK's ingestion API
+app/llm/recording.py        DbCallRecorder hands each stored call to the tracer (CallTracer protocol)
+apps/web                    instrumentation.ts + instrumentation-client.ts (Sentry.init with the
+                            beforeSend scrubber), global-error.tsx, QueryCache/MutationCache onError;
+                            all off when NEXT_PUBLIC_SENTRY_DSN is unset
 ```
 
 The tracer hooks the existing `CallRecord`, which is already the one place every attempt is described (F10). So tracing adds no new call sites in the gateway, and evals (which use `MemoryCallRecorder` with no tracer) stay untraced.
+
+### As built (2026-10-27)
+
+- **Pinned versions** (the newest at least 2 weeks old, D4): `sentry-sdk` 2.72.0, `@sentry/nextjs` 11.7.0, `langfuse` 4.17.0 (every 5.x release was less than 2 weeks old).
+- **Sentry reports explicitly; its auto-instrumentation is off.** Our own code already catches every unexpected error in three places: the last-resort 500 in `RequestContextMiddleware`, `job_crashed` and `worker_loop_error`. Each calls `report_exception`. Expected outcomes (4xx, `StepError` retries, permanent step failures, a 503 while the database is down) never reach those places, so AC3 holds by construction, and nothing is reported twice. Our structlog output goes to stdout, not stdlib logging, so Sentry's logging hook wouldn't have seen it anyway.
+- **Langfuse through the SDK's ingestion client, not its OpenTelemetry tracer.** `CallRecord`s describe calls that have already finished. The tracer's `start_observation` stamps "now" as the start, while ingestion events take each call's real `start_time`/`end_time`. It also doesn't install a global OpenTelemetry tracer provider in the API process.
+- **Web:** no `withSentryConfig`, so no source-map upload (that would need a Sentry auth token in the Vercel build). Browser stack traces are minified; server ones are not. Failed queries and mutations are reported unless they are 4xx or a cold start (`isTransient`).
+- `make sentry-check` sends one scrubbed test error, for the live check.
 
 ## 3. Scrubbing (AC7)
 

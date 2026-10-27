@@ -10,7 +10,7 @@ Everything runs on free tiers, with no credit card. Do the steps in order: later
 | 4 | Vercel | Web app | Phase 0 |
 | 5 | cron-job.org | Keep-alive pings | Phase 0 |
 | 6 | BYOK master key; Google AI Studio, Groq, OpenRouter | Encrypting customers' AI keys; your own keys for evals | Phase 2 |
-| 7 | Langfuse, Sentry | Traces, errors | Phase 5 (you can create them now) |
+| 7 | Sentry, Langfuse | Errors, AI call traces (optional) | Phase 5 |
 
 Region everywhere: **Singapore** (overview A5).
 
@@ -165,10 +165,31 @@ DocFlow has **no platform AI key**. Each workspace's admin connects their own Ge
 
 For CI evals, add `GEMINI_API_KEY` and `GROQ_API_KEY` as **GitHub Actions secrets**. Free tiers may train on what they receive: evals use only public or synthetic documents.
 
-## 7. Langfuse and Sentry (Phase 5, optional now)
+## 7. Sentry and Langfuse (F16, optional)
 
-- **Langfuse Cloud** (<https://cloud.langfuse.com>, free Hobby plan): create project `docflow`. Keys: `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_HOST`.
-- **Sentry** (<https://sentry.io>, free Developer plan): create a Python (FastAPI) project. Key: `SENTRY_DSN`.
+Both are off until their variables are set, and neither ever receives document content, extracted values, AI keys or email addresses. Errors are scrubbed before they leave (AC7), and AI traces carry metadata only (AC5).
+
+**Sentry (errors).** Free **Developer** plan: 5,000 errors a month, 1 user. Only errors are sent; performance tracing is off.
+
+1. Sign up at <https://sentry.io>. Create a **Python** project `docflow-api` and a **Next.js** project `docflow-web`. Skip the setup wizards: the code is already in place.
+2. Each project → **Settings → Client Keys (DSN)**:
+   - the API's DSN → Render `SENTRY_DSN` (**secret**);
+   - the web's DSN → Vercel `NEXT_PUBLIC_SENTRY_DSN` (all environments; it's public by design).
+3. Optional: `SENTRY_ENVIRONMENT` on Render (defaults to `ENVIRONMENT`). The release is the commit: Render sets `RENDER_GIT_COMMIT`, and Vercel sets `NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA` when **Automatically expose System Environment Variables** is on (the default).
+4. Browser stack traces are minified, since no source maps are uploaded (that would need a Sentry auth token in the build). Server errors keep their real stack traces.
+
+**Langfuse (AI call traces).** Free **Hobby** plan: 50,000 units a month, 30 days of data. Each document is about 4 units (one per AI call), so roughly 10,000 documents a month.
+
+1. Sign up at <https://cloud.langfuse.com> (EU) or <https://us.cloud.langfuse.com> (US). Create organization `docflow` and project `docflow`.
+2. **Project Settings → API Keys → Create:** `LANGFUSE_PUBLIC_KEY` (`pk-lf-…`) and `LANGFUSE_SECRET_KEY` (`sk-lf-…`, **secret**) → Render.
+3. `LANGFUSE_HOST` only for a US project: `https://us.cloud.langfuse.com`.
+4. Each document's processing is one trace, named "document", and the document id is its session. A search query is a trace of its own.
+
+**Live check (F16-T5, after the deploy).**
+
+1. **Sentry, API:** put the API's DSN in your local `.env` as `SENTRY_DSN` and run `make sentry-check`. The issue "DocFlow Sentry check for [REDACTED]" appears, tagged `request_id=sentry-check`: the scrubber removed the email. Then remove the DSN from `.env`.
+2. **Sentry, web:** the first real error will show up. Nothing is sent for 4xx answers or while the API wakes up.
+3. **Langfuse:** upload one document. Within about 10 seconds, its trace shows classify → extract → validate → embed, with model, tokens, cost and latency, and no input or output.
 
 ---
 

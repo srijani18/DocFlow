@@ -13,6 +13,7 @@ from starlette.datastructures import Headers, MutableHeaders
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from app.core.error_handlers import internal_error_response
+from app.core.observability import report_exception
 
 REQUEST_ID_HEADER = "X-Request-ID"
 _VALID_REQUEST_ID = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
@@ -48,7 +49,8 @@ class RequestContextMiddleware:
         with structlog.contextvars.bound_contextvars(request_id=request_id):
             try:
                 await self.app(scope, receive, send_with_request_id)
-            except Exception:
+            except Exception as exc:
+                report_exception(exc)
                 if response_started:
                     raise
                 response = internal_error_response(request_id)
