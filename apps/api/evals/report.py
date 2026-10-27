@@ -1,5 +1,6 @@
 """Turns model runs into the JSON record and the Markdown report (F11 AC3 to AC6)."""
 
+import re
 import statistics
 from collections import defaultdict
 from dataclasses import asdict, dataclass
@@ -84,6 +85,11 @@ def summarise(run: ModelRun) -> Summary:
     )
 
 
+# Fields whose mistakes cost money or break matching, as opposed to, say, how an address
+# was split into lines.
+KEY_FIELD = re.compile(r"(amount|quantity|rate_percent|_number|date|gstin)$")
+
+
 @dataclass(frozen=True)
 class AgentSummary:
     """Before and after the validation agent, for one model (F6 AC10)."""
@@ -102,6 +108,7 @@ class AgentSummary:
     misreads_flagged: int  # ... and flagged by an unexpected issue
     auto_approved: int
     auto_approved_with_error: int
+    auto_approved_with_key_error: int  # a wrong amount, quantity, number, date or GSTIN
     calls: int
     cost_usd: float | None
 
@@ -111,7 +118,7 @@ def summarise_agent(run: ModelRun) -> AgentSummary | None:
     if not pairs:
         return None
     fixed = broken = changed = expected = caught = alarms = misread = flagged = 0
-    approved = approved_wrong = 0
+    approved = approved_wrong = approved_key_wrong = 0
     for outcome, agent in pairs:
         before = {f.path: f.correct for f in outcome.fields}
         after = {f.path: f.correct for f in agent.fields}
@@ -127,6 +134,9 @@ def summarise_agent(run: ModelRun) -> AgentSummary | None:
         flagged += not all_right and bool(unexpected)
         approved += agent.auto_approved
         approved_wrong += agent.auto_approved and not all_right
+        approved_key_wrong += agent.auto_approved and any(
+            not f.correct and KEY_FIELD.search(f.path) for f in agent.fields
+        )
     costs = [c.cost_usd for c in run.agent_calls if c.cost_usd is not None]
     return AgentSummary(
         route=run.route,
@@ -146,6 +156,7 @@ def summarise_agent(run: ModelRun) -> AgentSummary | None:
         misreads_flagged=flagged,
         auto_approved=approved,
         auto_approved_with_error=approved_wrong,
+        auto_approved_with_key_error=approved_key_wrong,
         calls=len(run.agent_calls),
         cost_usd=float(sum(costs, Decimal(0))) if costs else None,
     )
@@ -316,6 +327,7 @@ AGENT_COLUMNS = [
     "False alarms",
     "Auto-approved",
     "…with a wrong field",
+    "…with a wrong amount, number, date or GSTIN",
     "Agent calls",
 ]
 
@@ -352,6 +364,7 @@ def _agent_markdown(runs: list[ModelRun]) -> list[str]:
                     str(a.false_alarms),
                     f"{a.auto_approved} / {a.documents}",
                     str(a.auto_approved_with_error),
+                    f"**{a.auto_approved_with_key_error}**",
                     str(a.calls),
                 ]
             )
