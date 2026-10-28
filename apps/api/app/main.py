@@ -17,6 +17,7 @@ from app.core.clock import SystemClock
 from app.core.config import Settings, load_settings
 from app.core.error_handlers import install_error_handlers
 from app.core.logging import configure_logging
+from app.core.observability import init_sentry
 from app.core.openapi_docs import install_problem_openapi
 from app.core.request_context import REQUEST_ID_HEADER, RequestContextMiddleware
 from app.documents import routes as document_routes
@@ -41,6 +42,7 @@ def _operation_id(route: APIRoute) -> str:
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or load_settings()
     configure_logging(settings)
+    init_sentry(settings)
     services = build_services(settings)
     jwks = JwksCache(
         settings.auth_jwks_url,

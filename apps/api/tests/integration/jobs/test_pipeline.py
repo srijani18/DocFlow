@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any
 
 import pytest
 from sqlalchemy import event, insert, select
@@ -190,6 +191,43 @@ async def test_unexpected_exception_counts_as_transient(committing_engine: Async
     [job] = await jobs_for(seeded, document_id)
     assert (job.status, job.attempts) == ("queued", 1)
     assert "KeyError" in (job.last_error or "")
+
+
+async def test_f16_crashed_job_is_reported_with_its_ids(
+    committing_engine: AsyncEngine, sentry_events: list[dict[str, Any]]
+) -> None:
+    seeded, storage = await seed_workspaces(committing_engine), FakeStorage()
+    document_id = await seed_document(seeded, storage)
+
+    async def buggy(ctx: StepContext) -> None:
+        raise KeyError("bug")
+
+    await make_worker(seeded, storage, Recorder(), classify=buggy).drain()
+
+    [job] = await jobs_for(seeded, document_id)
+    document = await document_row(seeded, document_id)
+    [event] = sentry_events
+    assert event["tags"] == {
+        "workspace_id": str(document.workspace_id),
+        "document_id": str(document_id),
+        "job_id": str(job.id),
+        "kind": "process_document",
+    }
+    assert event["exception"]["values"][0]["type"] == "KeyError"
+
+
+async def test_f16_expected_failures_are_not_reported(
+    committing_engine: AsyncEngine, sentry_events: list[dict[str, Any]]
+) -> None:
+    seeded, storage = await seed_workspaces(committing_engine), FakeStorage()
+    await seed_document(seeded, storage)
+
+    async def unavailable(ctx: StepContext) -> None:
+        raise TransientError("The AI provider is busy")
+
+    await make_worker(seeded, storage, Recorder(), classify=unavailable).drain()
+
+    assert sentry_events == []
 
 
 async def test_ac12_queued_jobs_run_after_restart(committing_engine: AsyncEngine) -> None:

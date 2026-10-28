@@ -1,14 +1,17 @@
 import base64
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterator
 from typing import Any
 
 import httpx
 import pytest
+import sentry_sdk
 from fastapi import FastAPI
 
 from app.core.config import Settings
+from app.core.observability import init_sentry
 from app.main import create_app
 from tests.support.jwt import TEST_SUPABASE_URL
+from tests.support.sentry import TEST_DSN, CapturingTransport
 
 # Points at a closed port: unit tests must never need a database.
 UNREACHABLE_DATABASE_URL = "postgresql://postgres:postgres@127.0.0.1:1/unreachable"
@@ -48,3 +51,13 @@ def app(settings: Settings) -> FastAPI:
 async def client(app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
     async with await asgi_client(app) as http:
         yield http
+
+
+@pytest.fixture
+def sentry_events() -> Iterator[list[dict[str, Any]]]:
+    """Events Sentry would have sent, with the app's real init and scrubber (F16)."""
+    transport = CapturingTransport()
+    assert init_sentry(make_settings(sentry_dsn=TEST_DSN), transport=transport)
+    yield transport.events
+    sentry_sdk.get_client().close()
+    sentry_sdk.get_global_scope().set_client(None)  # back to the non-recording client

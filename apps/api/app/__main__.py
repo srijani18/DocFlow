@@ -12,6 +12,7 @@ import uvicorn
 
 from app.core.config import Settings, load_settings
 from app.core.logging import configure_logging
+from app.core.observability import init_sentry
 from app.main import create_app
 from app.wiring import build_services
 
@@ -45,6 +46,7 @@ async def _run_worker_until_signal(settings: Settings) -> None:
 
 def run_worker_process(settings: Settings) -> None:
     configure_logging(settings)
+    init_sentry(settings)
     asyncio.run(_run_worker_until_signal(settings))
 
 

@@ -14,6 +14,7 @@ from typing import Protocol
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.logging import get_logger
+from app.core.observability import report_exception
 from app.documents import service as documents
 from app.jobs import repository as queue
 from app.jobs.backoff import backoff_seconds
@@ -76,8 +77,9 @@ class Worker:
             try:
                 await self.drain()  # also picks up jobs left over from before a restart (AC12)
                 timeout = await self._seconds_until_next_due()
-            except Exception:
+            except Exception as exc:
                 log.exception("worker_loop_error")
+                report_exception(exc)
                 timeout = LOOP_ERROR_PAUSE_SECONDS
             try:
                 async with asyncio.timeout(timeout):
@@ -129,6 +131,13 @@ class Worker:
             # Unknown errors are treated as transient, so a bug can't fail a document
             # permanently without the record of 5 attempts (F3 plan §4).
             bound.exception("job_crashed")
+            report_exception(
+                exc,
+                workspace_id=job.workspace_id,
+                document_id=job.document_id,
+                job_id=job.id,
+                kind=job.kind,
+            )
             await self._retry_or_give_up(job, TransientError(UNEXPECTED_REASON, detail=repr(exc)))
         else:
             async with self._sessionmaker() as session, session.begin():

@@ -22,7 +22,7 @@ _SENSITIVE_PARTS = ("token", "secret", "password", "api_key", "apikey", "dsn")
 _NOT_SENSITIVE = frozenset({"input_tokens", "output_tokens", "total_tokens"})
 
 
-def _is_sensitive(key: str) -> bool:
+def is_sensitive_key(key: str) -> bool:
     lowered = key.lower()
     if lowered in _NOT_SENSITIVE:
         return False
@@ -31,7 +31,7 @@ def _is_sensitive(key: str) -> bool:
 
 def _redact(value: Any) -> Any:
     if isinstance(value, dict):
-        return {k: REDACTED if _is_sensitive(str(k)) else _redact(v) for k, v in value.items()}
+        return {k: REDACTED if is_sensitive_key(str(k)) else _redact(v) for k, v in value.items()}
     if isinstance(value, list | tuple):
         return [_redact(item) for item in value]
     return value
@@ -42,7 +42,7 @@ def redact_sensitive(
 ) -> MutableMapping[str, Any]:
     """structlog processor: mask values whose key looks sensitive, at any depth."""
     for key in list(event_dict):
-        event_dict[key] = REDACTED if _is_sensitive(key) else _redact(event_dict[key])
+        event_dict[key] = REDACTED if is_sensitive_key(key) else _redact(event_dict[key])
     return event_dict
 
 

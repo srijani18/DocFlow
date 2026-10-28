@@ -19,7 +19,9 @@ from app.events.broker import EventBroker
 from app.llm.gateway import Credentials, Gateway
 from app.llm.providers import openai_compat
 from app.llm.providers.gemini import GeminiProvider
+from app.llm.recording import CallTracer, DbCallRecorder
 from app.llm.routing import parse_route
+from app.llm.tracing import LangfuseTracer
 from app.pipeline.runner import Pipeline
 from app.pipeline.steps.classify import ClassifyStep
 from app.pipeline.steps.extract import ExtractStep
@@ -40,8 +42,11 @@ class Services:
     keybox: KeyBox | None
     worker: Worker | None
     gateway: Gateway
+    tracer: LangfuseTracer | None = None
 
     async def aclose(self) -> None:
+        if self.tracer is not None:
+            await self.tracer.aclose()  # send the last traces while the client is open
         await self.http.aclose()
         await self.engine.dispose()
 
@@ -61,7 +66,10 @@ def build_services(settings: Settings) -> Services:
     keybox = KeyBox.from_setting(settings.byok_master_keys) if settings.byok_master_keys else None
     # The API embeds search queries (F8); the worker runs the pipeline and embeds documents.
     credentials = WorkspaceCredentials(sessionmaker=sessionmaker, keybox=keybox)
-    gateway = build_gateway(settings, sessionmaker=sessionmaker, http=http, credentials=credentials)
+    tracer = LangfuseTracer.from_settings(settings, http)
+    gateway = build_gateway(
+        settings, sessionmaker=sessionmaker, http=http, credentials=credentials, tracer=tracer
+    )
     worker = None
     if settings.role.runs_worker:
         pipeline = Pipeline(
@@ -80,7 +88,7 @@ def build_services(settings: Settings) -> Services:
             events=events,
             embedder=EmbedRunner(gateway, sessionmaker=sessionmaker),
         )
-    return Services(engine, sessionmaker, http, storage, events, keybox, worker, gateway)
+    return Services(engine, sessionmaker, http, storage, events, keybox, worker, gateway, tracer)
 
 
 def build_gateway(
@@ -89,6 +97,7 @@ def build_gateway(
     sessionmaker: async_sessionmaker[AsyncSession],
     http: httpx.AsyncClient,
     credentials: Credentials,
+    tracer: CallTracer | None = None,
 ) -> Gateway:
     gemini = GeminiProvider(
         http=http,
@@ -108,5 +117,6 @@ def build_gateway(
             "embed": parse_route(settings.llm_route_embed),
         },
         credentials=credentials,
+        recorder=DbCallRecorder(sessionmaker, tracer=tracer),
         cache_ttl=timedelta(days=settings.llm_cache_ttl_days),
     )
