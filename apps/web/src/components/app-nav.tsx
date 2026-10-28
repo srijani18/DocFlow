@@ -1,12 +1,13 @@
 "use client";
 
-import { FileTextIcon, LayoutGridIcon, SettingsIcon } from "lucide-react";
+import { ChartColumnIcon, FileTextIcon, LayoutGridIcon, SettingsIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const ITEMS = [
   { href: "/app", label: "Dashboard", icon: LayoutGridIcon, exact: true },
   { href: "/app/documents", label: "Documents", icon: FileTextIcon, exact: false },
+  { href: "/app/metrics", label: "Metrics", icon: ChartColumnIcon, exact: false },
   { href: "/app/settings", label: "Settings", icon: SettingsIcon, exact: false },
 ];
 

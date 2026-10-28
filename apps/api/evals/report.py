@@ -1,5 +1,6 @@
 """Turns model runs into the JSON record and the Markdown report (F11 AC3 to AC6)."""
 
+import re
 import statistics
 from collections import defaultdict
 from dataclasses import asdict, dataclass
@@ -84,10 +85,106 @@ def summarise(run: ModelRun) -> Summary:
     )
 
 
+# Fields whose mistakes cost money or break matching, as opposed to, say, how an address
+# was split into lines.
+KEY_FIELD = re.compile(r"(amount|quantity|rate_percent|_number|date|gstin)$")
+
+
+@dataclass(frozen=True)
+class AgentSummary:
+    """Before and after the validation agent, for one model (F6 AC10)."""
+
+    route: str
+    documents: int
+    accuracy_before: float
+    accuracy_after: float
+    fields_fixed: int  # wrong → right
+    fields_broken: int  # right → wrong
+    documents_changed: int
+    expected_issues: int
+    expected_caught: int
+    false_alarms: int  # all fields right, yet an issue that wasn't expected
+    misread_documents: int  # some field still wrong after the agent
+    misreads_flagged: int  # ... and flagged by an unexpected issue
+    auto_approved: int
+    auto_approved_with_error: int
+    auto_approved_with_key_error: int  # a wrong amount, quantity, number, date or GSTIN
+    calls: int
+    cost_usd: float | None
+
+
+def summarise_agent(run: ModelRun) -> AgentSummary | None:
+    pairs = [(o, o.agent) for o in run.outcomes if o.agent is not None]
+    if not pairs:
+        return None
+    fixed = broken = changed = expected = caught = alarms = misread = flagged = 0
+    approved = approved_wrong = approved_key_wrong = 0
+    for outcome, agent in pairs:
+        before = {f.path: f.correct for f in outcome.fields}
+        after = {f.path: f.correct for f in agent.fields}
+        fixed += sum(after[p] and not before.get(p, False) for p in after)
+        broken += sum(before.get(p, False) and not after[p] for p in after)
+        changed += agent.fixes > 0
+        expected += len(outcome.expected_issues)
+        caught += len(set(outcome.expected_issues) & set(agent.issues))
+        unexpected = set(agent.issues) - set(outcome.expected_issues)
+        all_right = all(after.values())
+        alarms += all_right and bool(unexpected)
+        misread += not all_right
+        flagged += not all_right and bool(unexpected)
+        approved += agent.auto_approved
+        approved_wrong += agent.auto_approved and not all_right
+        approved_key_wrong += agent.auto_approved and any(
+            not f.correct and KEY_FIELD.search(f.path) for f in agent.fields
+        )
+    costs = [c.cost_usd for c in run.agent_calls if c.cost_usd is not None]
+    return AgentSummary(
+        route=run.route,
+        documents=len(pairs),
+        accuracy_before=_accuracy([o for o, _ in pairs]),
+        accuracy_after=_rate(
+            sum(f.correct for _, a in pairs for f in a.fields),
+            sum(len(a.fields) for _, a in pairs),
+        ),
+        fields_fixed=fixed,
+        fields_broken=broken,
+        documents_changed=changed,
+        expected_issues=expected,
+        expected_caught=caught,
+        false_alarms=alarms,
+        misread_documents=misread,
+        misreads_flagged=flagged,
+        auto_approved=approved,
+        auto_approved_with_error=approved_wrong,
+        auto_approved_with_key_error=approved_key_wrong,
+        calls=len(run.agent_calls),
+        cost_usd=float(sum(costs, Decimal(0))) if costs else None,
+    )
+
+
+def _agent_json(outcome: DocumentOutcome) -> dict[str, Any] | None:
+    if outcome.agent is None:
+        return None
+    before = {f.path: f.actual for f in outcome.fields}
+    return {
+        "fixes": outcome.agent.fixes,
+        "issues": outcome.agent.issues,
+        "expected_issues": outcome.expected_issues,
+        "auto_approved": outcome.agent.auto_approved,
+        "changed_fields": [
+            {"path": f.path, "actual": f.actual, "correct": f.correct}
+            for f in outcome.agent.fields
+            if f.path in before and f.actual != before[f.path]
+        ],
+    }
+
+
 def to_json(meta: dict[str, Any], runs: list[ModelRun]) -> dict[str, Any]:
+    agent = [a for a in (summarise_agent(run) for run in runs) if a is not None]
     return {
         **meta,
         "summaries": [asdict(summarise(run)) for run in runs],
+        **({"agent_summaries": [asdict(a) for a in agent]} if agent else {}),
         "documents": {
             run.route: [
                 {
@@ -108,6 +205,7 @@ def to_json(meta: dict[str, Any], runs: list[ModelRun]) -> dict[str, Any]:
                         }
                         for f in o.fields
                     ],
+                    **({"agent": _agent_json(o)} if o.agent is not None else {}),
                 }
                 for o in run.outcomes
             ]
@@ -195,6 +293,7 @@ def to_markdown(meta: dict[str, Any], runs: list[ModelRun]) -> str:
         lines.append(
             f"| `{s.route}` | " + " | ".join(_pct(s.by_source.get(g, 0)) for g in sources) + " |"
         )
+    lines += _agent_markdown(runs)
     fields = sorted(
         {k for s in summaries for k in s.by_field},
         key=lambda f: min(s.by_field.get(f, 1.0) for s in summaries),
@@ -214,3 +313,60 @@ def to_markdown(meta: dict[str, Any], runs: list[ModelRun]) -> str:
         )
     lines.append("")
     return "\n".join(lines)
+
+
+AGENT_COLUMNS = [
+    "Model route",
+    "Field accuracy before",
+    "After agent",
+    "Fixed (wrong→right)",
+    "Broken (right→wrong)",
+    "Documents corrected",
+    "Expected issues caught",
+    "Misreads flagged",
+    "False alarms",
+    "Auto-approved",
+    "…with a wrong field",
+    "…with a wrong amount, number, date or GSTIN",
+    "Agent calls",
+]
+
+
+def _agent_markdown(runs: list[ModelRun]) -> list[str]:
+    agent = [a for a in (summarise_agent(run) for run in runs) if a is not None]
+    if not agent:
+        return []
+    lines = [
+        "",
+        "## Validation agent (before / after)",
+        "",
+        "Checks and rereads on every extraction (F6). *Expected issues* are what the checks "
+        "raise on the true data: the deliberately broken invoices, a duplicate pair, and real "
+        "inconsistencies on CORD receipts. *Misreads flagged*: documents still wrong after the "
+        "agent that got an unexpected issue, so a reviewer looks. *False alarms*: documents "
+        "fully right that got one anyway. Duplicates are looked up within the dataset.",
+        "",
+        _row(AGENT_COLUMNS),
+        "|" + "---|" * len(AGENT_COLUMNS),
+    ]
+    for a in agent:
+        lines.append(
+            _row(
+                [
+                    f"`{a.route}`",
+                    _pct(a.accuracy_before),
+                    f"**{_pct(a.accuracy_after)}**",
+                    str(a.fields_fixed),
+                    str(a.fields_broken),
+                    f"{a.documents_changed} / {a.documents}",
+                    f"{a.expected_caught} / {a.expected_issues}",
+                    f"{a.misreads_flagged} / {a.misread_documents}",
+                    str(a.false_alarms),
+                    f"{a.auto_approved} / {a.documents}",
+                    str(a.auto_approved_with_error),
+                    f"**{a.auto_approved_with_key_error}**",
+                    str(a.calls),
+                ]
+            )
+        )
+    return lines

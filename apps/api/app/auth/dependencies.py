@@ -13,6 +13,8 @@ from app.auth.verifier import TokenVerifier, VerifiedClaims
 from app.core.db_session import DbSession
 from app.core.errors import ForbiddenError, NotFoundError
 from app.core.logging import get_logger
+from app.core.ratelimit import Bucket, RateLimiter
+from app.core.rls import bind_workspace
 from app.core.tenancy import WorkspaceScope
 from app.identity import service as identity_service
 from app.identity.service import CurrentUser
@@ -21,6 +23,9 @@ log = get_logger(__name__)
 
 # auto_error=False: we raise our own problem+json 401 instead of FastAPI's default 403.
 # Declaring it also documents the `bearerAuth` scheme in openapi.json.
+# The live event stream (F3) is one long request: never rate limited (F14 AC10).
+EVENT_STREAM_SUFFIX = "/events"
+
 _bearer = HTTPBearer(auto_error=False, scheme_name="bearerAuth", bearerFormat="JWT")
 
 
@@ -45,11 +50,17 @@ async def get_verified_claims(
 
 
 async def get_current_user(
-    claims: Annotated[VerifiedClaims, Depends(get_verified_claims)], session: DbSession
+    request: Request,
+    claims: Annotated[VerifiedClaims, Depends(get_verified_claims)],
+    session: DbSession,
 ) -> CurrentUser:
-    """The authenticated caller, provisioned on first sight (F1 AC5)."""
+    """The authenticated caller, provisioned on first sight (F1 AC5). Every authenticated
+    request counts against the caller's general rate limit, except the live event stream
+    (F14 AC10)."""
     current_user = await identity_service.provision_or_load(session, claims)
     structlog.contextvars.bind_contextvars(user_id=str(current_user.id))
+    if not request.url.path.endswith(EVENT_STREAM_SUFFIX):
+        get_rate_limiter(request).check("general", str(current_user.id))
     return current_user
 
 
@@ -69,6 +80,9 @@ async def require_workspace_member(
         parsed_id = uuid.UUID(workspace_id)
     except ValueError:
         raise NotFoundError() from None
+    # From here on the request acts for this workspace only (F14). A non-member then
+    # simply finds no membership row.
+    await bind_workspace(session, parsed_id)
     role = await identity_service.get_member_role(
         session, workspace_id=parsed_id, user_id=current_user.id
     )
@@ -94,3 +108,20 @@ def require_role(*roles: str) -> Callable[[WorkspaceScope], Awaitable[WorkspaceS
 
 
 AdminScopeDep = Annotated[WorkspaceScope, Depends(require_role("admin"))]
+
+
+def get_rate_limiter(request: Request) -> RateLimiter:
+    limiter: RateLimiter = request.app.state.rate_limiter
+    return limiter
+
+
+RateLimiterDep = Annotated[RateLimiter, Depends(get_rate_limiter)]
+
+
+def rate_limit(bucket: Bucket) -> Callable[[Request, WorkspaceScope], Awaitable[None]]:
+    """A route dependency: one request from this member against `bucket` (F14 AC9)."""
+
+    async def limited(request: Request, scope: WorkspaceScopeDep) -> None:
+        get_rate_limiter(request).check(bucket, str(scope.user_id))
+
+    return limited

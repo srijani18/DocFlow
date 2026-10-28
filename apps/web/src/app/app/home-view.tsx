@@ -13,6 +13,7 @@ import type { components } from "@/generated/api";
 import { aiKeyKeys, fetchAiKeys } from "@/lib/api/ai-keys";
 import { documentKeys, fetchDocumentPage } from "@/lib/api/documents";
 import { currentWorkspace, type Me } from "@/lib/api/me";
+import { fetchReviewMetrics } from "@/lib/api/review";
 import { formatMoney } from "@/lib/format";
 
 type Role = components["schemas"]["Role"];
@@ -65,7 +66,7 @@ function Dashboard({ me }: { me: Me }) {
         {membership !== undefined && (
           <div className="bg-brand-gradient flex flex-col justify-between gap-6 rounded-3xl p-6 text-white shadow-xl shadow-primary/20">
             <div className="flex items-center gap-3">
-              <span className="inline-flex size-11 items-center justify-center rounded-xl bg-white text-primary">
+              <span className="inline-flex size-11 items-center justify-center rounded-xl bg-white text-indigo-600">
                 <CloudUploadIcon className="size-5" aria-hidden />
               </span>
               <h2 className="text-xl font-semibold">Upload documents</h2>
@@ -83,8 +84,51 @@ function Dashboard({ me }: { me: Me }) {
           </div>
         )}
       </div>
+      {membership !== undefined && <ReviewMetricsPanel workspaceId={membership.workspace.id} />}
       {membership !== undefined && <RecentDocuments workspaceId={membership.workspace.id} />}
     </div>
+  );
+}
+
+/** How much of the approved work needed a person to change something (F7 AC8). */
+function ReviewMetricsPanel({ workspaceId }: { workspaceId: string }) {
+  const metrics = useQuery({
+    queryKey: [...documentKeys.list(workspaceId), "review-metrics"],
+    queryFn: () => fetchReviewMetrics(workspaceId),
+  });
+  if (!metrics.isSuccess) return null;
+  const { approved, approved_without_edits, approved_by_agent, approved_without_edits_rate } =
+    metrics.data;
+  const tiles = [
+    {
+      label: "Approved without edits",
+      value:
+        approved_without_edits_rate === null
+          ? "—"
+          : `${Math.round(approved_without_edits_rate * 100)}%`,
+      note: `${approved_without_edits} of ${approved} approved`,
+    },
+    { label: "Approved", value: String(approved), note: "documents ready for export" },
+    {
+      label: "Approved by the agent",
+      value: String(approved_by_agent),
+      note: "every check passed, high confidence",
+    },
+  ];
+  return (
+    <Panel>
+      <dl className="grid gap-6 sm:grid-cols-3">
+        {tiles.map((tile) => (
+          <div key={tile.label}>
+            <dt className="text-sm text-muted-foreground">{tile.label}</dt>
+            <dd className="mt-1 text-3xl font-semibold tracking-tight tabular-nums">
+              {tile.value}
+            </dd>
+            <dd className="text-xs text-muted-foreground">{tile.note}</dd>
+          </div>
+        ))}
+      </dl>
+    </Panel>
   );
 }
 
@@ -149,7 +193,7 @@ function ConnectKeyBanner({ workspaceId }: { workspaceId: string }) {
   return (
     <div className="bg-brand-gradient flex flex-col items-start justify-between gap-4 rounded-3xl p-6 text-white shadow-lg shadow-primary/20 sm:flex-row sm:items-center">
       <div className="flex items-center gap-3">
-        <span className="inline-flex size-10 items-center justify-center rounded-xl bg-white text-primary">
+        <span className="inline-flex size-10 items-center justify-center rounded-xl bg-white text-indigo-600">
           <KeyRoundIcon className="size-5" aria-hidden />
         </span>
         <div>

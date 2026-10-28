@@ -24,12 +24,26 @@ function withBearer(request: Request, token: string | null): Request {
   return new Request(request, { headers });
 }
 
+const READS = new Set(["GET", "HEAD", "OPTIONS"]);
+
+/** A new Idempotency-Key for every write (F14 AC8). Set once, before the request is copied
+ * for a retry, so the retry carries the same key and the API never acts twice. */
+function withIdempotencyKey(request: Request): Request {
+  if (READS.has(request.method) || request.headers.has("Idempotency-Key")) {
+    return request;
+  }
+  const headers = new Headers(request.headers);
+  headers.set("Idempotency-Key", crypto.randomUUID());
+  return new Request(request, { headers });
+}
+
 /**
  * fetch with the Bearer token added. On a 401 it refreshes the session once and retries;
  * if that doesn't help, the user is sent to sign-in (spec edge case "expired session").
  */
 function authFetch(auth: AuthSource) {
-  return async (request: Request): Promise<Response> => {
+  return async (original: Request): Promise<Response> => {
+    const request = withIdempotencyKey(original);
     // A request body can be read only once, so keep a copy for the retry.
     const spare = request.clone();
     const token = await auth.accessToken();

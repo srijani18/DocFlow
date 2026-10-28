@@ -144,14 +144,30 @@ check-gen: gen ## Fail if generated code is out of date
 		test -z "$$(git ls-files --others --exclude-standard -- $(GENERATED))" || \
 		(echo "Generated code is out of date: run 'make gen' and commit the result." && exit 1)
 
-.PHONY: eval eval-dataset
+.PHONY: eval eval-dataset eval-import eval-search search-backfill metrics-perf sentry-check
 MODELS ?= gemini:gemini-flash-lite-latest
 LIMIT ?=
 PACE ?= 0
-eval: ## Run evals (F11): make eval MODELS=gemini:…,groq:… LIMIT=20 PACE=4
-	cd $(API) && uv run python -m evals --models "$(MODELS)" $(if $(LIMIT),--limit $(LIMIT)) --pace $(PACE)
+eval: ## Run evals (F11): make eval MODELS=gemini:…,groq:… LIMIT=20 PACE=4 AGENT=1 [MANIFEST=…]
+	cd $(API) && uv run python -m evals --models "$(MODELS)" $(if $(LIMIT),--limit $(LIMIT)) --pace $(PACE) $(if $(AGENT),--agent) $(if $(MANIFEST),--manifest $(abspath $(MANIFEST)))
 
-eval-dataset: ## Rebuild evals/dataset (synthetic documents + CORD download)
+eval-search: ## F8 search eval (recall@5, MRR) on the local test DB; needs make db-up and GEMINI_API_KEY
+	cd $(API) && uv run python -m evals.search
+
+sentry-check: ## F16: send one scrubbed test error to the Sentry project in SENTRY_DSN
+	cd $(API) && uv run python -m app.core.observability
+
+metrics-perf: ## F13 AC7: time the metrics queries on 10k documents / 100k calls in the local test DB
+	cd $(API) && uv run python -m evals.metrics_perf
+
+search-backfill: ## F8: index and queue embeddings for documents processed before search existed
+	cd $(API) && uv run python -m app.search.backfill
+
+eval-import: ## Approved documents of YOUR workspace → eval data (F7): make eval-import WORKSPACE=<id>
+	@test -n "$(WORKSPACE)" || (echo "usage: make eval-import WORKSPACE=<your workspace id>" && exit 1)
+	cd $(API) && uv run python -m evals.import_reviews --workspace "$(WORKSPACE)"
+
+eval-dataset: ## Rebuild evals/dataset v2 (synthetic + broken documents; CORD kept or downloaded)
 	cd $(API) && uv run python -m evals.build_dataset
 
 .PHONY: byok-key

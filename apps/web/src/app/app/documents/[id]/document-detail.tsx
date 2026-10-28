@@ -7,9 +7,10 @@ import { useParams } from "next/navigation";
 import { DocTypeLabel, OTHER_NOTE } from "@/components/doc-type";
 import { DocumentStatusBadge } from "@/components/document-status";
 import { ExtractionView } from "./extraction-view";
+import { IssuesView } from "./issues-view";
 import { MeGate } from "@/components/me-gate";
 import { Panel } from "@/components/page-header";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { useDocumentEvents } from "@/hooks/use-document-events";
 import { documentKeys, fetchDocument, fetchFileUrl, retryDocument } from "@/lib/api/documents";
 import { currentWorkspace } from "@/lib/api/me";
@@ -97,6 +98,18 @@ export function DocumentDetail({
                 Retry
               </Button>
             )}
+            {(doc.status === "NEEDS_REVIEW" || doc.status === "APPROVED") &&
+              doc.doc_type !== null &&
+              doc.doc_type !== "other" && (
+                <Link
+                  href={`/app/documents/${doc.id}/review`}
+                  className={buttonVariants({
+                    variant: doc.status === "NEEDS_REVIEW" ? "default" : "outline",
+                  })}
+                >
+                  {doc.status === "NEEDS_REVIEW" ? "Review" : "Open review"}
+                </Link>
+              )}
           </div>
         </div>
         {openOriginal.isError && (
@@ -106,6 +119,14 @@ export function DocumentDetail({
         )}
         {doc.doc_type === "other" && (
           <p className="mt-4 rounded-xl bg-muted px-4 py-3 text-sm">{OTHER_NOTE}.</p>
+        )}
+        {doc.approved_at !== null && (
+          <p className="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
+            {doc.approved_by_agent
+              ? "Approved automatically: every check passed with high confidence"
+              : "Approved"}{" "}
+            on {formatDateTime(doc.approved_at)}.
+          </p>
         )}
         {doc.failure_reason !== null && (
           <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800 dark:bg-red-950 dark:text-red-200">
@@ -143,11 +164,18 @@ export function DocumentDetail({
           </div>
         </dl>
       </Panel>
-      {doc.status === "NEEDS_REVIEW" && doc.doc_type !== null && doc.doc_type !== "other" && (
-        <Panel>
-          <ExtractionView workspaceId={workspaceId} documentId={documentId} />
-        </Panel>
-      )}
+      {(doc.status === "NEEDS_REVIEW" || doc.status === "APPROVED") &&
+        doc.doc_type !== null &&
+        doc.doc_type !== "other" && (
+          <>
+            <Panel>
+              <IssuesView workspaceId={workspaceId} documentId={documentId} />
+            </Panel>
+            <Panel>
+              <ExtractionView workspaceId={workspaceId} documentId={documentId} />
+            </Panel>
+          </>
+        )}
     </div>
   );
 }

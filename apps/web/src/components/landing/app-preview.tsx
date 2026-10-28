@@ -55,16 +55,16 @@ const MIX = [
 ];
 
 const STATUS_TONE: Record<string, string> = {
-  "Needs review": "bg-amber-50 text-amber-700",
-  Approved: "bg-emerald-50 text-emerald-700",
-  Extracting: "bg-indigo-50 text-indigo-700",
+  "Needs review": "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
+  Approved: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
+  Extracting: "bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300",
 };
 
 /** A static picture of the app for the landing page, with illustrative numbers. */
 export function AppPreview() {
   return (
     <div
-      className="overflow-hidden rounded-3xl border bg-white text-left shadow-2xl shadow-primary/10"
+      className="overflow-hidden rounded-3xl border bg-card text-left shadow-2xl shadow-primary/10"
       aria-label="Preview of the DocFlow app (illustrative data)"
       role="img"
     >
@@ -92,7 +92,7 @@ export function AppPreview() {
         </aside>
         <div className="min-w-0 flex-1 bg-surface p-4">
           <div className="mb-4 flex items-center justify-between gap-3">
-            <span className="flex h-8 flex-1 items-center gap-2 rounded-full border bg-white px-3 text-[11px] text-muted-foreground">
+            <span className="flex h-8 flex-1 items-center gap-2 rounded-full border bg-card px-3 text-[11px] text-muted-foreground">
               <SearchIcon className="size-3" /> Search documents, vendors, GSTINs…
             </span>
             <span className="flex items-center gap-2 text-[11px]">
@@ -107,19 +107,21 @@ export function AppPreview() {
             {STATS.map((stat, index) => (
               <div
                 key={stat.label}
-                className="flex items-end justify-between rounded-2xl bg-white p-3 shadow-sm"
+                className="flex items-end justify-between rounded-2xl bg-card p-3 shadow-sm"
               >
                 <div>
                   <p className="text-[11px] text-muted-foreground">{stat.label}</p>
                   <p className="mt-1 text-xl font-semibold tracking-tight">{stat.value}</p>
-                  <p className="text-[10px] font-medium text-emerald-600">{stat.change} ↗</p>
+                  <p className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+                    {stat.change} ↗
+                  </p>
                 </div>
                 <Sparkline id={`preview-${index}`} points={stat.points} />
               </div>
             ))}
           </div>
           <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-[1.6fr_1fr]">
-            <div className="rounded-2xl bg-white p-3 shadow-sm">
+            <div className="rounded-2xl bg-card p-3 shadow-sm">
               <p className="mb-2 text-xs font-medium">Recent documents</p>
               <table className="w-full text-[11px]">
                 <tbody>
@@ -142,7 +144,7 @@ export function AppPreview() {
                 </tbody>
               </table>
             </div>
-            <div className="rounded-2xl bg-white p-3 shadow-sm">
+            <div className="rounded-2xl bg-card p-3 shadow-sm">
               <p className="mb-3 text-xs font-medium">Document mix</p>
               <div className="flex flex-col gap-3">
                 {MIX.map((item) => (

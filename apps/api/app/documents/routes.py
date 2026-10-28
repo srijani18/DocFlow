@@ -2,36 +2,65 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Query, Response, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, Response, status
 from fastapi.exceptions import RequestValidationError
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import WorkspaceScopeDep
+from app.auth.dependencies import WorkspaceScopeDep, rate_limit
 from app.core.db_session import DbSession
 from app.core.errors import problem_responses
+from app.core.tenancy import WorkspaceScope
 from app.documents import service
+from app.documents.models import PROCESSING_STATUSES
 from app.documents.models import Document as DocumentRow
 from app.documents.schemas import (
     Document,
     DocumentPage,
     FileUrl,
+    IssueCounts,
     UploadDuplicate,
     UploadStart,
     UploadStartResult,
     UploadTicket,
 )
 from app.events.dependencies import EventsDep, JobWakerDep
+from app.idempotency.routing import Idempotent, IdempotentRoute
 from app.storage.dependencies import ClockDep, StorageDep
+from app.validation import service as validation
 
-router = APIRouter(prefix="/v1/workspaces/{workspace_id}", tags=["documents"])
+router = APIRouter(
+    route_class=IdempotentRoute, prefix="/v1/workspaces/{workspace_id}", tags=["documents"]
+)
 
 
 def to_document(row: DocumentRow) -> Document:
     return Document.model_validate(row, from_attributes=True)
 
 
+async def with_issue_counts(
+    session: AsyncSession, scope: WorkspaceScope, rows: list[DocumentRow]
+) -> list[Document]:
+    """Documents with their open issue counts, one query for the whole page (F6)."""
+    # While a document is (re)processing, its old counts would be stale.
+    validated = {
+        row.id: row.current_extraction_id
+        for row in rows
+        if row.current_extraction_id is not None and row.status not in PROCESSING_STATUSES
+    }
+    counts = await validation.open_issue_counts(session, scope, list(validated.values()))
+    documents = []
+    for row in rows:
+        document = to_document(row)
+        if (extraction_id := validated.get(row.id)) is not None:
+            document.issue_counts = IssueCounts(**counts[extraction_id])
+        documents.append(document)
+    return documents
+
+
 @router.post(
     "/uploads",
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(rate_limit("uploads"))],
     responses={
         200: {"model": UploadDuplicate, "description": "Duplicate: nothing to upload (AC3)"},
         **problem_responses(401, 404, 422, 503),
@@ -45,6 +74,7 @@ async def start_upload(
     storage: StorageDep,
     clock: ClockDep,
     response: Response,
+    idempotency: Idempotent,
 ) -> UploadStartResult:
     """Start an upload: returns a signed upload ticket, or the existing duplicate."""
     result = await service.start_upload(
@@ -88,6 +118,7 @@ async def complete_upload(
     background: BackgroundTasks,
     events: EventsDep,
     wake_worker: JobWakerDep,
+    idempotency: Idempotent,
 ) -> Document:
     """Record the uploaded file as a document once it is in storage (AC1, AC4, AC5), and
     queue its processing (F3 AC1)."""
@@ -117,12 +148,16 @@ async def list_documents(
             [{"loc": ("query", "cursor"), "msg": "Invalid cursor", "type": "value_error"}]
         ) from None
     rows, next_cursor = await service.list_documents(session, scope, before=before, limit=limit)
-    return DocumentPage(items=[to_document(row) for row in rows], next_cursor=next_cursor)
+    return DocumentPage(
+        items=await with_issue_counts(session, scope, rows), next_cursor=next_cursor
+    )
 
 
 @router.get("/documents/{document_id}", responses=problem_responses(401, 404, 503))
 async def get_document(document_id: str, scope: WorkspaceScopeDep, session: DbSession) -> Document:
-    return to_document(await service.get_document(session, scope, document_id))
+    row = await service.get_document(session, scope, document_id)
+    [document] = await with_issue_counts(session, scope, [row])
+    return document
 
 
 @router.post("/documents/{document_id}/file-url", responses=problem_responses(401, 404, 503))
@@ -147,6 +182,7 @@ async def retry_document(
     background: BackgroundTasks,
     events: EventsDep,
     wake_worker: JobWakerDep,
+    idempotency: Idempotent,
 ) -> Document:
     """Process a FAILED document again with a fresh set of attempts (F3 AC8)."""
     document, event = await service.retry_document(session, scope, document_id)

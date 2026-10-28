@@ -68,3 +68,31 @@ def test_missing_cord_labels_are_masked_not_expected_null() -> None:
 
     assert {"total", "total.*", "tax_total", "tax_total.*"} <= set(masks)
     assert "subtotal" not in masks
+
+
+def test_add_ons_are_lines_of_their_own() -> None:
+    truth = map_ground_truth(
+        {
+            "menu": [
+                {
+                    "nm": "JASMINE MT ( L )",
+                    "cnt": "1",
+                    "price": "24,000",
+                    "sub": {"nm": "COCONUT JELLY ( L )", "price": "4,000"},
+                },
+                {
+                    "nm": "BLACK SAKURA",
+                    "price": "45,455",
+                    "sub": [{"nm": "NATA DE COCO", "cnt": "1", "price": "0"}],
+                },
+            ],
+            "sub_total": {"subtotal_price": "73,455"},
+        }
+    )
+
+    assert [(i["description"], i["amount"]["amount"]) for i in truth["line_items"]] == [
+        ("JASMINE MT ( L )", 24000.0),
+        ("COCONUT JELLY ( L )", 4000.0),
+        ("BLACK SAKURA", 45455.0),
+        ("NATA DE COCO", 0.0),
+    ]

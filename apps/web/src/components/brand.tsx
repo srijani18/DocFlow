@@ -34,7 +34,7 @@ export function Wordmark({ href = "/", size = "md" }: { href?: string; size?: "s
 export function InlineMark() {
   return (
     <span
-      className="mx-1 inline-flex size-[0.95em] translate-y-[0.08em] items-center justify-center rounded-[0.22em] border-2 border-primary/30 bg-white/70 align-baseline text-primary"
+      className="mx-1 inline-flex size-[0.95em] translate-y-[0.08em] items-center justify-center rounded-[0.22em] border-2 border-primary/30 bg-white/70 align-baseline text-primary dark:bg-primary/15"
       aria-hidden
     >
       <ScanTextIcon className="size-[0.55em]" strokeWidth={2.4} />

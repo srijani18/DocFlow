@@ -17,6 +17,7 @@ SCHEMA_BY_DOC_TYPE = {
     "receipt": "docflow/receipt/v1",
     "purchase_order": "docflow/purchase_order/v1",
 }
+DOC_TYPE_BY_SCHEMA = {schema_id: doc_type for doc_type, schema_id in SCHEMA_BY_DOC_TYPE.items()}
 
 
 def response_schema(schema_id: str) -> dict[str, Any]:
@@ -26,7 +27,7 @@ def response_schema(schema_id: str) -> dict[str, Any]:
     return envelope
 
 
-def _has_path(data: Any, path: str) -> bool:
+def has_path(data: Any, path: str) -> bool:
     node = data
     for part in path.split("."):
         if isinstance(node, Mapping) and part in node:
@@ -45,7 +46,7 @@ def validate(schema_id: str, answer: Mapping[str, Any]) -> list[str]:
         return problems
     problems = [f"data.{problem}" for problem in validation_errors(schema_id, answer["data"])]
     for entry in answer["confidence"]:
-        if not _has_path(answer["data"], entry["field"]):
+        if not has_path(answer["data"], entry["field"]):
             problems.append(f"confidence: {entry['field']!r} is not a field in data")
     return problems
 

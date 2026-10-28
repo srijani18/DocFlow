@@ -219,12 +219,14 @@ async def set_current_extraction(
     document_date: date | None,
     total_amount: Decimal | None,
     currency: str | None,
+    search_text: str,
 ) -> None:
     await session.execute(
         update(Document)
         .where(Document.workspace_id == scope.workspace_id, Document.id == document_id)
         .values(
             current_extraction_id=extraction_id,
+            search_text=search_text,
             vendor_name=vendor_name,
             document_date=document_date,
             total_amount=total_amount,
@@ -245,3 +247,25 @@ async def list_failed_with_codes(
         )
     )
     return list(rows)
+
+
+async def set_approval(
+    session: AsyncSession,
+    scope: WorkspaceScope,
+    document_id: uuid.UUID,
+    *,
+    by_user_id: uuid.UUID | None,
+    by_agent: bool,
+    extraction_id: uuid.UUID,
+) -> None:
+    await session.execute(
+        update(Document)
+        .where(Document.workspace_id == scope.workspace_id, Document.id == document_id)
+        .values(
+            approved_at=func.now(),
+            approved_by_user_id=by_user_id,
+            approved_by_agent=by_agent,
+            approved_extraction_id=extraction_id,
+            updated_at=func.now(),
+        )
+    )

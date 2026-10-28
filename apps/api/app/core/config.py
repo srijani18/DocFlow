@@ -98,9 +98,32 @@ class Settings(DatabaseSettings):
     # timed out or returned 503 while Flash-Lite extracted correctly in ~6 s (F5 spec D1).
     llm_route_classify: str = DEFAULT_ROUTE
     llm_route_extract: str = DEFAULT_ROUTE
+    # F8: embeddings for search. Only Gemini embeds; Groq has no embeddings API.
+    llm_route_embed: str = "gemini:gemini-embedding-001"
     llm_classify_prompt: str = "classify/v1"
     llm_extract_prompt: str = "extract/v1"
+    llm_validate_prompt: str = "validate/v1"
     llm_cache_ttl_days: int = 30
+
+    # Error tracking (F16): off unless SENTRY_DSN is set. The release is the deployed commit,
+    # which Render provides as RENDER_GIT_COMMIT.
+    sentry_dsn: str | None = None
+    sentry_environment: str | None = None  # defaults to ENVIRONMENT
+    render_git_commit: str | None = None
+    # AI call traces (F16): metadata only, never prompts, files or answers. Off unless both
+    # keys are set.
+    langfuse_public_key: str | None = None
+    langfuse_secret_key: str | None = None
+    langfuse_host: str = "https://cloud.langfuse.com"
+
+    # Requests per minute, per user (or per access token for MCP) (F14).
+    rate_limit_general_per_minute: int = 120
+    rate_limit_uploads_per_minute: int = 30
+    rate_limit_ai_per_minute: int = 30  # search queries and AI key checks call the provider
+    rate_limit_mcp_per_minute: int = 60
+
+    # The web app's address, for links to documents from the MCP tools (F12).
+    web_base_url: str = "http://localhost:3000"
 
     cors_allowed_origins: Annotated[list[str], NoDecode] = []
     cors_allowed_origin_regex: str | None = None

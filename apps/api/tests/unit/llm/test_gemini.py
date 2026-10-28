@@ -12,6 +12,7 @@ from app.llm.types import (
     CredentialRejectedError,
     FilePart,
     PermanentLlmError,
+    ProviderEmbedRequest,
     ProviderRequest,
     TextPart,
     TransientLlmError,
@@ -186,3 +187,58 @@ async def test_max_tokens_marks_truncated(http: httpx.AsyncClient) -> None:
     )
 
     assert (await provider(http).generate(REQUEST)).truncated is True
+
+
+EMBED_URL = "https://gemini.test/v1beta/models/gemini-embedding-001:batchEmbedContents"
+
+
+@respx.mock
+async def test_f8_embed_sends_task_type_and_dimensions_and_normalises(
+    http: httpx.AsyncClient,
+) -> None:
+    route = respx.post(EMBED_URL).respond(
+        json={"embeddings": [{"values": [3.0, 4.0]}, {"values": [0.0, 2.0]}]}
+    )
+
+    response = await provider(http).embed(
+        ProviderEmbedRequest(
+            model="gemini-embedding-001",
+            texts=["invoice from Kaveri", "bolts"],
+            purpose="document",
+            dimensions=2,
+            api_key="test-key",
+        )
+    )
+
+    assert response.vectors == [[0.6, 0.8], [0.0, 1.0]]
+    body = json.loads(route.calls.last.request.content)
+    assert [r["taskType"] for r in body["requests"]] == ["RETRIEVAL_DOCUMENT"] * 2
+    assert {r["outputDimensionality"] for r in body["requests"]} == {2}
+    assert body["requests"][0]["content"] == {"parts": [{"text": "invoice from Kaveri"}]}
+    assert route.calls.last.request.headers["x-goog-api-key"] == "test-key"
+
+
+@respx.mock
+async def test_f8_query_embedding_uses_the_query_task_type(http: httpx.AsyncClient) -> None:
+    route = respx.post(EMBED_URL).respond(json={"embeddings": [{"values": [1.0, 0.0]}]})
+
+    await provider(http).embed(
+        ProviderEmbedRequest(
+            model="gemini-embedding-001", texts=["bolts"], purpose="query", dimensions=2
+        )
+    )
+
+    assert json.loads(route.calls.last.request.content)["requests"][0]["taskType"] == (
+        "RETRIEVAL_QUERY"
+    )
+
+
+@respx.mock
+async def test_f8_embed_errors_map_like_generate(http: httpx.AsyncClient) -> None:
+    respx.post(EMBED_URL).respond(status_code=503, json={})
+    request = ProviderEmbedRequest(
+        model="gemini-embedding-001", texts=["x"], purpose="query", dimensions=2
+    )
+
+    with pytest.raises(TransientLlmError):
+        await provider(http).embed(request)

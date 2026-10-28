@@ -8,13 +8,16 @@ from app.aikeys import service
 from app.aikeys.crypto import KeyBox
 from app.aikeys.models import WorkspaceAiKey
 from app.aikeys.schemas import AiKeySave, AiKeyStatus, Provider
-from app.auth.dependencies import AdminScopeDep, WorkspaceScopeDep
+from app.auth.dependencies import AdminScopeDep, WorkspaceScopeDep, rate_limit
 from app.core.db_session import DbSession
 from app.core.errors import problem_responses
 from app.events.dependencies import EventsDep, JobWakerDep
+from app.idempotency.routing import Idempotent, IdempotentRoute
 from app.storage.dependencies import ClockDep
 
-router = APIRouter(prefix="/v1/workspaces/{workspace_id}/ai-keys", tags=["ai-keys"])
+router = APIRouter(
+    route_class=IdempotentRoute, prefix="/v1/workspaces/{workspace_id}/ai-keys", tags=["ai-keys"]
+)
 
 
 def get_keybox(request: Request) -> KeyBox | None:
@@ -61,7 +64,11 @@ async def list_ai_keys(scope: WorkspaceScopeDep, session: DbSession) -> list[AiK
     return [_status(provider, rows.get(provider)) for provider in Provider]
 
 
-@router.put("/{provider}", responses=problem_responses(401, 403, 404, 422, 503))
+@router.put(
+    "/{provider}",
+    responses=problem_responses(401, 403, 404, 422, 429, 503),
+    dependencies=[Depends(rate_limit("ai"))],  # checks the key with the provider
+)
 async def save_ai_key(
     provider: str,
     body: AiKeySave,
@@ -73,6 +80,7 @@ async def save_ai_key(
     background: BackgroundTasks,
     events: EventsDep,
     wake_worker: JobWakerDep,
+    idempotency: Idempotent,
 ) -> AiKeyStatus:
     """Check the key with its provider, then store it encrypted (AC1, AC8)."""
     row, requeued = await service.save_key(
@@ -90,12 +98,18 @@ async def save_ai_key(
     status_code=status.HTTP_204_NO_CONTENT,
     responses=problem_responses(401, 403, 404, 503),
 )
-async def delete_ai_key(provider: str, scope: AdminScopeDep, session: DbSession) -> Response:
+async def delete_ai_key(
+    provider: str, scope: AdminScopeDep, session: DbSession, idempotency: Idempotent
+) -> Response:
     await service.delete_key(session, scope, provider)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.post("/{provider}/test", responses=problem_responses(401, 403, 404, 503))
+@router.post(
+    "/{provider}/test",
+    responses=problem_responses(401, 403, 404, 429, 503),
+    dependencies=[Depends(rate_limit("ai"))],
+)
 async def test_ai_key(
     provider: str,
     *,
@@ -103,6 +117,7 @@ async def test_ai_key(
     session: DbSession,
     keybox: KeyBoxDep,
     checker: KeyCheckerDep,
+    idempotency: Idempotent,
 ) -> AiKeyStatus:
     """Check the stored key again (AC5)."""
     row = await service.test_key(session, scope, keybox=keybox, checker=checker, provider=provider)

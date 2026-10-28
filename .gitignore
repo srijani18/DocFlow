@@ -32,3 +32,6 @@ playwright/.cache/
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# Eval data imported from a workspace (F7): your own documents, kept out of git by default.
+evals/imported/

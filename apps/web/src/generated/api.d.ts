@@ -58,6 +58,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/schemas/{schema_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Schema
+         * @description A bundled document schema (no tenant data), for the review form (F7 plan §3).
+         */
+        get: operations["getSchema"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/workspaces/{workspace_id}": {
         parameters: {
             query?: never;
@@ -143,6 +163,51 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/workspaces/{workspace_id}/api-tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Api Tokens
+         * @description Your tokens, or every token in the workspace for admins (AC3). Never the tokens
+         *     themselves.
+         */
+        get: operations["listApiTokens"];
+        put?: never;
+        /**
+         * Create Api Token
+         * @description A new token for your AI assistant. The `token` is in this response only (AC1).
+         */
+        post: operations["createApiToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{workspace_id}/api-tokens/{token_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke Api Token
+         * @description Revoke a token; it stops working on its next request (AC3).
+         */
+        delete: operations["revokeApiToken"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/workspaces/{workspace_id}/documents": {
         parameters: {
             query?: never;
@@ -180,6 +245,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/workspaces/{workspace_id}/documents/{document_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve Document
+         * @description Approve the document, saving `data` first if given (AC5).
+         */
+        post: operations["approveDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/workspaces/{workspace_id}/documents/{document_id}/extraction": {
         parameters: {
             query?: never;
@@ -192,7 +277,12 @@ export interface paths {
          * @description The document's current extraction; 404 until one exists (F5 AC6).
          */
         get: operations["getCurrentExtraction"];
-        put?: never;
+        /**
+         * Save Corrections
+         * @description Save the reviewer's corrections as a new version (AC4). 409 when the document changed
+         *     since `base_version` (AC6); no new version when nothing changed.
+         */
+        put: operations["saveCorrections"];
         post?: never;
         delete?: never;
         options?: never;
@@ -214,6 +304,26 @@ export interface paths {
          * @description A link to the original file, valid for 5 minutes (AC9).
          */
         post: operations["createDocumentFileUrl"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{workspace_id}/documents/{document_id}/issues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Issues
+         * @description Issues found on the document's current extraction (AC2); 404 until one exists.
+         */
+        get: operations["listIssues"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -253,6 +363,88 @@ export interface paths {
          *     database session) finishes before streaming starts, so no connection is held open.
          */
         get: operations["streamEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{workspace_id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Documents
+         * @description Approved documents matching the search filters, as a ZIP of two CSV files or as
+         *     JSON (AC1 to AC8). 422 when more than 5,000 documents match.
+         */
+        get: operations["exportDocuments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{workspace_id}/metrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Workspace Metrics
+         * @description The workspace's headline metrics, volume, AI provider reliability and queue (AC1-AC4).
+         */
+        get: operations["getWorkspaceMetrics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{workspace_id}/metrics/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Review Metrics
+         * @description How many approved documents needed no corrections (AC8).
+         */
+        get: operations["getReviewMetrics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{workspace_id}/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search Documents
+         * @description The workspace's documents matching the text (by keyword and meaning) and filters,
+         *     best first; newest first without text (AC1 to AC5).
+         */
+        get: operations["searchDocuments"];
         put?: never;
         post?: never;
         delete?: never;
@@ -335,11 +527,136 @@ export interface components {
             /** Updated At */
             updated_at: string | null;
         };
+        /** ApiToken */
+        ApiToken: {
+            /**
+             * Active
+             * @description Unrevoked, unexpired, and its creator is still a member of the workspace
+             */
+            active: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Created By
+             * @description The creator's email
+             */
+            created_by: string | null;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Last Used At */
+            last_used_at: string | null;
+            /** Name */
+            name: string;
+            /**
+             * Prefix
+             * @description The token's first characters, to tell tokens apart
+             */
+            prefix: string;
+            /** Revoked At */
+            revoked_at: string | null;
+        };
+        /** ApiTokenCreate */
+        ApiTokenCreate: {
+            /**
+             * Expires In Days
+             * @default 90
+             * @enum {integer}
+             */
+            expires_in_days: 30 | 90 | 365;
+            /** Name */
+            name: string;
+        };
+        /** ApiTokenCreated */
+        ApiTokenCreated: {
+            /**
+             * Active
+             * @description Unrevoked, unexpired, and its creator is still a member of the workspace
+             */
+            active: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Created By
+             * @description The creator's email
+             */
+            created_by: string | null;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Last Used At */
+            last_used_at: string | null;
+            /** Name */
+            name: string;
+            /**
+             * Prefix
+             * @description The token's first characters, to tell tokens apart
+             */
+            prefix: string;
+            /** Revoked At */
+            revoked_at: string | null;
+            /**
+             * Token
+             * @description The token itself. Shown only in this response.
+             */
+            token: string;
+        };
+        /** ApproveRequest */
+        ApproveRequest: {
+            /**
+             * Accept Errors
+             * @description Approve even though checks found errors
+             * @default false
+             */
+            accept_errors: boolean;
+            /**
+             * Data
+             * @description Unsaved corrections, saved before approving
+             */
+            data?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Version
+             * @description The extraction version being approved
+             */
+            version: number;
+        };
         /**
          * ContentType
          * @enum {string}
          */
         ContentType: "application/pdf" | "image/png" | "image/jpeg";
+        /** DayCount */
+        DayCount: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Uploaded */
+            uploaded: number;
+        };
         /**
          * DocType
          * @description F4 classification labels.
@@ -348,6 +665,16 @@ export interface components {
         DocType: "invoice" | "receipt" | "purchase_order" | "other";
         /** Document */
         Document: {
+            /**
+             * Approved At
+             * @description Set when approved (F6, F7)
+             */
+            approved_at: string | null;
+            /**
+             * Approved By Agent
+             * @description Approved automatically by the validation agent
+             */
+            approved_by_agent: boolean;
             content_type: components["schemas"]["ContentType"];
             /**
              * Created At
@@ -376,6 +703,8 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** @description Open issues on the current extraction; null before validation */
+            issue_counts?: components["schemas"]["IssueCounts"] | null;
             /** Sha256 */
             sha256: string;
             /** Size Bytes */
@@ -414,7 +743,7 @@ export interface components {
          * @description F3 statuses. F6 adds VALIDATING and APPROVED.
          * @enum {string}
          */
-        DocumentStatus: "UPLOADED" | "CLASSIFYING" | "EXTRACTING" | "NEEDS_REVIEW" | "FAILED";
+        DocumentStatus: "UPLOADED" | "CLASSIFYING" | "EXTRACTING" | "VALIDATING" | "NEEDS_REVIEW" | "APPROVED" | "FAILED";
         /**
          * Extraction
          * @description One version of a document's extracted data (ADR-0005).
@@ -456,6 +785,13 @@ export interface components {
             /** Version */
             version: number;
         };
+        /** FailureReason */
+        FailureReason: {
+            /** Documents */
+            documents: number;
+            /** Reason */
+            reason: string;
+        };
         /** FileUrl */
         FileUrl: {
             /**
@@ -465,6 +801,68 @@ export interface components {
             expires_at: string;
             /** Url */
             url: string;
+        };
+        /**
+         * Headline
+         * @description The four headline metrics (constitution §10.2).
+         */
+        Headline: {
+            /** Approved */
+            approved: number;
+            /** Approved By Agent */
+            approved_by_agent: number;
+            /** Approved Without Edits */
+            approved_without_edits: number;
+            /**
+             * Approved Without Edits Rate
+             * @description approved_without_edits / approved; null when nothing was approved
+             */
+            approved_without_edits_rate: number | null;
+            /** Cost Per Document Usd */
+            cost_per_document_usd: number | null;
+            /**
+             * Cost Usd
+             * @description Estimated at list prices
+             */
+            cost_usd: number | null;
+            /**
+             * Documents Processed
+             * @description Documents with AI calls in the period
+             */
+            documents_processed: number;
+            /**
+             * Field Accuracy
+             * @description fields_unchanged / fields_reviewed; agent approvals are not included
+             */
+            field_accuracy: number | null;
+            /**
+             * Fields Reviewed
+             * @description Fields on documents a person approved
+             */
+            fields_reviewed: number;
+            /** Fields Unchanged */
+            fields_unchanged: number;
+            /**
+             * Processing Runs
+             * @description Processing runs that finished in the period
+             */
+            processing_runs: number;
+            /** Processing Seconds P50 */
+            processing_seconds_p50: number | null;
+            /** Processing Seconds P95 */
+            processing_seconds_p95: number | null;
+        };
+        /**
+         * IssueCounts
+         * @description Open validation issues on the current extraction, by severity (F6).
+         */
+        IssueCounts: {
+            /** Error */
+            error: number;
+            /** Info */
+            info: number;
+            /** Warning */
+            warning: number;
         };
         /** Me */
         Me: {
@@ -476,6 +874,15 @@ export interface components {
         Membership: {
             role: components["schemas"]["Role"];
             workspace: components["schemas"]["WorkspaceSummary"];
+        };
+        /** ModelShare */
+        ModelShare: {
+            /** Calls */
+            calls: number;
+            /** Model */
+            model: string;
+            /** Provider */
+            provider: string;
         };
         /**
          * Problem
@@ -516,11 +923,116 @@ export interface components {
          * @enum {string}
          */
         Provider: "gemini" | "groq" | "openrouter";
+        /** Queue */
+        Queue: {
+            /** Dead */
+            dead: number;
+            /**
+             * Failed
+             * @description Documents that failed in the period
+             */
+            failed: number;
+            /**
+             * Failure Reasons
+             * @description The most common, at most 5
+             */
+            failure_reasons: components["schemas"]["FailureReason"][];
+            /** Oldest Queued Seconds */
+            oldest_queued_seconds: number | null;
+            /** Queued */
+            queued: number;
+            /** Running */
+            running: number;
+        };
+        /** ReviewMetrics */
+        ReviewMetrics: {
+            /** Approved */
+            approved: number;
+            /** Approved By Agent */
+            approved_by_agent: number;
+            /** Approved Without Edits */
+            approved_without_edits: number;
+            /**
+             * Approved Without Edits Rate
+             * @description approved_without_edits / approved; null when nothing is approved yet
+             */
+            approved_without_edits_rate: number | null;
+        };
         /**
          * Role
          * @enum {string}
          */
         Role: "admin" | "reviewer";
+        /** SaveCorrections */
+        SaveCorrections: {
+            /**
+             * Base Version
+             * @description The extraction version the edits were made on
+             */
+            base_version: number;
+            /**
+             * Data
+             * @description The whole corrected instance
+             */
+            data: {
+                [key: string]: unknown;
+            };
+        };
+        /** SearchHit */
+        SearchHit: {
+            document: components["schemas"]["Document"];
+            /**
+             * Matched
+             * @description Why it matched; null when there was no text to match
+             */
+            matched: ("keyword" | "meaning" | "both") | null;
+            /**
+             * Snippet
+             * @description Matching text, with the matched words between [[ and ]]
+             */
+            snippet: string | null;
+        };
+        /** SearchResults */
+        SearchResults: {
+            /** Items */
+            items: components["schemas"]["SearchHit"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+            /**
+             * Semantic
+             * @description False when matching by meaning was unavailable: keyword matches only
+             */
+            semantic: boolean;
+        };
+        /** TaskReliability */
+        TaskReliability: {
+            /** Calls */
+            calls: number;
+            /**
+             * Fallback Rate
+             * @description Share of answers that came from a fallback in the route
+             */
+            fallback_rate: number | null;
+            /**
+             * Latency Ms P50
+             * @description Of fresh answers
+             */
+            latency_ms_p50: number | null;
+            /**
+             * Outcomes
+             * @description Every outcome, zero included
+             */
+            outcomes: {
+                [key: string]: number;
+            };
+            /**
+             * Served By
+             * @description Answers (fresh or cached), most first
+             */
+            served_by: components["schemas"]["ModelShare"][];
+            /** Task */
+            task: string;
+        };
         /**
          * UploadDuplicate
          * @description The same content is already a document in this workspace (AC3). Nothing to upload.
@@ -588,6 +1100,68 @@ export interface components {
              */
             id: string;
         };
+        /**
+         * ValidationIssue
+         * @description A failed check on the current extraction, or one the agent fixed on the way to it.
+         */
+        ValidationIssue: {
+            /**
+             * Check Name
+             * @description line_items, totals, gstin, tax_type, dates, duplicate or known_vendor
+             */
+            check_name: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Fixed By Agent */
+            fixed_by_agent: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Message */
+            message: string;
+            /**
+             * Paths
+             * @description Field paths involved (dotted, zero-based indices)
+             */
+            paths: string[];
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "error" | "warning" | "info";
+        };
+        /** ValidationIssueList */
+        ValidationIssueList: {
+            /** Items */
+            items: components["schemas"]["ValidationIssue"][];
+        };
+        /** Volume */
+        Volume: {
+            /**
+             * By Doc Type
+             * @description As by_status; 'unclassified' when unknown
+             */
+            by_doc_type: {
+                [key: string]: number;
+            };
+            /**
+             * By Status
+             * @description Documents uploaded in the period, by their status now
+             */
+            by_status: {
+                [key: string]: number;
+            };
+            /**
+             * Per Day
+             * @description Every day of the period, oldest first
+             */
+            per_day: components["schemas"]["DayCount"][];
+        };
         /** Workspace */
         Workspace: {
             /**
@@ -604,6 +1178,24 @@ export interface components {
             name: string;
             /** @description The caller's role in this workspace. */
             role: components["schemas"]["Role"];
+        };
+        /** WorkspaceMetrics */
+        WorkspaceMetrics: {
+            headline: components["schemas"]["Headline"];
+            /** Llm */
+            llm: components["schemas"]["TaskReliability"][];
+            /**
+             * Period
+             * @enum {string}
+             */
+            period: "7d" | "30d" | "all";
+            queue: components["schemas"]["Queue"];
+            /**
+             * Since
+             * @description Start of the period; null for all time
+             */
+            since: string | null;
+            volume: components["schemas"]["Volume"];
         };
         /** WorkspaceSummary */
         WorkspaceSummary: {
@@ -714,6 +1306,48 @@ export interface operations {
             };
             /** @description Service Unavailable */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getSchema: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                schema_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -895,7 +1529,10 @@ export interface operations {
     saveAiKey: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Optional. A repeat with the same key within 24 hours returns the first response instead of acting again. */
+                "Idempotency-Key"?: string | null;
+            };
             path: {
                 provider: string;
                 workspace_id: string;
@@ -953,6 +1590,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description Service Unavailable */
             503: {
                 headers: {
@@ -967,7 +1613,10 @@ export interface operations {
     deleteAiKey: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Optional. A repeat with the same key within 24 hours returns the first response instead of acting again. */
+                "Idempotency-Key"?: string | null;
+            };
             path: {
                 provider: string;
                 workspace_id: string;
@@ -1024,7 +1673,10 @@ export interface operations {
     testAiKey: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Optional. A repeat with the same key within 24 hours returns the first response instead of acting again. */
+                "Idempotency-Key"?: string | null;
+            };
             path: {
                 provider: string;
                 workspace_id: string;
@@ -1053,6 +1705,180 @@ export interface operations {
             };
             /** @description Forbidden */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    listApiTokens: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiToken"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    createApiToken: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional. A repeat with the same key within 24 hours returns the first response instead of acting again. */
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApiTokenCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiTokenCreated"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    revokeApiToken: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional. A repeat with the same key within 24 hours returns the first response instead of acting again. */
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                token_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1191,6 +2017,81 @@ export interface operations {
             };
         };
     };
+    approveDocument: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional. A repeat with the same key within 24 hours returns the first response instead of acting again. */
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                document_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApproveRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Document"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     getCurrentExtraction: {
         parameters: {
             query?: never;
@@ -1223,6 +2124,78 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    saveCorrections: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveCorrections"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Extraction"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1291,10 +2264,63 @@ export interface operations {
             };
         };
     };
-    retryDocument: {
+    listIssues: {
         parameters: {
             query?: never;
             header?: never;
+            path: {
+                document_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationIssueList"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    retryDocument: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional. A repeat with the same key within 24 hours returns the first response instead of acting again. */
+                "Idempotency-Key"?: string | null;
+            };
             path: {
                 document_id: string;
                 workspace_id: string;
@@ -1399,10 +2425,261 @@ export interface operations {
             };
         };
     };
-    startUpload: {
+    exportDocuments: {
+        parameters: {
+            query?: {
+                format?: "csv" | "json";
+                include_unapproved?: boolean;
+                q?: string;
+                doc_type?: components["schemas"]["DocType"] | null;
+                status?: components["schemas"]["DocumentStatus"] | null;
+                vendor?: string | null;
+                date_from?: string | null;
+                date_to?: string | null;
+                amount_min?: number | string | null;
+                amount_max?: number | string | null;
+            };
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The export file, as an attachment */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                    "application/zip": unknown;
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getWorkspaceMetrics: {
+        parameters: {
+            query?: {
+                period?: "7d" | "30d" | "all";
+            };
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceMetrics"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getReviewMetrics: {
         parameters: {
             query?: never;
             header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewMetrics"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    searchDocuments: {
+        parameters: {
+            query?: {
+                q?: string;
+                doc_type?: components["schemas"]["DocType"] | null;
+                status?: components["schemas"]["DocumentStatus"] | null;
+                vendor?: string | null;
+                date_from?: string | null;
+                date_to?: string | null;
+                amount_min?: number | string | null;
+                amount_max?: number | string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchResults"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    startUpload: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional. A repeat with the same key within 24 hours returns the first response instead of acting again. */
+                "Idempotency-Key"?: string | null;
+            };
             path: {
                 workspace_id: string;
             };
@@ -1473,7 +2750,10 @@ export interface operations {
     completeUpload: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Optional. A repeat with the same key within 24 hours returns the first response instead of acting again. */
+                "Idempotency-Key"?: string | null;
+            };
             path: {
                 upload_id: string;
                 workspace_id: string;

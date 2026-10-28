@@ -1,6 +1,8 @@
 from collections import Counter
 
 from app.schemas_registry import validation_errors
+from app.validation import gstin
+from evals.build_dataset import expected_issues
 from evals.paths import MANIFEST
 from evals.runner import load_manifest, select
 
@@ -8,7 +10,7 @@ from evals.runner import load_manifest, select
 def test_ac1_manifest_valid_files_exist_licences_present() -> None:
     version, documents = load_manifest(MANIFEST)
 
-    assert version == 1
+    assert version == 2
     assert len(documents) >= 20
     assert len({d.id for d in documents}) == len(documents)
     for document in documents:
@@ -47,3 +49,35 @@ def test_small_samples_cover_every_source_and_type() -> None:
         ("synthetic", "receipt"),
     }
     assert select(documents, 4) == sample  # stable
+
+
+def test_f6_d3_synthetic_gstins_have_valid_checksums() -> None:
+    _, documents = load_manifest(MANIFEST)
+
+    gstins = {
+        (d.id, key): party["gstin"]
+        for d in documents
+        if d.source == "synthetic"
+        for key in ("vendor", "buyer", "merchant")
+        if (party := d.truth.get(key)) and party.get("gstin")
+    }
+
+    invalid = {where for where, value in gstins.items() if not gstin.is_valid(value)}
+    assert invalid == {("broken-invoice-bad-gstin", "vendor")}
+
+
+def test_f6_d3_broken_documents_and_their_expected_issues() -> None:
+    _, documents = load_manifest(MANIFEST)
+    by_id = {d.id: d for d in documents}
+
+    assert {d.id: d.expected_issues for d in documents if d.id.startswith("broken-")} == {
+        "broken-invoice-wrong-total": ["totals"],
+        "broken-invoice-bad-gstin": ["gstin"],
+        "broken-invoice-tax-mix": ["tax_type"],
+        "broken-invoice-duplicate": ["duplicate"],
+    }
+    assert by_id["broken-invoice-duplicate"].truth == by_id["syn-invoice-01"].truth
+    for d in documents:  # the manifest agrees with the checks run on the truth
+        assert expected_issues(d.doc_type, d.truth) == [
+            issue for issue in d.expected_issues if issue != "duplicate"
+        ], d.id

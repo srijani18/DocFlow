@@ -72,7 +72,12 @@ async def skip_classification(ctx: StepContext) -> None:
 
 async def skip_extraction(ctx: StepContext) -> None:
     """Placeholder until F5: no extraction yet."""
-    await ctx.advance(from_status=DocumentStatus.EXTRACTING, to=DocumentStatus.NEEDS_REVIEW)
+    await ctx.advance(from_status=DocumentStatus.EXTRACTING, to=DocumentStatus.VALIDATING)
+
+
+async def skip_validation(ctx: StepContext) -> None:
+    """Without the F6 agent, every document waits for a person."""
+    await ctx.advance(from_status=DocumentStatus.VALIDATING, to=DocumentStatus.NEEDS_REVIEW)
 
 
 class Pipeline:
@@ -84,6 +89,7 @@ class Pipeline:
         publish: Publish,
         classify: Step = skip_classification,
         extract: Step = skip_extraction,
+        validate: Step = skip_validation,
     ) -> None:
         self._sessionmaker = sessionmaker
         self._storage = storage
@@ -91,6 +97,7 @@ class Pipeline:
         self._steps: dict[DocumentStatus, Step] = {
             DocumentStatus.CLASSIFYING: classify,
             DocumentStatus.EXTRACTING: extract,
+            DocumentStatus.VALIDATING: validate,
         }
 
     async def run(

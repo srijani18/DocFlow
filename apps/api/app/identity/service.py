@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.verifier import VerifiedClaims
 from app.core.errors import NotFoundError
 from app.core.logging import get_logger
+from app.core.rls_system import become_system
 from app.core.tenancy import WorkspaceScope
 from app.identity import repository
 from app.identity.models import WORKSPACE_NAME_MAX_LENGTH, Workspace
@@ -43,8 +44,10 @@ async def provision_or_load(session: AsyncSession, claims: VerifiedClaims) -> Cu
     """Return the caller's user, creating user + personal workspace + admin membership on
     first sight, exactly once even under concurrent first requests (AC5, AC6).
 
-    Runs in the caller's transaction, so the three rows commit together or not at all.
+    Runs in the caller's transaction, so the three rows commit together or not at all. Users
+    are global and a new user's workspace doesn't exist yet: a system operation (F14 AC3).
     """
+    await become_system(session)
     user = await repository.get_user_by_subject(session, claims.subject)
     if user is None:
         new_user_id = await repository.insert_user_if_absent(
@@ -75,6 +78,8 @@ async def provision_or_load(session: AsyncSession, claims: VerifiedClaims) -> Cu
 
 
 async def list_memberships(session: AsyncSession, user_id: uuid.UUID) -> list[MembershipRow]:
+    """A user's own memberships, across workspaces: a system operation (F14 AC3)."""
+    await become_system(session)
     return await repository.list_memberships(session, user_id)
 
 

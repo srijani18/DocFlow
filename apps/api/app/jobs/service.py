@@ -14,3 +14,16 @@ async def enqueue_document_processing(
     """Queue a processing run, in the caller's transaction (ADR-0001: the document and its
     job commit together)."""
     return await repository.enqueue(session, scope, document_id=document_id, generation=generation)
+
+
+async def enqueue_embedding(
+    session: AsyncSession,
+    scope: WorkspaceScope,
+    *,
+    document_id: uuid.UUID,
+    extraction_id: uuid.UUID,
+) -> uuid.UUID | None:
+    """Queue the search embedding of a new current version, in the caller's transaction."""
+    return await repository.enqueue_embedding(
+        session, scope, document_id=document_id, extraction_id=extraction_id
+    )

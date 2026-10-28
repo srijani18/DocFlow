@@ -8,11 +8,15 @@ dependencies = [
     "fastapi>=0.162.0",
     "httpx>=0.28.1",
     "jsonschema>=4.26.0",
+    "langfuse==4.17.0",
+    "mcp==2.3.0",
+    "pgvector>=0.5.1,<0.6",
     "pillow>=13.0.0",
     "psycopg[binary]>=3.3.6",
     "pydantic-settings>=2.16.1",
     "pyjwt[crypto]>=2.15.1",
     "pypdfium2>=5.14.0",
+    "sentry-sdk==2.72.0",
     "sqlalchemy[asyncio]>=2.1.6",
     "structlog>=26.1.0",
     "uvicorn[standard]>=0.54.0",
@@ -171,4 +175,17 @@ type = "forbidden"
 source_modules = ["app.auth", "app.worker", "app.core"]
 forbidden_modules = ["app.identity.repository", "app.identity.models", "app.identity.routes"]
 # Going through app.identity.service (which uses the repository) is the point.
+allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+name = "only identity, the job queue, MCP token lookup and operator tools bypass row-level security (F14 AC3)"
+type = "forbidden"
+source_modules = [
+  "app.documents", "app.extractions", "app.validation", "app.review", "app.export",
+  "app.metrics", "app.aikeys", "app.pipeline", "app.llm", "app.events", "app.storage",
+  "app.search.service", "app.search.repository", "app.search.routes", "app.search.indexer",
+  "app.mcp.server", "app.mcp.summaries", "app.mcp.tokens", "app.mcp.token_routes",
+]
+forbidden_modules = ["app.core.rls_system"]
+# Through app.auth -> app.identity.service is fine: that is the sanctioned path.
 allow_indirect_imports = true

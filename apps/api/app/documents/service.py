@@ -70,7 +70,11 @@ def created_event(document: Document) -> StatusEvent:
 
 def storage_path(scope: WorkspaceScope, upload_id: uuid.UUID) -> str:
     """Always built by the server, so a client can never name another workspace's path."""
-    return f"{scope.workspace_id}/{upload_id}"
+    return upload_path(scope.workspace_id, upload_id)
+
+
+def upload_path(workspace_id: uuid.UUID, upload_id: uuid.UUID) -> str:
+    return f"{workspace_id}/{upload_id}"
 
 
 def _parse_id(value: str) -> uuid.UUID:
@@ -338,6 +342,7 @@ async def set_current_extraction(
     document_date: date | None,
     total_amount: Decimal | None,
     currency: str | None,
+    search_text: str,
 ) -> None:
     await repository.set_current_extraction(
         session,
@@ -348,7 +353,50 @@ async def set_current_extraction(
         document_date=document_date,
         total_amount=total_amount,
         currency=currency,
+        search_text=search_text,
     )
+
+
+async def approve(
+    session: AsyncSession,
+    scope: WorkspaceScope,
+    document_id: uuid.UUID,
+    *,
+    expected: Collection[str],
+    by_user_id: uuid.UUID | None,
+    extraction_id: uuid.UUID,
+    job_id: uuid.UUID | None = None,
+    detail: str | None = None,
+) -> tuple[Document, StatusEvent]:
+    """Move the document to APPROVED and record who approved it and which version: the agent
+    (F6 AC6) when `by_user_id` is None, otherwise a person (F7 AC5)."""
+    document, event = await transition(
+        session,
+        scope,
+        document_id,
+        expected=expected,
+        to=DocumentStatus.APPROVED,
+        job_id=job_id,
+        detail=detail,
+    )
+    await repository.set_approval(
+        session,
+        scope,
+        document_id,
+        by_user_id=by_user_id,
+        by_agent=by_user_id is None,
+        extraction_id=extraction_id,
+    )
+    await session.refresh(document)
+    return document, event
+
+
+async def lock_document(session: AsyncSession, scope: WorkspaceScope, document_id: str) -> Document:
+    """The document, locked until the transaction ends, or 404 (F7: one save at a time)."""
+    document = await repository.lock_document(session, scope, _parse_id(document_id))
+    if document is None:
+        raise NotFoundError()
+    return document
 
 
 async def retry_failed_with_codes(

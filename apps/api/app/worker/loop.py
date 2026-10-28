@@ -14,10 +14,14 @@ from typing import Protocol
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.logging import get_logger
+from app.core.observability import report_exception
+from app.core.rls import acting_for
+from app.core.rls_system import system_session
 from app.documents import service as documents
 from app.jobs import repository as queue
 from app.jobs.backoff import backoff_seconds
 from app.jobs.errors import PermanentError, StepError, TransientError
+from app.worker.maintenance import Maintenance
 
 log = get_logger(__name__)
 
@@ -42,6 +46,11 @@ def default_worker_id() -> str:
     return f"{socket.gethostname()}:{os.getpid()}:{uuid.uuid4().hex[:6]}"
 
 
+def _being_cancelled() -> bool:
+    task = asyncio.current_task()
+    return task is not None and task.cancelling() > 0
+
+
 class Worker:
     def __init__(
         self,
@@ -49,12 +58,20 @@ class Worker:
         sessionmaker: async_sessionmaker[AsyncSession],
         pipeline: Runner,
         events: Publisher,
+        embedder: Runner | None = None,
+        maintenance: Maintenance | None = None,
         sweep_seconds: float = SWEEP_SECONDS,
         worker_id: str | None = None,
     ) -> None:
         self._sessionmaker = sessionmaker
         self._pipeline = pipeline
+        # F8: without an embedder (tests, or search switched off) embed jobs just succeed.
+        self._runners: dict[str, Runner | None] = {
+            queue.PROCESS_DOCUMENT: pipeline,
+            queue.EMBED_DOCUMENT: embedder,
+        }
         self._events = events
+        self._maintenance = maintenance
         self._sweep_seconds = sweep_seconds
         self.worker_id = worker_id or default_worker_id()
         self._wake_event = asyncio.Event()
@@ -69,9 +86,16 @@ class Worker:
         while True:
             try:
                 await self.drain()  # also picks up jobs left over from before a restart (AC12)
+                if self._maintenance is not None:
+                    await self._maintenance.run_if_due()  # hourly (F14 AC11)
                 timeout = await self._seconds_until_next_due()
-            except Exception:
+            except Exception as exc:
+                if _being_cancelled():
+                    # A cancel (shutdown) that landed in a database call can come back as an
+                    # ordinary error; carrying on would leave the worker running forever.
+                    raise asyncio.CancelledError from exc
                 log.exception("worker_loop_error")
+                report_exception(exc)
                 timeout = LOOP_ERROR_PAUSE_SECONDS
             try:
                 async with asyncio.timeout(timeout):
@@ -84,38 +108,57 @@ class Worker:
         """Run every job that is due now. Returns how many ran."""
         ran = 0
         while (job := await self._claim()) is not None:
-            await self._run_job(job)
+            # Everything the job does, including the queue update, is limited to its workspace.
+            with acting_for(job.workspace_id):
+                await self._run_job(job)
             ran += 1
         return ran
 
     async def _claim(self) -> queue.ClaimedJob | None:
-        async with self._sessionmaker() as session, session.begin():
+        # The queue is shared by every workspace: claiming is a system operation (F14).
+        async with system_session(self._sessionmaker) as session, session.begin():
             return await queue.claim(session, worker_id=self.worker_id)
 
     async def _seconds_until_next_due(self) -> float:
-        async with self._sessionmaker() as session:
+        async with system_session(self._sessionmaker) as session:
             due = await queue.seconds_until_next_due(session)
         return self._sweep_seconds if due is None else min(due, self._sweep_seconds)
 
     async def _run_job(self, job: queue.ClaimedJob) -> None:
-        bound = log.bind(job_id=str(job.id), document_id=str(job.document_id), attempt=job.attempts)
+        bound = log.bind(
+            job_id=str(job.id),
+            kind=job.kind,
+            document_id=str(job.document_id),
+            attempt=job.attempts,
+        )
         self.jobs_run += 1
+        runner = self._runners.get(job.kind)
         try:
-            await self._pipeline.run(
-                workspace_id=job.workspace_id,
-                document_id=job.document_id,
-                job_id=job.id,
-                attempt=job.attempts,
-            )
+            if runner is not None:
+                await runner.run(
+                    workspace_id=job.workspace_id,
+                    document_id=job.document_id,
+                    job_id=job.id,
+                    attempt=job.attempts,
+                )
         except PermanentError as exc:
             bound.warning("job_failed_permanently", reason=exc.reason, detail=exc.detail)
             await self._give_up(job, exc)
         except StepError as exc:
             await self._retry_or_give_up(job, exc)
         except Exception as exc:
+            if _being_cancelled():  # shutdown, not a crash: the job's lease expires and it reruns
+                raise asyncio.CancelledError from exc
             # Unknown errors are treated as transient, so a bug can't fail a document
             # permanently without the record of 5 attempts (F3 plan §4).
             bound.exception("job_crashed")
+            report_exception(
+                exc,
+                workspace_id=job.workspace_id,
+                document_id=job.document_id,
+                job_id=job.id,
+                kind=job.kind,
+            )
             await self._retry_or_give_up(job, TransientError(UNEXPECTED_REASON, detail=repr(exc)))
         else:
             async with self._sessionmaker() as session, session.begin():
@@ -146,7 +189,12 @@ class Worker:
     ) -> None:
         event = None
         async with self._sessionmaker() as session, session.begin():
-            if await queue.mark_dead(session, job.id, worker_id=self.worker_id, error=exc.detail):
+            dead = await queue.mark_dead(
+                session, job.id, worker_id=self.worker_id, error=exc.detail
+            )
+            # Only processing decides a document's fate; a failed embedding leaves the
+            # document findable by keyword (F8 AC5).
+            if dead and job.kind == queue.PROCESS_DOCUMENT:
                 loaded = await documents.load_for_job(
                     session, workspace_id=job.workspace_id, document_id=job.document_id
                 )

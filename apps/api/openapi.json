@@ -87,6 +87,236 @@
         "title": "AiKeyStatus",
         "type": "object"
       },
+      "ApiToken": {
+        "properties": {
+          "active": {
+            "description": "Unrevoked, unexpired, and its creator is still a member of the workspace",
+            "title": "Active",
+            "type": "boolean"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The creator's email",
+            "title": "Created By"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "last_used_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Used At"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "prefix": {
+            "description": "The token's first characters, to tell tokens apart",
+            "title": "Prefix",
+            "type": "string"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked At"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "prefix",
+          "created_by",
+          "created_at",
+          "expires_at",
+          "last_used_at",
+          "revoked_at",
+          "active"
+        ],
+        "title": "ApiToken",
+        "type": "object"
+      },
+      "ApiTokenCreate": {
+        "properties": {
+          "expires_in_days": {
+            "default": 90,
+            "enum": [
+              30,
+              90,
+              365
+            ],
+            "title": "Expires In Days",
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "ApiTokenCreate",
+        "type": "object"
+      },
+      "ApiTokenCreated": {
+        "properties": {
+          "active": {
+            "description": "Unrevoked, unexpired, and its creator is still a member of the workspace",
+            "title": "Active",
+            "type": "boolean"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The creator's email",
+            "title": "Created By"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "last_used_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Used At"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "prefix": {
+            "description": "The token's first characters, to tell tokens apart",
+            "title": "Prefix",
+            "type": "string"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked At"
+          },
+          "token": {
+            "description": "The token itself. Shown only in this response.",
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "prefix",
+          "created_by",
+          "created_at",
+          "expires_at",
+          "last_used_at",
+          "revoked_at",
+          "active",
+          "token"
+        ],
+        "title": "ApiTokenCreated",
+        "type": "object"
+      },
+      "ApproveRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "accept_errors": {
+            "default": false,
+            "description": "Approve even though checks found errors",
+            "title": "Accept Errors",
+            "type": "boolean"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Unsaved corrections, saved before approving",
+            "title": "Data"
+          },
+          "version": {
+            "description": "The extraction version being approved",
+            "minimum": 1.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version"
+        ],
+        "title": "ApproveRequest",
+        "type": "object"
+      },
       "ContentType": {
         "enum": [
           "application/pdf",
@@ -95,6 +325,25 @@
         ],
         "title": "ContentType",
         "type": "string"
+      },
+      "DayCount": {
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "uploaded": {
+            "title": "Uploaded",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "date",
+          "uploaded"
+        ],
+        "title": "DayCount",
+        "type": "object"
       },
       "DocType": {
         "description": "F4 classification labels.",
@@ -109,6 +358,24 @@
       },
       "Document": {
         "properties": {
+          "approved_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Set when approved (F6, F7)",
+            "title": "Approved At"
+          },
+          "approved_by_agent": {
+            "description": "Approved automatically by the validation agent",
+            "title": "Approved By Agent",
+            "type": "boolean"
+          },
           "content_type": {
             "$ref": "#/components/schemas/ContentType"
           },
@@ -194,6 +461,17 @@
             "title": "Id",
             "type": "string"
           },
+          "issue_counts": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IssueCounts"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Open issues on the current extraction; null before validation"
+          },
           "sha256": {
             "title": "Sha256",
             "type": "string"
@@ -256,6 +534,8 @@
           "document_date",
           "total_amount",
           "currency",
+          "approved_at",
+          "approved_by_agent",
           "created_at",
           "updated_at"
         ],
@@ -296,7 +576,9 @@
           "UPLOADED",
           "CLASSIFYING",
           "EXTRACTING",
+          "VALIDATING",
           "NEEDS_REVIEW",
+          "APPROVED",
           "FAILED"
         ],
         "title": "DocumentStatus",
@@ -371,6 +653,24 @@
         "title": "Extraction",
         "type": "object"
       },
+      "FailureReason": {
+        "properties": {
+          "documents": {
+            "title": "Documents",
+            "type": "integer"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason",
+          "documents"
+        ],
+        "title": "FailureReason",
+        "type": "object"
+      },
       "FileUrl": {
         "properties": {
           "expires_at": {
@@ -388,6 +688,152 @@
           "expires_at"
         ],
         "title": "FileUrl",
+        "type": "object"
+      },
+      "Headline": {
+        "description": "The four headline metrics (constitution \u00a710.2).",
+        "properties": {
+          "approved": {
+            "title": "Approved",
+            "type": "integer"
+          },
+          "approved_by_agent": {
+            "title": "Approved By Agent",
+            "type": "integer"
+          },
+          "approved_without_edits": {
+            "title": "Approved Without Edits",
+            "type": "integer"
+          },
+          "approved_without_edits_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "approved_without_edits / approved; null when nothing was approved",
+            "title": "Approved Without Edits Rate"
+          },
+          "cost_per_document_usd": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Per Document Usd"
+          },
+          "cost_usd": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Estimated at list prices",
+            "title": "Cost Usd"
+          },
+          "documents_processed": {
+            "description": "Documents with AI calls in the period",
+            "title": "Documents Processed",
+            "type": "integer"
+          },
+          "field_accuracy": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "fields_unchanged / fields_reviewed; agent approvals are not included",
+            "title": "Field Accuracy"
+          },
+          "fields_reviewed": {
+            "description": "Fields on documents a person approved",
+            "title": "Fields Reviewed",
+            "type": "integer"
+          },
+          "fields_unchanged": {
+            "title": "Fields Unchanged",
+            "type": "integer"
+          },
+          "processing_runs": {
+            "description": "Processing runs that finished in the period",
+            "title": "Processing Runs",
+            "type": "integer"
+          },
+          "processing_seconds_p50": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Processing Seconds P50"
+          },
+          "processing_seconds_p95": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Processing Seconds P95"
+          }
+        },
+        "required": [
+          "approved",
+          "approved_without_edits",
+          "approved_by_agent",
+          "approved_without_edits_rate",
+          "fields_reviewed",
+          "fields_unchanged",
+          "field_accuracy",
+          "documents_processed",
+          "cost_usd",
+          "cost_per_document_usd",
+          "processing_runs",
+          "processing_seconds_p50",
+          "processing_seconds_p95"
+        ],
+        "title": "Headline",
+        "type": "object"
+      },
+      "IssueCounts": {
+        "description": "Open validation issues on the current extraction, by severity (F6).",
+        "properties": {
+          "error": {
+            "title": "Error",
+            "type": "integer"
+          },
+          "info": {
+            "title": "Info",
+            "type": "integer"
+          },
+          "warning": {
+            "title": "Warning",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "error",
+          "warning",
+          "info"
+        ],
+        "title": "IssueCounts",
         "type": "object"
       },
       "Me": {
@@ -424,6 +870,29 @@
           "role"
         ],
         "title": "Membership",
+        "type": "object"
+      },
+      "ModelShare": {
+        "properties": {
+          "calls": {
+            "title": "Calls",
+            "type": "integer"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "model",
+          "calls"
+        ],
+        "title": "ModelShare",
         "type": "object"
       },
       "Problem": {
@@ -516,6 +985,92 @@
         "title": "Provider",
         "type": "string"
       },
+      "Queue": {
+        "properties": {
+          "dead": {
+            "title": "Dead",
+            "type": "integer"
+          },
+          "failed": {
+            "description": "Documents that failed in the period",
+            "title": "Failed",
+            "type": "integer"
+          },
+          "failure_reasons": {
+            "description": "The most common, at most 5",
+            "items": {
+              "$ref": "#/components/schemas/FailureReason"
+            },
+            "title": "Failure Reasons",
+            "type": "array"
+          },
+          "oldest_queued_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Oldest Queued Seconds"
+          },
+          "queued": {
+            "title": "Queued",
+            "type": "integer"
+          },
+          "running": {
+            "title": "Running",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "queued",
+          "running",
+          "dead",
+          "oldest_queued_seconds",
+          "failed",
+          "failure_reasons"
+        ],
+        "title": "Queue",
+        "type": "object"
+      },
+      "ReviewMetrics": {
+        "properties": {
+          "approved": {
+            "title": "Approved",
+            "type": "integer"
+          },
+          "approved_by_agent": {
+            "title": "Approved By Agent",
+            "type": "integer"
+          },
+          "approved_without_edits": {
+            "title": "Approved Without Edits",
+            "type": "integer"
+          },
+          "approved_without_edits_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "approved_without_edits / approved; null when nothing is approved yet",
+            "title": "Approved Without Edits Rate"
+          }
+        },
+        "required": [
+          "approved",
+          "approved_without_edits",
+          "approved_by_agent",
+          "approved_without_edits_rate"
+        ],
+        "title": "ReviewMetrics",
+        "type": "object"
+      },
       "Role": {
         "enum": [
           "admin",
@@ -523,6 +1078,168 @@
         ],
         "title": "Role",
         "type": "string"
+      },
+      "SaveCorrections": {
+        "additionalProperties": false,
+        "properties": {
+          "base_version": {
+            "description": "The extraction version the edits were made on",
+            "minimum": 1.0,
+            "title": "Base Version",
+            "type": "integer"
+          },
+          "data": {
+            "additionalProperties": true,
+            "description": "The whole corrected instance",
+            "title": "Data",
+            "type": "object"
+          }
+        },
+        "required": [
+          "base_version",
+          "data"
+        ],
+        "title": "SaveCorrections",
+        "type": "object"
+      },
+      "SearchHit": {
+        "properties": {
+          "document": {
+            "$ref": "#/components/schemas/Document"
+          },
+          "matched": {
+            "anyOf": [
+              {
+                "enum": [
+                  "keyword",
+                  "meaning",
+                  "both"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Why it matched; null when there was no text to match",
+            "title": "Matched"
+          },
+          "snippet": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Matching text, with the matched words between [[ and ]]",
+            "title": "Snippet"
+          }
+        },
+        "required": [
+          "document",
+          "matched",
+          "snippet"
+        ],
+        "title": "SearchHit",
+        "type": "object"
+      },
+      "SearchResults": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SearchHit"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "semantic": {
+            "description": "False when matching by meaning was unavailable: keyword matches only",
+            "title": "Semantic",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor",
+          "semantic"
+        ],
+        "title": "SearchResults",
+        "type": "object"
+      },
+      "TaskReliability": {
+        "properties": {
+          "calls": {
+            "title": "Calls",
+            "type": "integer"
+          },
+          "fallback_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Share of answers that came from a fallback in the route",
+            "title": "Fallback Rate"
+          },
+          "latency_ms_p50": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Of fresh answers",
+            "title": "Latency Ms P50"
+          },
+          "outcomes": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "description": "Every outcome, zero included",
+            "title": "Outcomes",
+            "type": "object"
+          },
+          "served_by": {
+            "description": "Answers (fresh or cached), most first",
+            "items": {
+              "$ref": "#/components/schemas/ModelShare"
+            },
+            "title": "Served By",
+            "type": "array"
+          },
+          "task": {
+            "title": "Task",
+            "type": "string"
+          }
+        },
+        "required": [
+          "task",
+          "calls",
+          "outcomes",
+          "fallback_rate",
+          "served_by",
+          "latency_ms_p50"
+        ],
+        "title": "TaskReliability",
+        "type": "object"
       },
       "UploadDuplicate": {
         "description": "The same content is already a document in this workspace (AC3). Nothing to upload.",
@@ -658,6 +1375,113 @@
         "title": "User",
         "type": "object"
       },
+      "ValidationIssue": {
+        "description": "A failed check on the current extraction, or one the agent fixed on the way to it.",
+        "properties": {
+          "check_name": {
+            "description": "line_items, totals, gstin, tax_type, dates, duplicate or known_vendor",
+            "title": "Check Name",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "fixed_by_agent": {
+            "title": "Fixed By Agent",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "paths": {
+            "description": "Field paths involved (dotted, zero-based indices)",
+            "items": {
+              "type": "string"
+            },
+            "title": "Paths",
+            "type": "array"
+          },
+          "severity": {
+            "enum": [
+              "error",
+              "warning",
+              "info"
+            ],
+            "title": "Severity",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "check_name",
+          "severity",
+          "paths",
+          "message",
+          "fixed_by_agent",
+          "created_at"
+        ],
+        "title": "ValidationIssue",
+        "type": "object"
+      },
+      "ValidationIssueList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationIssue"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "ValidationIssueList",
+        "type": "object"
+      },
+      "Volume": {
+        "properties": {
+          "by_doc_type": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "description": "As by_status; 'unclassified' when unknown",
+            "title": "By Doc Type",
+            "type": "object"
+          },
+          "by_status": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "description": "Documents uploaded in the period, by their status now",
+            "title": "By Status",
+            "type": "object"
+          },
+          "per_day": {
+            "description": "Every day of the period, oldest first",
+            "items": {
+              "$ref": "#/components/schemas/DayCount"
+            },
+            "title": "Per Day",
+            "type": "array"
+          }
+        },
+        "required": [
+          "per_day",
+          "by_status",
+          "by_doc_type"
+        ],
+        "title": "Volume",
+        "type": "object"
+      },
       "Workspace": {
         "properties": {
           "created_at": {
@@ -688,6 +1512,58 @@
           "created_at"
         ],
         "title": "Workspace",
+        "type": "object"
+      },
+      "WorkspaceMetrics": {
+        "properties": {
+          "headline": {
+            "$ref": "#/components/schemas/Headline"
+          },
+          "llm": {
+            "items": {
+              "$ref": "#/components/schemas/TaskReliability"
+            },
+            "title": "Llm",
+            "type": "array"
+          },
+          "period": {
+            "enum": [
+              "7d",
+              "30d",
+              "all"
+            ],
+            "title": "Period",
+            "type": "string"
+          },
+          "queue": {
+            "$ref": "#/components/schemas/Queue"
+          },
+          "since": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Start of the period; null for all time",
+            "title": "Since"
+          },
+          "volume": {
+            "$ref": "#/components/schemas/Volume"
+          }
+        },
+        "required": [
+          "period",
+          "since",
+          "headline",
+          "volume",
+          "llm",
+          "queue"
+        ],
+        "title": "WorkspaceMetrics",
         "type": "object"
       },
       "WorkspaceSummary": {
@@ -845,6 +1721,66 @@
         "summary": "Get Me",
         "tags": [
           "identity"
+        ]
+      }
+    },
+    "/v1/schemas/{schema_id}": {
+      "get": {
+        "description": "A bundled document schema (no tenant data), for the review form (F7 plan \u00a73).",
+        "operationId": "getSchema",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "schema_id",
+            "required": true,
+            "schema": {
+              "title": "Schema Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Getschema",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not Found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get Schema",
+        "tags": [
+          "extractions"
         ]
       }
     },
@@ -1105,6 +2041,24 @@
               "title": "Workspace Id",
               "type": "string"
             }
+          },
+          {
+            "description": "Optional. A repeat with the same key within 24 hours returns the first response instead of acting again.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional. A repeat with the same key within 24 hours returns the first response instead of acting again.",
+              "title": "Idempotency-Key"
+            }
           }
         ],
         "responses": {
@@ -1183,6 +2137,24 @@
               "title": "Workspace Id",
               "type": "string"
             }
+          },
+          {
+            "description": "Optional. A repeat with the same key within 24 hours returns the first response instead of acting again.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional. A repeat with the same key within 24 hours returns the first response instead of acting again.",
+              "title": "Idempotency-Key"
+            }
           }
         ],
         "requestBody": {
@@ -1246,6 +2218,16 @@
             },
             "description": "Unprocessable Entity"
           },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
           "503": {
             "content": {
               "application/problem+json": {
@@ -1290,6 +2272,24 @@
               "title": "Workspace Id",
               "type": "string"
             }
+          },
+          {
+            "description": "Optional. A repeat with the same key within 24 hours returns the first response instead of acting again.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional. A repeat with the same key within 24 hours returns the first response instead of acting again.",
+              "title": "Idempotency-Key"
+            }
           }
         ],
         "responses": {
@@ -1333,6 +2333,16 @@
             },
             "description": "Not Found"
           },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
           "503": {
             "content": {
               "application/problem+json": {
@@ -1352,6 +2362,270 @@
         "summary": "Test Ai Key",
         "tags": [
           "ai-keys"
+        ]
+      }
+    },
+    "/v1/workspaces/{workspace_id}/api-tokens": {
+      "get": {
+        "description": "Your tokens, or every token in the workspace for admins (AC3). Never the tokens\nthemselves.",
+        "operationId": "listApiTokens",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ApiToken"
+                  },
+                  "title": "Response Listapitokens",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List Api Tokens",
+        "tags": [
+          "api-tokens"
+        ]
+      },
+      "post": {
+        "description": "A new token for your AI assistant. The `token` is in this response only (AC1).",
+        "operationId": "createApiToken",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Optional. A repeat with the same key within 24 hours returns the first response instead of acting again.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional. A repeat with the same key within 24 hours returns the first response instead of acting again.",
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiTokenCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiTokenCreated"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Create Api Token",
+        "tags": [
+          "api-tokens"
+        ]
+      }
+    },
+    "/v1/workspaces/{workspace_id}/api-tokens/{token_id}": {
+      "delete": {
+        "description": "Revoke a token; it stops working on its next request (AC3).",
+        "operationId": "revokeApiToken",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token_id",
+            "required": true,
+            "schema": {
+              "title": "Token Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Optional. A repeat with the same key within 24 hours returns the first response instead of acting again.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional. A repeat with the same key within 24 hours returns the first response instead of acting again.",
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Revoke Api Token",
+        "tags": [
+          "api-tokens"
         ]
       }
     },
@@ -1537,6 +2811,131 @@
         ]
       }
     },
+    "/v1/workspaces/{workspace_id}/documents/{document_id}/approve": {
+      "post": {
+        "description": "Approve the document, saving `data` first if given (AC5).",
+        "operationId": "approveDocument",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Optional. A repeat with the same key within 24 hours returns the first response instead of acting again.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional. A repeat with the same key within 24 hours returns the first response instead of acting again.",
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Document"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Approve Document",
+        "tags": [
+          "review"
+        ]
+      }
+    },
     "/v1/workspaces/{workspace_id}/documents/{document_id}/extraction": {
       "get": {
         "description": "The document's current extraction; 404 until one exists (F5 AC6).",
@@ -1611,6 +3010,111 @@
         "summary": "Get Current Extraction",
         "tags": [
           "extractions"
+        ]
+      },
+      "put": {
+        "description": "Save the reviewer's corrections as a new version (AC4). 409 when the document changed\nsince `base_version` (AC6); no new version when nothing changed.",
+        "operationId": "saveCorrections",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveCorrections"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Extraction"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Save Corrections",
+        "tags": [
+          "review"
         ]
       }
     },
@@ -1691,6 +3195,83 @@
         ]
       }
     },
+    "/v1/workspaces/{workspace_id}/documents/{document_id}/issues": {
+      "get": {
+        "description": "Issues found on the document's current extraction (AC2); 404 until one exists.",
+        "operationId": "listIssues",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationIssueList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List Issues",
+        "tags": [
+          "validation"
+        ]
+      }
+    },
     "/v1/workspaces/{workspace_id}/documents/{document_id}/retry": {
       "post": {
         "description": "Process a FAILED document again with a fresh set of attempts (F3 AC8).",
@@ -1712,6 +3293,24 @@
             "schema": {
               "title": "Workspace Id",
               "type": "string"
+            }
+          },
+          {
+            "description": "Optional. A repeat with the same key within 24 hours returns the first response instead of acting again.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional. A repeat with the same key within 24 hours returns the first response instead of acting again.",
+              "title": "Idempotency-Key"
             }
           }
         ],
@@ -1846,6 +3445,636 @@
         ]
       }
     },
+    "/v1/workspaces/{workspace_id}/export": {
+      "get": {
+        "description": "Approved documents matching the search filters, as a ZIP of two CSV files or as\nJSON (AC1 to AC8). 422 when more than 5,000 documents match.",
+        "operationId": "exportDocuments",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "default": "csv",
+              "enum": [
+                "csv",
+                "json"
+              ],
+              "title": "Format",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include_unapproved",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Include Unapproved",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 200,
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "doc_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/DocType"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Doc Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/DocumentStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "vendor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Vendor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date_from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date_to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "amount_min",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Amount Min"
+            }
+          },
+          {
+            "in": "query",
+            "name": "amount_max",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Amount Max"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {},
+              "application/zip": {}
+            },
+            "description": "The export file, as an attachment"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Export Documents",
+        "tags": [
+          "export"
+        ]
+      }
+    },
+    "/v1/workspaces/{workspace_id}/metrics": {
+      "get": {
+        "description": "The workspace's headline metrics, volume, AI provider reliability and queue (AC1-AC4).",
+        "operationId": "getWorkspaceMetrics",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "period",
+            "required": false,
+            "schema": {
+              "default": "30d",
+              "enum": [
+                "7d",
+                "30d",
+                "all"
+              ],
+              "title": "Period",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceMetrics"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get Workspace Metrics",
+        "tags": [
+          "metrics"
+        ]
+      }
+    },
+    "/v1/workspaces/{workspace_id}/metrics/review": {
+      "get": {
+        "description": "How many approved documents needed no corrections (AC8).",
+        "operationId": "getReviewMetrics",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewMetrics"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get Review Metrics",
+        "tags": [
+          "review"
+        ]
+      }
+    },
+    "/v1/workspaces/{workspace_id}/search": {
+      "get": {
+        "description": "The workspace's documents matching the text (by keyword and meaning) and filters,\nbest first; newest first without text (AC1 to AC5).",
+        "operationId": "searchDocuments",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 200,
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "doc_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/DocType"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Doc Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/DocumentStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "vendor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Vendor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date_from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date_to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "amount_min",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Amount Min"
+            }
+          },
+          {
+            "in": "query",
+            "name": "amount_max",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Amount Max"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResults"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Search Documents",
+        "tags": [
+          "search"
+        ]
+      }
+    },
     "/v1/workspaces/{workspace_id}/uploads": {
       "post": {
         "description": "Start an upload: returns a signed upload ticket, or the existing duplicate.",
@@ -1858,6 +4087,24 @@
             "schema": {
               "title": "Workspace Id",
               "type": "string"
+            }
+          },
+          {
+            "description": "Optional. A repeat with the same key within 24 hours returns the first response instead of acting again.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional. A repeat with the same key within 24 hours returns the first response instead of acting again.",
+              "title": "Idempotency-Key"
             }
           }
         ],
@@ -1980,6 +4227,24 @@
             "schema": {
               "title": "Workspace Id",
               "type": "string"
+            }
+          },
+          {
+            "description": "Optional. A repeat with the same key within 24 hours returns the first response instead of acting again.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional. A repeat with the same key within 24 hours returns the first response instead of acting again.",
+              "title": "Idempotency-Key"
             }
           }
         ],

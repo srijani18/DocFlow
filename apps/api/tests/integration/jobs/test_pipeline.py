@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any
 
 import pytest
 from sqlalchemy import event, insert, select
@@ -47,7 +48,7 @@ async def test_ac1_completed_upload_is_processed(committing_engine: AsyncEngine)
 
     assert ran == 1
     assert (await document_row(seeded, document_id)).status == "NEEDS_REVIEW"
-    assert recorder.statuses == ["CLASSIFYING", "EXTRACTING", "NEEDS_REVIEW"]
+    assert recorder.statuses == ["CLASSIFYING", "EXTRACTING", "VALIDATING", "NEEDS_REVIEW"]
     assert [job.status for job in await jobs_for(seeded, document_id)] == ["succeeded"]
 
 
@@ -61,7 +62,8 @@ async def test_ac2_transition_records_event_and_timestamp(committing_engine: Asy
         (None, "UPLOADED"),
         ("UPLOADED", "CLASSIFYING"),
         ("CLASSIFYING", "EXTRACTING"),
-        ("EXTRACTING", "NEEDS_REVIEW"),
+        ("EXTRACTING", "VALIDATING"),
+        ("VALIDATING", "NEEDS_REVIEW"),
     ]
     document = await document_row(seeded, document_id)
     assert document.status_changed_at >= document.created_at
@@ -191,6 +193,43 @@ async def test_unexpected_exception_counts_as_transient(committing_engine: Async
     assert "KeyError" in (job.last_error or "")
 
 
+async def test_f16_crashed_job_is_reported_with_its_ids(
+    committing_engine: AsyncEngine, sentry_events: list[dict[str, Any]]
+) -> None:
+    seeded, storage = await seed_workspaces(committing_engine), FakeStorage()
+    document_id = await seed_document(seeded, storage)
+
+    async def buggy(ctx: StepContext) -> None:
+        raise KeyError("bug")
+
+    await make_worker(seeded, storage, Recorder(), classify=buggy).drain()
+
+    [job] = await jobs_for(seeded, document_id)
+    document = await document_row(seeded, document_id)
+    [event] = sentry_events
+    assert event["tags"] == {
+        "workspace_id": str(document.workspace_id),
+        "document_id": str(document_id),
+        "job_id": str(job.id),
+        "kind": "process_document",
+    }
+    assert event["exception"]["values"][0]["type"] == "KeyError"
+
+
+async def test_f16_expected_failures_are_not_reported(
+    committing_engine: AsyncEngine, sentry_events: list[dict[str, Any]]
+) -> None:
+    seeded, storage = await seed_workspaces(committing_engine), FakeStorage()
+    await seed_document(seeded, storage)
+
+    async def unavailable(ctx: StepContext) -> None:
+        raise TransientError("The AI provider is busy")
+
+    await make_worker(seeded, storage, Recorder(), classify=unavailable).drain()
+
+    assert sentry_events == []
+
+
 async def test_ac12_queued_jobs_run_after_restart(committing_engine: AsyncEngine) -> None:
     seeded, storage = await seed_workspaces(committing_engine), FakeStorage()
     document_id = await seed_document(seeded, storage)  # queued while "no worker was running"
@@ -230,6 +269,32 @@ async def test_ac11_idle_worker_runs_no_queries(committing_engine: AsyncEngine) 
 
     assert idle_statements == []
     assert any("FOR UPDATE SKIP LOCKED" in statement for statement in statements)
+
+
+async def test_cancelling_the_worker_stops_it_even_when_the_cancel_comes_back_as_an_error(
+    committing_engine: AsyncEngine,
+) -> None:
+    """A shutdown that lands in a database call can surface as a driver error. The worker
+    must still stop, not log it and carry on forever (found by an intermittent hang)."""
+    seeded, storage = await seed_workspaces(committing_engine), FakeStorage()
+    await seed_document(seeded, storage)
+    started = asyncio.Event()
+
+    async def converts_the_cancel(ctx: StepContext) -> None:
+        started.set()
+        try:
+            await asyncio.sleep(10)
+        except asyncio.CancelledError:
+            raise RuntimeError("connection lost") from None
+
+    task = asyncio.create_task(
+        make_worker(seeded, storage, Recorder(), classify=converts_the_cancel).run()
+    )
+    await asyncio.wait_for(started.wait(), 5)
+    task.cancel()
+
+    with pytest.raises(asyncio.CancelledError):
+        await asyncio.wait_for(task, 5)
 
 
 async def test_job_for_finished_document_does_nothing(committing_engine: AsyncEngine) -> None:

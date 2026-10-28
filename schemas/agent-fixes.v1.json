@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.docflow.dev/agent-fixes.v1.json",
+  "x-schema-id": "docflow/agent-fixes/v1",
+  "title": "Agent fixes",
+  "description": "Corrected values the validation agent's model proposes after rereading the document (F6).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["fixes"],
+  "properties": {
+    "fixes": {
+      "type": "array",
+      "description": "One entry per field whose printed value differs from the current value. Empty if nothing was misread.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "value", "confidence", "reason"],
+        "properties": {
+          "path": { "type": "string", "description": "Dotted field path, as given in the request." },
+          "value": { "type": ["string", "number", "null"], "description": "The value exactly as printed (numbers without separators)." },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+          "reason": { "type": "string", "description": "What was misread, briefly." }
+        }
+      }
+    }
+  }
+}

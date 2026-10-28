@@ -10,6 +10,7 @@ import os
 import subprocess
 import sys
 from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 import httpx
@@ -20,12 +21,18 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, AsyncSession
 
 from app.auth.dependencies import get_token_verifier
 from app.auth.verifier import TokenVerifier
+from app.core import rls
 from app.core.config import Settings
 from app.core.db import Base, create_engine
 from app.core.db_session import get_session
+from app.core.tenancy import WorkspaceScope
 from app.events.dependencies import get_events, get_job_waker
+from app.llm.providers.fake import fake_embedding
 from app.main import create_app
 from app.models import import_all_models
+from app.search.dependencies import get_query_embedder
+from app.search.models import EMBEDDING_DIMENSIONS
+from app.search.service import QueryEmbedder
 from app.storage.dependencies import get_clock, get_storage
 from app.storage.fake import FakeStorage
 from tests.conftest import asgi_client, make_settings
@@ -83,7 +90,12 @@ async def db_connection(db_engine: AsyncEngine) -> AsyncIterator[AsyncConnection
 @pytest.fixture
 async def db_session(db_connection: AsyncConnection) -> AsyncIterator[AsyncSession]:
     session = AsyncSession(
-        bind=db_connection, expire_on_commit=False, join_transaction_mode="create_savepoint"
+        bind=db_connection,
+        expire_on_commit=False,
+        join_transaction_mode="create_savepoint",
+        # Seeding and assertions see every workspace; a request bound to a workspace (or code
+        # acting for one) is still limited by row-level security (F14).
+        info={rls.DEFAULT: rls.SYSTEM},
     )
     yield session
     await session.close()
@@ -120,6 +132,27 @@ def wakeups() -> list[str]:
     return []
 
 
+class FakeQueryEmbedder:
+    """Query embeddings from the fake provider's bag of words; `available = False` acts
+    like a workspace without a usable key (F8 AC5)."""
+
+    def __init__(self) -> None:
+        self.available = True
+        self.queries: list[str] = []
+
+    def __call__(self, _scope: WorkspaceScope) -> QueryEmbedder:
+        async def embed(text: str) -> list[float] | None:
+            self.queries.append(text)
+            return fake_embedding(text, EMBEDDING_DIMENSIONS) if self.available else None
+
+        return embed
+
+
+@pytest.fixture
+def query_embedder() -> FakeQueryEmbedder:
+    return FakeQueryEmbedder()
+
+
 @pytest.fixture
 def db_app(db_settings: Settings) -> FastAPI:
     """The app behind `db_client`; feature conftests may add dependency overrides."""
@@ -134,6 +167,7 @@ async def db_client(
     clock: FrozenClock,
     published: Recorder,
     wakeups: list[str],
+    query_embedder: FakeQueryEmbedder,
 ) -> AsyncIterator[httpx.AsyncClient]:
     """API client whose requests run inside the test's rolled-back transaction, and which
     trusts tokens signed with TEST_SIGNING_KEY (see `tests.support.jwt.bearer`). Storage is
@@ -149,6 +183,12 @@ async def db_client(
         await db_session.commit()
 
     app.dependency_overrides[get_session] = session_in_test_transaction
+
+    @asynccontextmanager
+    async def test_session() -> AsyncIterator[AsyncSession]:
+        yield db_session
+
+    app.state.idempotency_sessions = test_session  # F14: its short transactions, here too
     app.dependency_overrides[get_token_verifier] = lambda: TokenVerifier(
         StaticKeys(TEST_SIGNING_KEY), issuer=TEST_ISSUER
     )
@@ -156,6 +196,7 @@ async def db_client(
     app.dependency_overrides[get_clock] = lambda: clock
     app.dependency_overrides[get_events] = lambda: published
     app.dependency_overrides[get_job_waker] = lambda: lambda: wakeups.append("wake")
+    app.dependency_overrides[get_query_embedder] = lambda: query_embedder
     async with app.router.lifespan_context(app), await asgi_client(app) as http:
         yield http
 

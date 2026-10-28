@@ -60,6 +60,25 @@ describe("DocumentDetail", () => {
   });
 });
 
+describe("DocumentDetail approval", () => {
+  it("F6 AC6: shows that the agent approved the document", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      Response.json(
+        makeDocument({
+          status: "APPROVED",
+          approved_at: "2026-10-26T10:00:00Z",
+          approved_by_agent: true,
+        }),
+      ),
+    );
+
+    renderDetail();
+
+    expect(await screen.findByText("Approved")).toBeInTheDocument();
+    expect(screen.getByText(/Approved automatically/)).toBeInTheDocument();
+  });
+});
+
 describe("DocumentDetail retry", () => {
   it("AC8: retry button shown only for FAILED", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
