@@ -116,6 +116,12 @@ class Settings(DatabaseSettings):
     langfuse_secret_key: str | None = None
     langfuse_host: str = "https://cloud.langfuse.com"
 
+    # Requests per minute, per user (or per access token for MCP) (F14).
+    rate_limit_general_per_minute: int = 120
+    rate_limit_uploads_per_minute: int = 30
+    rate_limit_ai_per_minute: int = 30  # search queries and AI key checks call the provider
+    rate_limit_mcp_per_minute: int = 60
+
     # The web app's address, for links to documents from the MCP tools (F12).
     web_base_url: str = "http://localhost:3000"
 

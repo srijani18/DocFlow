@@ -7,7 +7,7 @@ from typing import Annotated
 from fastapi import APIRouter, Query
 from fastapi.responses import StreamingResponse
 
-from app.auth.dependencies import WorkspaceScopeDep
+from app.auth.dependencies import RateLimiterDep, WorkspaceScopeDep
 from app.core.db_session import DbSession
 from app.core.errors import problem_responses
 from app.documents.models import DocType, DocumentStatus
@@ -35,6 +35,7 @@ EXTENSIONS = {"csv": "zip", "json": "json"}
 async def export_documents(
     *,
     scope: WorkspaceScopeDep,
+    limiter: RateLimiterDep,
     session: DbSession,
     embedder: QueryEmbedderDep,
     format: service.Format = "csv",  # the public parameter name
@@ -50,6 +51,8 @@ async def export_documents(
 ) -> StreamingResponse:
     """Approved documents matching the search filters, as a ZIP of two CSV files or as
     JSON (AC1 to AC8). 422 when more than 5,000 documents match."""
+    if q.strip():  # embedding the query calls the AI provider (F14 AC9)
+        limiter.check("ai", str(scope.user_id))
     selection = await service.select(
         session,
         scope,

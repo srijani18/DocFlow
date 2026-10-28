@@ -1,6 +1,6 @@
 # F14: Row-level security and hardening (plan)
 
-**Status:** Approved (2026-10-28)
+**Status:** Implemented (2026-10-28)
 **Spec:** [spec.md](spec.md) · **Tasks:** [tasks.md](tasks.md) · **ADR:** [0009](../000-architecture/adr/0009-row-level-security.md)
 
 ## 1. RLS in the database (migration `0013_row_level_security`)
@@ -101,3 +101,19 @@ Hourly, as a system operation:
 - **Idempotency:** replay, 422 on a changed body, 409 while running, expiry.
 - **Rate limit:** 429 after N, `Retry-After`, buckets independent.
 - **Cleanup:** expired uploads' files deleted, documents' files untouched.
+
+## 8. As built (2026-10-28)
+
+- **Context variable plus listener.** The workspace a task acts for is a context variable, set by the API's workspace dependency (`bind_workspace`), by the worker per job (`acting_for`) and by each MCP tool. The `after_begin` listener applies it in **one** statement per transaction: `set_config('role', …, true)` and `set_config('docflow.workspace_id', …, true)`.
+  - Precedence: an explicit system session, then the context variable, then a system session maker's default (operator tools, tests' seeding), then fail closed.
+  - System transactions issue no statement unless the connection's current transaction had switched role (tracked in `connection.info`).
+  - The request middleware resets the context variable per request.
+- **System operations:** `identity.provision_or_load` and `identity.list_memberships` switch themselves to system. The worker's job claim and next-due query use `system_session`, as do the MCP token lookup, the hourly maintenance and the CLIs (`system_sessionmaker`). A new (eighth) import contract forbids `app.core.rls_system` everywhere else; it was confirmed to catch a planted import.
+- **The membership check runs under RLS.** The workspace dependency binds the path's workspace **before** checking membership, so a non-member simply finds no membership row.
+- **`extensions` usage:** `docflow_app` needs `USAGE` on the `extensions` schema for pgvector's types and operators (found by the search tests).
+- **Idempotency** is a route dependency (claim, in its own committed transaction) plus an `IdempotentRoute` class (store the 2xx response, or release the key on error). A row left `running` by a crash is ignored after a minute.
+- **Rate limits.**
+  - The general limit is checked in `get_current_user`, so every authenticated request counts, except the event stream (path suffix).
+  - Route dependencies apply the uploads and AI buckets. Search and export count against the AI bucket only when they have query text.
+  - MCP is limited per token in its auth wrapper.
+- **Cleanup** is `app/worker/maintenance.py`, run by the worker loop at most hourly. A new `uploads.cleaned_at` column (migration 0015) records deleted files, so each is deleted once. The Supabase client got a bulk `delete`.

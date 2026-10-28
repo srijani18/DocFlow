@@ -29,6 +29,7 @@ from app.pipeline.steps.validate import ValidateStep
 from app.search.indexer import EmbedRunner
 from app.storage.supabase import SupabaseStorage
 from app.worker.loop import Worker
+from app.worker.maintenance import Maintenance
 
 
 @dataclass
@@ -87,6 +88,7 @@ def build_services(settings: Settings) -> Services:
             pipeline=pipeline,
             events=events,
             embedder=EmbedRunner(gateway, sessionmaker=sessionmaker),
+            maintenance=Maintenance(sessionmaker=sessionmaker, storage=storage),
         )
     return Services(engine, sessionmaker, http, storage, events, keybox, worker, gateway, tracer)
 

@@ -2041,6 +2041,24 @@
               "title": "Workspace Id",
               "type": "string"
             }
+          },
+          {
+            "description": "Optional. A repeat with the same key within 24 hours returns the first response instead of acting again.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional. A repeat with the same key within 24 hours returns the first response instead of acting again.",
+              "title": "Idempotency-Key"
+            }
           }
         ],
         "responses": {
@@ -2119,6 +2137,24 @@
               "title": "Workspace Id",
               "type": "string"
             }
+          },
+          {
+            "description": "Optional. A repeat with the same key within 24 hours returns the first response instead of acting again.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional. A repeat with the same key within 24 hours returns the first response instead of acting again.",
+              "title": "Idempotency-Key"
+            }
           }
         ],
         "requestBody": {
@@ -2182,6 +2218,16 @@
             },
             "description": "Unprocessable Entity"
           },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
           "503": {
             "content": {
               "application/problem+json": {
@@ -2226,6 +2272,24 @@
               "title": "Workspace Id",
               "type": "string"
             }
+          },
+          {
+            "description": "Optional. A repeat with the same key within 24 hours returns the first response instead of acting again.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional. A repeat with the same key within 24 hours returns the first response instead of acting again.",
+              "title": "Idempotency-Key"
+            }
           }
         ],
         "responses": {
@@ -2268,6 +2332,16 @@
               }
             },
             "description": "Not Found"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Too Many Requests"
           },
           "503": {
             "content": {
@@ -2374,6 +2448,24 @@
               "title": "Workspace Id",
               "type": "string"
             }
+          },
+          {
+            "description": "Optional. A repeat with the same key within 24 hours returns the first response instead of acting again.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional. A repeat with the same key within 24 hours returns the first response instead of acting again.",
+              "title": "Idempotency-Key"
+            }
           }
         ],
         "requestBody": {
@@ -2470,6 +2562,24 @@
             "schema": {
               "title": "Workspace Id",
               "type": "string"
+            }
+          },
+          {
+            "description": "Optional. A repeat with the same key within 24 hours returns the first response instead of acting again.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional. A repeat with the same key within 24 hours returns the first response instead of acting again.",
+              "title": "Idempotency-Key"
             }
           }
         ],
@@ -2722,6 +2832,24 @@
             "schema": {
               "title": "Workspace Id",
               "type": "string"
+            }
+          },
+          {
+            "description": "Optional. A repeat with the same key within 24 hours returns the first response instead of acting again.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional. A repeat with the same key within 24 hours returns the first response instead of acting again.",
+              "title": "Idempotency-Key"
             }
           }
         ],
@@ -3165,6 +3293,24 @@
             "schema": {
               "title": "Workspace Id",
               "type": "string"
+            }
+          },
+          {
+            "description": "Optional. A repeat with the same key within 24 hours returns the first response instead of acting again.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional. A repeat with the same key within 24 hours returns the first response instead of acting again.",
+              "title": "Idempotency-Key"
             }
           }
         ],
@@ -3942,6 +4088,24 @@
               "title": "Workspace Id",
               "type": "string"
             }
+          },
+          {
+            "description": "Optional. A repeat with the same key within 24 hours returns the first response instead of acting again.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional. A repeat with the same key within 24 hours returns the first response instead of acting again.",
+              "title": "Idempotency-Key"
+            }
           }
         ],
         "requestBody": {
@@ -4063,6 +4227,24 @@
             "schema": {
               "title": "Workspace Id",
               "type": "string"
+            }
+          },
+          {
+            "description": "Optional. A repeat with the same key within 24 hours returns the first response instead of acting again.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional. A repeat with the same key within 24 hours returns the first response instead of acting again.",
+              "title": "Idempotency-Key"
             }
           }
         ],

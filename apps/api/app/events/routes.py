@@ -5,7 +5,7 @@ from collections.abc import AsyncIterator
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 
-from app.auth.dependencies import WorkspaceScopeDep
+from app.auth.dependencies import EVENT_STREAM_SUFFIX, WorkspaceScopeDep
 from app.core.errors import problem_responses
 from app.events.dependencies import EventsDep
 from app.events.stream import event_stream
@@ -15,7 +15,7 @@ router = APIRouter(prefix="/v1/workspaces/{workspace_id}", tags=["events"])
 
 
 @router.get(
-    "/events",
+    EVENT_STREAM_SUFFIX,
     response_class=StreamingResponse,
     responses={
         200: {

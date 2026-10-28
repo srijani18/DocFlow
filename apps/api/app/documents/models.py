@@ -94,6 +94,8 @@ class Upload(Base):
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     # Set when the upload is completed; repeated completions return this document (AC5).
     document_id: Mapped[uuid.UUID | None] = mapped_column()
+    # When the file of an upload that was never completed was deleted (F14 AC11).
+    cleaned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = _timestamp()
 
 

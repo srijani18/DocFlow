@@ -106,3 +106,12 @@ class SupabaseStorage:
         )
         response.raise_for_status()
         return response.content
+
+    async def delete(self, paths: list[str]) -> None:
+        if not paths:
+            return
+        # Bulk delete: missing objects are simply not in the (ignored) answer.
+        response = await self._request(
+            "DELETE", f"{self._base}/object/{quote(self._bucket)}", json={"prefixes": paths}
+        )
+        response.raise_for_status()

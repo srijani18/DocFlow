@@ -24,6 +24,7 @@ from app.core.clock import Clock
 from app.core.errors import NotFoundError
 from app.core.logging import get_logger
 from app.core.observability import report_exception
+from app.core.ratelimit import RateLimiter
 from app.core.rls import acting_for, bind_workspace
 from app.core.tenancy import WorkspaceScope
 from app.documents import service as documents
@@ -64,6 +65,7 @@ class McpDeps:
     query_embedder: Callable[[WorkspaceScope], QueryEmbedder]
     clock: Clock
     web_base_url: str
+    limiter: RateLimiter
 
 
 def plain(value: Any) -> Any:

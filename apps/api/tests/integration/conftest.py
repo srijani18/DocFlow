@@ -10,6 +10,7 @@ import os
 import subprocess
 import sys
 from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 import httpx
@@ -182,6 +183,12 @@ async def db_client(
         await db_session.commit()
 
     app.dependency_overrides[get_session] = session_in_test_transaction
+
+    @asynccontextmanager
+    async def test_session() -> AsyncIterator[AsyncSession]:
+        yield db_session
+
+    app.state.idempotency_sessions = test_session  # F14: its short transactions, here too
     app.dependency_overrides[get_token_verifier] = lambda: TokenVerifier(
         StaticKeys(TEST_SIGNING_KEY), issuer=TEST_ISSUER
     )

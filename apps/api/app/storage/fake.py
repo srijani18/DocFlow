@@ -39,3 +39,7 @@ class FakeStorage:
 
     async def download(self, path: str) -> bytes:
         return self.objects[path][0]
+
+    async def delete(self, paths: list[str]) -> None:
+        for path in paths:
+            self.objects.pop(path, None)

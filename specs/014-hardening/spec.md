@@ -1,6 +1,6 @@
 # F14: Row-level security and hardening (spec)
 
-**Status:** Approved (2026-10-28)
+**Status:** Implemented (2026-10-28)
 **Phase:** 6
 **Plan:** [plan.md](plan.md) · **Tasks:** [tasks.md](tasks.md) · **ADR:** [0009](../000-architecture/adr/0009-row-level-security.md)
 

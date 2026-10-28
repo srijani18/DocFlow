@@ -21,7 +21,8 @@ from starlette.requests import Request
 from starlette.routing import Route
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from app.core.errors import PROBLEM_TYPE_BASE
+from app.core.errors import PROBLEM_TYPE_BASE, AppError
+from app.core.ratelimit import TooManyRequestsError
 from app.core.rls_system import become_system
 from app.mcp import tokens
 from app.mcp.server import STATE_KEY, McpDeps, build_mcp
@@ -115,6 +116,11 @@ class TokenAuth:
         if verified is None:
             await self._unauthorized(scope, send)
             return
+        try:
+            self.deps.limiter.check("mcp", str(verified.token_id))  # per token (F14 AC9)
+        except TooManyRequestsError as exc:
+            await send_problem(send, exc)
+            return
         scope.setdefault("state", {})[STATE_KEY] = verified
         structlog.contextvars.bind_contextvars(workspace_id=str(verified.scope.workspace_id))
         await self.app(scope, receive, send)
@@ -122,22 +128,38 @@ class TokenAuth:
     async def _unauthorized(self, scope: Scope, send: Send) -> None:
         # The same answer for a missing, wrong, expired, revoked or other-workspace token.
         metadata_url = str(Request(scope).url.replace(path=METADATA_PATH, query=""))
-        body = json.dumps(
-            {
-                "type": f"{PROBLEM_TYPE_BASE}unauthorized",
-                "title": "Unauthorized",
-                "status": 401,
-                "detail": "Create an access token in DocFlow: Settings, AI assistants (MCP).",
-            }
-        ).encode()
-        await send(
-            {
-                "type": "http.response.start",
-                "status": 401,
-                "headers": [
-                    (b"content-type", b"application/problem+json"),
-                    (b"www-authenticate", f'Bearer resource_metadata="{metadata_url}"'.encode()),
-                ],
-            }
+        await send_problem(
+            send,
+            UnauthorizedError(
+                "Create an access token in DocFlow: Settings, AI assistants (MCP).",
+                headers={"WWW-Authenticate": f'Bearer resource_metadata="{metadata_url}"'},
+            ),
         )
-        await send({"type": "http.response.body", "body": body})
+
+
+class UnauthorizedError(AppError):
+    status = 401
+    type_slug = "unauthorized"
+    title = "Unauthorized"
+
+
+async def send_problem(send: Send, error: AppError) -> None:
+    """A problem+json answer straight from ASGI, outside FastAPI's handlers."""
+    body: dict[str, object] = {
+        "type": f"{PROBLEM_TYPE_BASE}{error.type_slug}",
+        "title": error.title,
+        "status": error.status,
+    }
+    if error.detail:
+        body["detail"] = error.detail
+    await send(
+        {
+            "type": "http.response.start",
+            "status": error.status,
+            "headers": [
+                (b"content-type", b"application/problem+json"),
+                *((name.lower().encode(), value.encode()) for name, value in error.headers.items()),
+            ],
+        }
+    )
+    await send({"type": "http.response.body", "body": json.dumps(body).encode()})

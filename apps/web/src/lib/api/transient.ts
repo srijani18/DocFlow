@@ -20,6 +20,16 @@ export class ApiError extends Error {
   }
 }
 
+/** What to tell the user about a failed request. A rate limit (429) says how long to wait
+ * (F14 AC10); otherwise the problem's detail or title, or `fallback`. */
+export function problemMessage(error: unknown, fallback: string): string {
+  if (!(error instanceof ApiError)) return fallback;
+  if (error.status === 429) {
+    return error.problem?.detail ?? "Too many requests. Try again in a minute.";
+  }
+  return error.problem?.detail ?? error.problem?.title ?? fallback;
+}
+
 function isProblem(value: unknown): value is Problem {
   return typeof value === "object" && value !== null && "title" in value && "status" in value;
 }

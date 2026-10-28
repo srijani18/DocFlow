@@ -7,7 +7,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { type ExportFormat, exportDocuments, saveFile } from "@/lib/api/export";
 import { isSearching, type SearchParams } from "@/lib/api/search";
-import { ApiError } from "@/lib/api/transient";
+import { ApiError, problemMessage } from "@/lib/api/transient";
 
 /** Export what the search shows (F9): approved documents by default. */
 export function ExportMenu({ workspaceId, search }: { workspaceId: string; search: SearchParams }) {
@@ -22,7 +22,7 @@ export function ExportMenu({ workspaceId, search }: { workspaceId: string; searc
     download.error instanceof ApiError && download.error.status === 422
       ? (download.error.problem?.detail ?? "Narrow the filters and try again.")
       : download.isError
-        ? "Couldn't export. Try again."
+        ? problemMessage(download.error, "Couldn't export. Try again.")
         : null;
 
   return (

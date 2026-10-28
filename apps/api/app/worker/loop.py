@@ -21,6 +21,7 @@ from app.documents import service as documents
 from app.jobs import repository as queue
 from app.jobs.backoff import backoff_seconds
 from app.jobs.errors import PermanentError, StepError, TransientError
+from app.worker.maintenance import Maintenance
 
 log = get_logger(__name__)
 
@@ -45,6 +46,11 @@ def default_worker_id() -> str:
     return f"{socket.gethostname()}:{os.getpid()}:{uuid.uuid4().hex[:6]}"
 
 
+def _being_cancelled() -> bool:
+    task = asyncio.current_task()
+    return task is not None and task.cancelling() > 0
+
+
 class Worker:
     def __init__(
         self,
@@ -53,6 +59,7 @@ class Worker:
         pipeline: Runner,
         events: Publisher,
         embedder: Runner | None = None,
+        maintenance: Maintenance | None = None,
         sweep_seconds: float = SWEEP_SECONDS,
         worker_id: str | None = None,
     ) -> None:
@@ -64,6 +71,7 @@ class Worker:
             queue.EMBED_DOCUMENT: embedder,
         }
         self._events = events
+        self._maintenance = maintenance
         self._sweep_seconds = sweep_seconds
         self.worker_id = worker_id or default_worker_id()
         self._wake_event = asyncio.Event()
@@ -78,8 +86,14 @@ class Worker:
         while True:
             try:
                 await self.drain()  # also picks up jobs left over from before a restart (AC12)
+                if self._maintenance is not None:
+                    await self._maintenance.run_if_due()  # hourly (F14 AC11)
                 timeout = await self._seconds_until_next_due()
             except Exception as exc:
+                if _being_cancelled():
+                    # A cancel (shutdown) that landed in a database call can come back as an
+                    # ordinary error; carrying on would leave the worker running forever.
+                    raise asyncio.CancelledError from exc
                 log.exception("worker_loop_error")
                 report_exception(exc)
                 timeout = LOOP_ERROR_PAUSE_SECONDS
@@ -133,6 +147,8 @@ class Worker:
         except StepError as exc:
             await self._retry_or_give_up(job, exc)
         except Exception as exc:
+            if _being_cancelled():  # shutdown, not a crash: the job's lease expires and it reruns
+                raise asyncio.CancelledError from exc
             # Unknown errors are treated as transient, so a bug can't fail a document
             # permanently without the record of 5 attempts (F3 plan §4).
             bound.exception("job_crashed")

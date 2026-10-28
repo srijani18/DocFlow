@@ -110,3 +110,30 @@ describe("API client auth", () => {
     expect(auth.onUnauthenticated).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("Idempotency-Key (F14 AC8)", () => {
+  it("each write gets its own key, reads get none, and the 401 retry reuses the key", async () => {
+    const auth = fakeAuth({ current: "expired-token", refreshed: "fresh-token" });
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(UNAUTHENTICATED.clone())
+      .mockImplementation(async () => Response.json({}, { status: 201 }));
+    const client = createApiClient(auth);
+    const create = () =>
+      client.POST("/v1/workspaces/{workspace_id}/api-tokens", {
+        params: { path: { workspace_id: "w" } },
+        body: { name: "laptop", expires_in_days: 30 },
+      });
+
+    await create();
+    await create();
+    await client.GET("/v1/me");
+
+    const [rejected, retried, second, read] = sentRequests(fetchMock);
+    const key = rejected?.headers.get("Idempotency-Key");
+    expect(key).toMatch(/^[0-9a-f-]{36}$/);
+    expect(retried?.headers.get("Idempotency-Key")).toBe(key);
+    expect(second?.headers.get("Idempotency-Key")).not.toBe(key);
+    expect(read?.headers.has("Idempotency-Key")).toBe(false);
+  });
+});

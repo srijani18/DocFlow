@@ -13,11 +13,14 @@ from app.documents.schemas import Document
 from app.events.dependencies import EventsDep, JobWakerDep
 from app.extractions.routes import to_extraction
 from app.extractions.schemas import Extraction
+from app.idempotency.routing import Idempotent, IdempotentRoute
 from app.review import service
 from app.review.schemas import ApproveRequest, ReviewMetrics, SaveCorrections
 from app.storage.dependencies import ClockDep
 
-router = APIRouter(prefix="/v1/workspaces/{workspace_id}", tags=["review"])
+router = APIRouter(
+    route_class=IdempotentRoute, prefix="/v1/workspaces/{workspace_id}", tags=["review"]
+)
 
 # "Today" for the date checks: the latest calendar date anywhere, as in the F6 step.
 LATEST_OFFSET_HOURS = 14
@@ -76,6 +79,7 @@ async def approve_document(
     background: BackgroundTasks,
     events: EventsDep,
     wake_worker: JobWakerDep,
+    idempotency: Idempotent,
 ) -> Document:
     """Approve the document, saving `data` first if given (AC5)."""
     try:
