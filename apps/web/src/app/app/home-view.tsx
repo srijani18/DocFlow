@@ -66,7 +66,7 @@ function Dashboard({ me }: { me: Me }) {
         {membership !== undefined && (
           <div className="bg-brand-gradient flex flex-col justify-between gap-6 rounded-3xl p-6 text-white shadow-xl shadow-primary/20">
             <div className="flex items-center gap-3">
-              <span className="inline-flex size-11 items-center justify-center rounded-xl bg-white text-primary">
+              <span className="inline-flex size-11 items-center justify-center rounded-xl bg-white text-indigo-600">
                 <CloudUploadIcon className="size-5" aria-hidden />
               </span>
               <h2 className="text-xl font-semibold">Upload documents</h2>
@@ -193,7 +193,7 @@ function ConnectKeyBanner({ workspaceId }: { workspaceId: string }) {
   return (
     <div className="bg-brand-gradient flex flex-col items-start justify-between gap-4 rounded-3xl p-6 text-white shadow-lg shadow-primary/20 sm:flex-row sm:items-center">
       <div className="flex items-center gap-3">
-        <span className="inline-flex size-10 items-center justify-center rounded-xl bg-white text-primary">
+        <span className="inline-flex size-10 items-center justify-center rounded-xl bg-white text-indigo-600">
           <KeyRoundIcon className="size-5" aria-hidden />
         </span>
         <div>

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { InlineMark, Wordmark } from "@/components/brand";
+import { ThemeSwitch } from "@/components/theme-switch";
 
 import { LoginForm } from "./login-form";
 
@@ -16,9 +17,9 @@ const POINTS = [
 
 export default function LoginPage() {
   return (
-    <main className="grid flex-1 bg-white lg:grid-cols-2">
+    <main className="grid flex-1 bg-background lg:grid-cols-2">
       <section className="bg-brand-gradient relative hidden flex-col justify-between overflow-hidden p-12 text-white lg:flex">
-        <div className="rounded-xl bg-white/95 p-2 pr-4 text-foreground shadow-lg w-fit">
+        <div className="rounded-xl bg-card/95 p-2 pr-4 text-foreground shadow-lg w-fit">
           <Wordmark />
         </div>
         <div>
@@ -41,7 +42,8 @@ export default function LoginPage() {
         <p className="text-sm text-white/70">Please upload only sample or synthetic documents.</p>
         <div className="pointer-events-none absolute -right-24 -bottom-24 size-96 rounded-full bg-white/10 blur-3xl" />
       </section>
-      <section className="flex flex-col items-center justify-center gap-8 px-6 py-16">
+      <section className="relative flex flex-col items-center justify-center gap-8 px-6 py-16">
+        <ThemeSwitch className="absolute top-4 right-4" />
         <div className="lg:hidden">
           <Wordmark />
         </div>

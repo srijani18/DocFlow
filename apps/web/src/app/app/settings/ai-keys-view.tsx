@@ -57,7 +57,7 @@ export function AiKeys({ workspaceId, isAdmin }: { workspaceId: string; isAdmin:
   return (
     <div className="flex flex-col gap-5">
       <Panel className="flex items-start gap-4 bg-accent/60">
-        <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-white text-primary">
+        <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-card text-primary">
           <ShieldCheckIcon className="size-5" aria-hidden />
         </span>
         <p className="text-sm text-foreground/80">
@@ -96,13 +96,13 @@ function StatusPill({ status }: { status: AiKeyStatus | undefined }) {
   }
   if (status.status === "rejected") {
     return (
-      <span className="rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-700">
+      <span className="rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-700 dark:bg-red-950 dark:text-red-300">
         Key rejected
       </span>
     );
   }
   return (
-    <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+    <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
       Connected · …{status.last4}
     </span>
   );
