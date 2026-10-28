@@ -1529,7 +1529,10 @@ export interface operations {
     saveAiKey: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Optional. A repeat with the same key within 24 hours returns the first response instead of acting again. */
+                "Idempotency-Key"?: string | null;
+            };
             path: {
                 provider: string;
                 workspace_id: string;
@@ -1587,6 +1590,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description Service Unavailable */
             503: {
                 headers: {
@@ -1601,7 +1613,10 @@ export interface operations {
     deleteAiKey: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Optional. A repeat with the same key within 24 hours returns the first response instead of acting again. */
+                "Idempotency-Key"?: string | null;
+            };
             path: {
                 provider: string;
                 workspace_id: string;
@@ -1658,7 +1673,10 @@ export interface operations {
     testAiKey: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Optional. A repeat with the same key within 24 hours returns the first response instead of acting again. */
+                "Idempotency-Key"?: string | null;
+            };
             path: {
                 provider: string;
                 workspace_id: string;
@@ -1696,6 +1714,15 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1766,7 +1793,10 @@ export interface operations {
     createApiToken: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Optional. A repeat with the same key within 24 hours returns the first response instead of acting again. */
+                "Idempotency-Key"?: string | null;
+            };
             path: {
                 workspace_id: string;
             };
@@ -1828,7 +1858,10 @@ export interface operations {
     revokeApiToken: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Optional. A repeat with the same key within 24 hours returns the first response instead of acting again. */
+                "Idempotency-Key"?: string | null;
+            };
             path: {
                 token_id: string;
                 workspace_id: string;
@@ -1987,7 +2020,10 @@ export interface operations {
     approveDocument: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Optional. A repeat with the same key within 24 hours returns the first response instead of acting again. */
+                "Idempotency-Key"?: string | null;
+            };
             path: {
                 document_id: string;
                 workspace_id: string;
@@ -2281,7 +2317,10 @@ export interface operations {
     retryDocument: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Optional. A repeat with the same key within 24 hours returns the first response instead of acting again. */
+                "Idempotency-Key"?: string | null;
+            };
             path: {
                 document_id: string;
                 workspace_id: string;
@@ -2637,7 +2676,10 @@ export interface operations {
     startUpload: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Optional. A repeat with the same key within 24 hours returns the first response instead of acting again. */
+                "Idempotency-Key"?: string | null;
+            };
             path: {
                 workspace_id: string;
             };
@@ -2708,7 +2750,10 @@ export interface operations {
     completeUpload: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Optional. A repeat with the same key within 24 hours returns the first response instead of acting again. */
+                "Idempotency-Key"?: string | null;
+            };
             path: {
                 upload_id: string;
                 workspace_id: string;

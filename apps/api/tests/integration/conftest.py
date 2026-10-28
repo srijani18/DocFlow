@@ -10,6 +10,7 @@ import os
 import subprocess
 import sys
 from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 import httpx
@@ -20,6 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, AsyncSession
 
 from app.auth.dependencies import get_token_verifier
 from app.auth.verifier import TokenVerifier
+from app.core import rls
 from app.core.config import Settings
 from app.core.db import Base, create_engine
 from app.core.db_session import get_session
@@ -88,7 +90,12 @@ async def db_connection(db_engine: AsyncEngine) -> AsyncIterator[AsyncConnection
 @pytest.fixture
 async def db_session(db_connection: AsyncConnection) -> AsyncIterator[AsyncSession]:
     session = AsyncSession(
-        bind=db_connection, expire_on_commit=False, join_transaction_mode="create_savepoint"
+        bind=db_connection,
+        expire_on_commit=False,
+        join_transaction_mode="create_savepoint",
+        # Seeding and assertions see every workspace; a request bound to a workspace (or code
+        # acting for one) is still limited by row-level security (F14).
+        info={rls.DEFAULT: rls.SYSTEM},
     )
     yield session
     await session.close()
@@ -176,6 +183,12 @@ async def db_client(
         await db_session.commit()
 
     app.dependency_overrides[get_session] = session_in_test_transaction
+
+    @asynccontextmanager
+    async def test_session() -> AsyncIterator[AsyncSession]:
+        yield db_session
+
+    app.state.idempotency_sessions = test_session  # F14: its short transactions, here too
     app.dependency_overrides[get_token_verifier] = lambda: TokenVerifier(
         StaticKeys(TEST_SIGNING_KEY), issuer=TEST_ISSUER
     )

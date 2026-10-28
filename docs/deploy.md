@@ -166,6 +166,22 @@ DocFlow has **no platform AI key**. Each workspace's admin connects their own Ge
 
 For CI evals, add `GEMINI_API_KEY` and `GROQ_API_KEY` as **GitHub Actions secrets**. Free tiers may train on what they receive: evals use only public or synthetic documents.
 
+## 7a. Row-level security, idempotency and rate limits (F14)
+
+Nothing to configure: migration `0013` runs with the first deploy and sets up row-level security (ADR-0009).
+
+1. **Check on the first deploy** (the role grant is the one step that differs on Supabase): the Render deploy log shows `Running upgrade 0012 -> 0013` with no error, and the app works as before. If it fails with `permission denied to grant role`, tell me. The fix is a one-line change to the grant.
+2. **Seeing what the app sees in `psql`** (Supabase → SQL editor): the owner sees everything. To see one workspace as the app does:
+
+   ```sql
+   BEGIN;
+   SELECT set_config('role', 'docflow_app', true), set_config('docflow.workspace_id', '<workspace id>', true);
+   SELECT count(*) FROM docflow.documents;   -- only that workspace's
+   ROLLBACK;
+   ```
+3. **Rate limits** are per user per minute: `RATE_LIMIT_GENERAL_PER_MINUTE` (120), `RATE_LIMIT_UPLOADS_PER_MINUTE` (30), `RATE_LIMIT_AI_PER_MINUTE` (30) and `RATE_LIMIT_MCP_PER_MINUTE` (60, per access token). The defaults suit a demo; set any of them on Render to change it. Counters are in memory, so they reset when Render restarts the service.
+4. **Abandoned uploads** are cleaned by the worker every hour; nothing to schedule.
+
 ## 7. Sentry and Langfuse (F16, optional)
 
 Both are off until their variables are set, and neither ever receives document content, extracted values, AI keys or email addresses. Errors are scrubbed before they leave (AC7), and AI traces carry metadata only (AC5).

@@ -7,7 +7,7 @@ from typing import Annotated
 from fastapi import APIRouter, Query
 from fastapi.exceptions import RequestValidationError
 
-from app.auth.dependencies import WorkspaceScopeDep
+from app.auth.dependencies import RateLimiterDep, WorkspaceScopeDep
 from app.core.db_session import DbSession
 from app.core.errors import problem_responses
 from app.documents.models import DocType, DocumentStatus
@@ -24,6 +24,7 @@ router = APIRouter(prefix="/v1/workspaces/{workspace_id}", tags=["search"])
 async def search_documents(
     *,
     scope: WorkspaceScopeDep,
+    limiter: RateLimiterDep,
     session: DbSession,
     embedder: QueryEmbedderDep,
     q: Annotated[str, Query(max_length=200)] = "",
@@ -45,6 +46,8 @@ async def search_documents(
         raise RequestValidationError(
             [{"loc": ("query", "cursor"), "msg": "Invalid cursor", "type": "value_error"}]
         ) from None
+    if q.strip():  # embedding the query calls the AI provider (F14 AC9)
+        limiter.check("ai", str(scope.user_id))
     page = await service.search(
         session,
         scope,

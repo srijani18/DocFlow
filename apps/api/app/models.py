@@ -14,6 +14,7 @@ MODEL_MODULES: tuple[str, ...] = (
     "app.review.models",
     "app.search.models",
     "app.mcp.models",
+    "app.idempotency.models",
 )
 
 

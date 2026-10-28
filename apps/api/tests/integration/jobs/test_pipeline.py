@@ -271,6 +271,32 @@ async def test_ac11_idle_worker_runs_no_queries(committing_engine: AsyncEngine) 
     assert any("FOR UPDATE SKIP LOCKED" in statement for statement in statements)
 
 
+async def test_cancelling_the_worker_stops_it_even_when_the_cancel_comes_back_as_an_error(
+    committing_engine: AsyncEngine,
+) -> None:
+    """A shutdown that lands in a database call can surface as a driver error. The worker
+    must still stop, not log it and carry on forever (found by an intermittent hang)."""
+    seeded, storage = await seed_workspaces(committing_engine), FakeStorage()
+    await seed_document(seeded, storage)
+    started = asyncio.Event()
+
+    async def converts_the_cancel(ctx: StepContext) -> None:
+        started.set()
+        try:
+            await asyncio.sleep(10)
+        except asyncio.CancelledError:
+            raise RuntimeError("connection lost") from None
+
+    task = asyncio.create_task(
+        make_worker(seeded, storage, Recorder(), classify=converts_the_cancel).run()
+    )
+    await asyncio.wait_for(started.wait(), 5)
+    task.cancel()
+
+    with pytest.raises(asyncio.CancelledError):
+        await asyncio.wait_for(task, 5)
+
+
 async def test_job_for_finished_document_does_nothing(committing_engine: AsyncEngine) -> None:
     seeded, storage = await seed_workspaces(committing_engine), FakeStorage()
     document_id = await seed_document(seeded, storage)

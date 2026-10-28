@@ -23,7 +23,7 @@ import {
 } from "@/lib/api/documents";
 import { currentWorkspace } from "@/lib/api/me";
 import { approveDocument, fetchSchema, saveCorrections } from "@/lib/api/review";
-import { ApiError } from "@/lib/api/transient";
+import { ApiError, problemMessage } from "@/lib/api/transient";
 import {
   type Data,
   type Draft,
@@ -284,7 +284,7 @@ function ReviewForm({
             ? (failure as ApiError).problem?.title
             : failure instanceof ApiError && failure.status === 422
               ? "Some values aren't valid. Check the highlighted fields."
-              : "Couldn't save. Try again."}
+              : problemMessage(failure, "Couldn't save. Try again.")}
           {conflict && (
             <Button variant="outline" size="sm" onClick={onReload}>
               Reload document

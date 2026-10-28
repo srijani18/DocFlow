@@ -23,7 +23,8 @@ import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import DatabaseSettings, load_settings
-from app.core.db import create_engine, create_sessionmaker
+from app.core.db import create_engine
+from app.core.rls_system import system_sessionmaker
 from app.core.tenancy import WorkspaceScope
 from app.documents.models import Document, Upload
 from app.extractions import service as extractions
@@ -137,7 +138,7 @@ async def run(database_url: str, route: str, keys: dict[str, str]) -> dict[str, 
     queries = json.loads(QUERIES.read_text())["queries"]
     settings = DatabaseSettings(database_url=database_url)
     engine = create_engine(settings)
-    sessionmaker = create_sessionmaker(engine)
+    sessionmaker = system_sessionmaker(engine)
     async with httpx.AsyncClient() as http:
         gateway = Gateway(
             sessionmaker=None,

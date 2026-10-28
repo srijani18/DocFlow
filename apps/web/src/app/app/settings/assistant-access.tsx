@@ -20,7 +20,7 @@ import {
   type ExpiryDays,
 } from "@/lib/api/api-tokens";
 import { currentWorkspace } from "@/lib/api/me";
-import { ApiError } from "@/lib/api/transient";
+import { ApiError, problemMessage } from "@/lib/api/transient";
 import { formatDateTime } from "@/lib/format";
 
 const EXPIRY_OPTIONS: { days: ExpiryDays; label: string }[] = [
@@ -75,7 +75,7 @@ export function clientSnippets(token: string): { label: string; text: string }[]
 }
 
 function describe(error: unknown): string {
-  if (error instanceof ApiError) return error.problem?.title ?? "Something went wrong.";
+  if (error instanceof ApiError) return problemMessage(error, "Something went wrong.");
   return "Couldn't reach DocFlow. Try again.";
 }
 

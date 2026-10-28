@@ -17,7 +17,9 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import DatabaseSettings
-from app.core.db import create_engine, create_sessionmaker
+from app.core.db import create_engine
+from app.core.rls import acting_for
+from app.core.rls_system import system_sessionmaker
 from app.core.tenancy import WorkspaceScope
 from app.identity.models import Membership, User, Workspace
 from app.metrics import service
@@ -143,7 +145,7 @@ async def _delete(session: AsyncSession, scope: WorkspaceScope) -> None:
 async def main() -> int:
     import_all_models()
     engine = create_engine(DatabaseSettings(database_url=TEST_DATABASE_URL))
-    sessionmaker = create_sessionmaker(engine)
+    sessionmaker = system_sessionmaker(engine)
     async with sessionmaker() as session:
         started = time.perf_counter()
         scope = await _create(session)
@@ -162,9 +164,11 @@ async def main() -> int:
                 timings = []
                 for _ in range(RUNS):
                     started = time.perf_counter()
-                    result = await service.workspace_metrics(
-                        session, scope, period, datetime.now(UTC)
-                    )
+                    # As the API runs it: under row-level security for the workspace (F14 AC4).
+                    with acting_for(scope.workspace_id):
+                        result = await service.workspace_metrics(
+                            session, scope, period, datetime.now(UTC)
+                        )
                     timings.append(time.perf_counter() - started)
                     await session.rollback()
                 slowest = max(slowest, *timings)

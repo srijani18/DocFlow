@@ -14,7 +14,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import load_settings
-from app.core.db import create_engine, create_sessionmaker
+from app.core.db import create_engine
+from app.core.rls_system import system_sessionmaker
 from app.core.tenancy import WorkspaceScope
 from app.documents.models import Document
 from app.extractions import service as extractions
@@ -56,7 +57,7 @@ async def backfill(session: AsyncSession) -> tuple[int, int]:
 async def main() -> int:
     import_all_models()  # the ORM needs every table to resolve foreign keys
     engine = create_engine(load_settings())
-    async with create_sessionmaker(engine)() as session, session.begin():
+    async with system_sessionmaker(engine)() as session, session.begin():
         indexed, queued = await backfill(session)
     await engine.dispose()
     print(f"re-indexed {indexed} documents, queued {queued} embeddings (the worker runs them)")

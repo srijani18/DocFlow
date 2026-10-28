@@ -122,3 +122,18 @@ async def test_missing_secret_key_is_unavailable(
 ) -> None:
     with pytest.raises(StorageUnavailableError):
         await storage(http, clock, key=None).create_signed_upload(PATH)
+
+
+@respx.mock
+async def test_f14_delete_removes_objects_in_one_request(
+    http: httpx.AsyncClient, clock: FrozenClock
+) -> None:
+    route = respx.delete(f"{BASE}/object/docs").respond(json=[{"name": PATH}])
+
+    await storage(http, clock).delete([PATH, "other/path"])
+    await storage(http, clock).delete([])  # nothing to do: no request
+
+    assert route.call_count == 1
+    assert route.calls.last.request.read() == (
+        b'{"prefixes":["' + PATH.encode() + b'","other/path"]}'
+    )

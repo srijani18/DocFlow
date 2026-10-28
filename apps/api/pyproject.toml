@@ -176,3 +176,16 @@ source_modules = ["app.auth", "app.worker", "app.core"]
 forbidden_modules = ["app.identity.repository", "app.identity.models", "app.identity.routes"]
 # Going through app.identity.service (which uses the repository) is the point.
 allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+name = "only identity, the job queue, MCP token lookup and operator tools bypass row-level security (F14 AC3)"
+type = "forbidden"
+source_modules = [
+  "app.documents", "app.extractions", "app.validation", "app.review", "app.export",
+  "app.metrics", "app.aikeys", "app.pipeline", "app.llm", "app.events", "app.storage",
+  "app.search.service", "app.search.repository", "app.search.routes", "app.search.indexer",
+  "app.mcp.server", "app.mcp.summaries", "app.mcp.tokens", "app.mcp.token_routes",
+]
+forbidden_modules = ["app.core.rls_system"]
+# Through app.auth -> app.identity.service is fine: that is the sanctioned path.
+allow_indirect_imports = true

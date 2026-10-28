@@ -19,11 +19,13 @@ from app.core.error_handlers import install_error_handlers
 from app.core.logging import configure_logging
 from app.core.observability import init_sentry
 from app.core.openapi_docs import install_problem_openapi
+from app.core.ratelimit import RateLimiter
 from app.core.request_context import REQUEST_ID_HEADER, RequestContextMiddleware
 from app.documents import routes as document_routes
 from app.events import routes as event_routes
 from app.export import routes as export_routes
 from app.extractions import routes as extraction_routes
+from app.idempotency import routing as idempotency
 from app.identity import routes as identity_routes
 from app.mcp import token_routes as api_token_routes
 from app.mcp.http import install_mcp
@@ -87,12 +89,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.keybox = services.keybox
     app.state.http = services.http
     app.state.query_embedder = gateway_query_embedder(services.gateway)
+    app.state.rate_limiter = rate_limiter = RateLimiter.from_settings(settings)
     # MCP server (F12): tools act in the workspace of the request's access token.
     app.state.mcp_deps = mcp_deps = McpDeps(
         open_session=services.sessionmaker,
         query_embedder=app.state.query_embedder,
         clock=SystemClock(),
         web_base_url=settings.web_base_url.rstrip("/"),
+        limiter=rate_limiter,
     )
     app.state.mcp_server = mcp_server = install_mcp(app, mcp_deps)
 
@@ -101,6 +105,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
 
     install_error_handlers(app)
+    idempotency.install(app)
     # Starlette runs the last-added middleware first: CORS wraps everything, so even
     # last-resort 500s carry CORS headers and the browser can read them.
     app.add_middleware(RequestContextMiddleware)
@@ -114,18 +119,21 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         expose_headers=[REQUEST_ID_HEADER],
     )
 
-    app.include_router(health.router)
-    app.include_router(identity_routes.router)
-    app.include_router(document_routes.router)
-    app.include_router(event_routes.router)
-    app.include_router(extraction_routes.router)
-    app.include_router(extraction_routes.schema_router)
-    app.include_router(review_routes.router)
-    app.include_router(search_routes.router)
-    app.include_router(export_routes.router)
-    app.include_router(metrics_routes.router)
-    app.include_router(api_token_routes.router)
-    app.include_router(validation_routes.router)
-    app.include_router(aikey_routes.router)
+    for router in (
+        health.router,
+        identity_routes.router,
+        document_routes.router,
+        event_routes.router,
+        extraction_routes.router,
+        extraction_routes.schema_router,
+        review_routes.router,
+        search_routes.router,
+        export_routes.router,
+        metrics_routes.router,
+        api_token_routes.router,
+        validation_routes.router,
+        aikey_routes.router,
+    ):
+        app.include_router(router)
     install_problem_openapi(app)
     return app

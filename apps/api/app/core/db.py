@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.pool import ConnectionPoolEntry
 
+from app.core import rls  # noqa: F401  # registers the row-level security listeners
 from app.core.config import DatabaseSettings
 
 # Stable constraint names make migrations reproducible and reversible.
@@ -78,5 +79,7 @@ def create_engine(settings: DatabaseSettings, *, search_path: str = SEARCH_PATH)
     return engine
 
 
-def create_sessionmaker(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
-    return async_sessionmaker(engine, expire_on_commit=False)
+def create_sessionmaker(
+    engine: AsyncEngine, *, info: dict[str, object] | None = None
+) -> async_sessionmaker[AsyncSession]:
+    return async_sessionmaker(engine, expire_on_commit=False, info=info or {})

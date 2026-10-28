@@ -16,6 +16,7 @@ from mcp.client.streamable_http import streamable_http_client
 from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.ratelimit import RateLimiter
 from app.documents.models import Document
 from app.storage.fake import FakeStorage
 from tests.integration.conftest import FakeQueryEmbedder
@@ -241,3 +242,23 @@ async def test_ac7_ac8_logged_without_arguments_and_keyword_only_without_a_key(
     assert "keyword matches only" in found["note"]
     assert "mcp_tool_called" in logged
     assert "secret-vendor-name" not in logged
+
+
+async def test_f14_ac9_mcp_calls_are_limited_per_token(
+    db_client: httpx.AsyncClient, db_app: FastAPI, two_workspaces: TwoWorkspaces
+) -> None:
+    db_app.state.mcp_deps.limiter = RateLimiter({"general": 100, "uploads": 1, "ai": 1, "mcp": 1})
+    token = await new_token(db_client, two_workspaces, two_workspaces.a_reviewer)
+    headers = {
+        "Authorization": f"Bearer {token['token']}",
+        "Accept": "application/json, text/event-stream",
+    }
+    ping = {"jsonrpc": "2.0", "id": 1, "method": "ping"}
+
+    first = await db_client.post("/mcp", json=ping, headers=headers)
+    second = await db_client.post("/mcp", json=ping, headers=headers)
+
+    assert first.status_code != 429
+    assert second.status_code == 429
+    assert second.headers["retry-after"] == "60"
+    assert second.json()["type"].endswith("/rate-limited")

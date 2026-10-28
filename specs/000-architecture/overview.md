@@ -138,7 +138,7 @@ Both roles are built by the same `create_app` and settings, so splitting them la
 
 - `workspaces` is the tenant root. `users` are global, linked to the Supabase Auth subject. `memberships(workspace_id, user_id, role)` has roles `admin` and `reviewer`.
 - Tenant-scoped URLs: `/v1/workspaces/{workspace_id}/...`. A dependency resolves the caller's membership and returns a `WorkspaceScope`, which every repository for tenant data requires (constitution §4).
-- Isolation is enforced at the application layer now. Postgres row-level security as a second layer is added in F14 (decision A3).
+- Isolation is enforced at the application layer, and by Postgres row-level security as a second layer since F14 (decision A3, ADR-0009).
 
 ## 7. Environments
 
@@ -218,7 +218,7 @@ GitHub Actions secrets: none in Phase 0, apart from the optional test-user crede
 
 - **A1. Preview environments:** Vercel previews call the production API. CORS allows this project's Vercel preview URL pattern. All data is synthetic.
 - **A2. Local database:** Docker Postgres is the everyday local and test database. (The Neon `dev` branch for rehearsing migrations was dropped with ADR-0007.)
-- **A3. Row-level security:** isolation is enforced in the application now. Postgres RLS is added as defense in depth in F14.
+- **A3. Row-level security:** isolation is enforced in the application, and since F14 also by Postgres RLS as defense in depth ([ADR-0009](adr/0009-row-level-security.md)). *Done (2026-10-28).*
 - **A4. Dev storage:** a second bucket, `documents-dev`, in the same Supabase project.
 - **A5. Regions:** everything in Singapore (Render `singapore`, Supabase `ap-southeast-1`).
 - **A6. OpenRouter:** 50 free requests a day is accepted, since OpenRouter is only the last-resort fallback. No credit purchase.

@@ -70,7 +70,11 @@ def created_event(document: Document) -> StatusEvent:
 
 def storage_path(scope: WorkspaceScope, upload_id: uuid.UUID) -> str:
     """Always built by the server, so a client can never name another workspace's path."""
-    return f"{scope.workspace_id}/{upload_id}"
+    return upload_path(scope.workspace_id, upload_id)
+
+
+def upload_path(workspace_id: uuid.UUID, upload_id: uuid.UUID) -> str:
+    return f"{workspace_id}/{upload_id}"
 
 
 def _parse_id(value: str) -> uuid.UUID:

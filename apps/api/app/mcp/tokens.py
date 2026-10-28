@@ -126,7 +126,7 @@ async def verify_token(session: AsyncSession, token: str, *, now: datetime) -> V
     """The scope a presented token acts in, or None for any reason it can't (AC2, AC4)."""
     if not token.startswith(TOKEN_PREFIX):
         return None
-    # Looked up by its hash across workspaces: the token is what names the workspace.
+    # tenant-unscoped: looked up by its hash across workspaces; the token names the workspace.
     row = (
         await session.execute(
             select(ApiToken, Membership.role)

@@ -6,11 +6,16 @@ from fastapi import APIRouter, Response, status
 from app.auth.dependencies import WorkspaceScopeDep
 from app.core.db_session import DbSession
 from app.core.errors import problem_responses
+from app.idempotency.routing import Idempotent, IdempotentRoute
 from app.mcp import tokens
 from app.mcp.schemas import ApiToken, ApiTokenCreate, ApiTokenCreated
 from app.storage.dependencies import ClockDep
 
-router = APIRouter(prefix="/v1/workspaces/{workspace_id}/api-tokens", tags=["api-tokens"])
+router = APIRouter(
+    route_class=IdempotentRoute,
+    prefix="/v1/workspaces/{workspace_id}/api-tokens",
+    tags=["api-tokens"],
+)
 
 
 def _to_schema(row: tokens.TokenRow) -> ApiToken:
@@ -41,7 +46,11 @@ async def list_api_tokens(
     "", status_code=status.HTTP_201_CREATED, responses=problem_responses(401, 404, 422, 503)
 )
 async def create_api_token(
-    body: ApiTokenCreate, scope: WorkspaceScopeDep, session: DbSession, clock: ClockDep
+    body: ApiTokenCreate,
+    scope: WorkspaceScopeDep,
+    session: DbSession,
+    clock: ClockDep,
+    idempotency: Idempotent,
 ) -> ApiTokenCreated:
     """A new token for your AI assistant. The `token` is in this response only (AC1)."""
     row, token = await tokens.create_token(
@@ -57,7 +66,11 @@ async def create_api_token(
     responses=problem_responses(401, 404, 503),
 )
 async def revoke_api_token(
-    token_id: str, scope: WorkspaceScopeDep, session: DbSession, clock: ClockDep
+    token_id: str,
+    scope: WorkspaceScopeDep,
+    session: DbSession,
+    clock: ClockDep,
+    idempotency: Idempotent,
 ) -> Response:
     """Revoke a token; it stops working on its next request (AC3)."""
     await tokens.revoke_token(session, scope, token_id, now=clock.now())

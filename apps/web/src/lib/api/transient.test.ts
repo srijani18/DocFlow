@@ -4,6 +4,7 @@ import {
   coldStartDelay,
   createColdStartRetry,
   isTransient,
+  problemMessage,
 } from "./transient";
 
 describe("isTransient", () => {
@@ -87,5 +88,25 @@ describe("ApiError", () => {
     expect(error.status).toBe(503);
     expect(error.problem?.title).toBe("Service unavailable");
     expect(error.message).toBe("API request failed with 503: Service unavailable");
+  });
+});
+
+describe("problemMessage", () => {
+  it("F14 AC10: a rate limit says how long to wait", () => {
+    const limited = new ApiError(429, {
+      type: "https://docflow.dev/problems/rate-limited",
+      title: "Too many requests",
+      status: 429,
+      detail: "Too many requests. Try again in 15 s.",
+      errors: null,
+      request_id: null,
+    });
+
+    expect(problemMessage(limited, "x")).toBe("Too many requests. Try again in 15 s.");
+    expect(problemMessage(new ApiError(429), "x")).toBe(
+      "Too many requests. Try again in a minute.",
+    );
+    expect(problemMessage(new ApiError(500), "fallback")).toBe("fallback");
+    expect(problemMessage(new TypeError("offline"), "fallback")).toBe("fallback");
   });
 });
