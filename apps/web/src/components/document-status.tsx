@@ -4,7 +4,7 @@ import type { components } from "@/generated/api";
 
 type Status = components["schemas"]["DocumentStatus"];
 
-const LABEL: Record<Status, string> = {
+export const STATUS_LABEL: Record<Status, string> = {
   UPLOADED: "Queued",
   CLASSIFYING: "Classifying",
   EXTRACTING: "Extracting",
@@ -32,7 +32,7 @@ export function DocumentStatusBadge({ status }: { status: Status }) {
       className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap ${TONE[status]}`}
     >
       {IN_PROGRESS.has(status) && <LoaderCircleIcon className="size-3 animate-spin" aria-hidden />}
-      {LABEL[status]}
+      {STATUS_LABEL[status]}
     </span>
   );
 }

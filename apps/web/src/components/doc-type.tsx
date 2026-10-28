@@ -2,7 +2,7 @@ import type { components } from "@/generated/api";
 
 type DocType = components["schemas"]["DocType"];
 
-const LABEL: Record<DocType, string> = {
+export const DOC_TYPE_LABEL: Record<DocType, string> = {
   invoice: "Invoice",
   receipt: "Receipt",
   purchase_order: "Purchase order",
@@ -22,7 +22,7 @@ export function DocTypeLabel({
   }
   return (
     <span>
-      {LABEL[docType]}
+      {DOC_TYPE_LABEL[docType]}
       {confidence !== null && (
         <span className="text-muted-foreground"> · {Math.round(confidence * 100)}%</span>
       )}

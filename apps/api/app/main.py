@@ -24,6 +24,7 @@ from app.events import routes as event_routes
 from app.export import routes as export_routes
 from app.extractions import routes as extraction_routes
 from app.identity import routes as identity_routes
+from app.metrics import routes as metrics_routes
 from app.review import routes as review_routes
 from app.search import routes as search_routes
 from app.search.dependencies import gateway_query_embedder
@@ -106,6 +107,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(review_routes.router)
     app.include_router(search_routes.router)
     app.include_router(export_routes.router)
+    app.include_router(metrics_routes.router)
     app.include_router(validation_routes.router)
     app.include_router(aikey_routes.router)
     install_problem_openapi(app)
