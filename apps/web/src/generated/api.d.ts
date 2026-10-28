@@ -326,6 +326,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/workspaces/{workspace_id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Documents
+         * @description Approved documents matching the search filters, as a ZIP of two CSV files or as
+         *     JSON (AC1 to AC8). 422 when more than 5,000 documents match.
+         */
+        get: operations["exportDocuments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/workspaces/{workspace_id}/metrics/review": {
         parameters: {
             query?: never;
@@ -338,6 +359,27 @@ export interface paths {
          * @description How many approved documents needed no corrections (AC8).
          */
         get: operations["getReviewMetrics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{workspace_id}/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search Documents
+         * @description The workspace's documents matching the text (by keyword and meaning) and filters,
+         *     best first; newest first without text (AC1 to AC5).
+         */
+        get: operations["searchDocuments"];
         put?: never;
         post?: never;
         delete?: never;
@@ -679,6 +721,32 @@ export interface components {
             data: {
                 [key: string]: unknown;
             };
+        };
+        /** SearchHit */
+        SearchHit: {
+            document: components["schemas"]["Document"];
+            /**
+             * Matched
+             * @description Why it matched; null when there was no text to match
+             */
+            matched: ("keyword" | "meaning" | "both") | null;
+            /**
+             * Snippet
+             * @description Matching text, with the matched words between [[ and ]]
+             */
+            snippet: string | null;
+        };
+        /** SearchResults */
+        SearchResults: {
+            /** Items */
+            items: components["schemas"]["SearchHit"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+            /**
+             * Semantic
+             * @description False when matching by meaning was unavailable: keyword matches only
+             */
+            semantic: boolean;
         };
         /**
          * UploadDuplicate
@@ -1834,6 +1902,76 @@ export interface operations {
             };
         };
     };
+    exportDocuments: {
+        parameters: {
+            query?: {
+                format?: "csv" | "json";
+                include_unapproved?: boolean;
+                q?: string;
+                doc_type?: components["schemas"]["DocType"] | null;
+                status?: components["schemas"]["DocumentStatus"] | null;
+                vendor?: string | null;
+                date_from?: string | null;
+                date_to?: string | null;
+                amount_min?: number | string | null;
+                amount_max?: number | string | null;
+            };
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The export file, as an attachment */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                    "application/zip": unknown;
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     getReviewMetrics: {
         parameters: {
             query?: never;
@@ -1865,6 +2003,75 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    searchDocuments: {
+        parameters: {
+            query?: {
+                q?: string;
+                doc_type?: components["schemas"]["DocType"] | null;
+                status?: components["schemas"]["DocumentStatus"] | null;
+                vendor?: string | null;
+                date_from?: string | null;
+                date_to?: string | null;
+                amount_min?: number | string | null;
+                amount_max?: number | string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchResults"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -98,6 +98,8 @@ class Settings(DatabaseSettings):
     # timed out or returned 503 while Flash-Lite extracted correctly in ~6 s (F5 spec D1).
     llm_route_classify: str = DEFAULT_ROUTE
     llm_route_extract: str = DEFAULT_ROUTE
+    # F8: embeddings for search. Only Gemini embeds; Groq has no embeddings API.
+    llm_route_embed: str = "gemini:gemini-embedding-001"
     llm_classify_prompt: str = "classify/v1"
     llm_extract_prompt: str = "extract/v1"
     llm_validate_prompt: str = "validate/v1"

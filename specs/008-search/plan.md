@@ -1,6 +1,6 @@
 # F8: Search (plan)
 
-**Status:** Approved (2026-10-27)
+**Status:** Implemented (2026-10-27)
 **Spec:** [spec.md](spec.md) · **Tasks:** [tasks.md](tasks.md)
 
 ## 1. API contract

@@ -1,10 +1,8 @@
 "use client";
 
 import { useInfiniteQuery } from "@tanstack/react-query";
-import Link from "next/link";
+import { useEffect, useState } from "react";
 
-import { DocTypeLabel } from "@/components/doc-type";
-import { DocumentStatusBadge } from "@/components/document-status";
 import { MeGate } from "@/components/me-gate";
 import { Panel } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -12,7 +10,28 @@ import { UploadDropzone } from "@/components/upload-dropzone";
 import { useDocumentEvents } from "@/hooks/use-document-events";
 import { documentKeys, fetchDocumentPage } from "@/lib/api/documents";
 import { currentWorkspace } from "@/lib/api/me";
-import { formatDateTime, formatMoney } from "@/lib/format";
+import {
+  activeParams,
+  EMPTY_SEARCH,
+  isSearching,
+  type SearchParams,
+  searchDocuments,
+} from "@/lib/api/search";
+
+import { DocumentTable } from "./document-table";
+import { ExportMenu } from "./export-menu";
+import { SearchBar } from "./search-bar";
+
+const SEARCH_DELAY_MS = 300;
+
+function useDebounced<T>(value: T, delayMs: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delayMs);
+    return () => clearTimeout(timer);
+  }, [value, delayMs]);
+  return debounced;
+}
 
 export function DocumentsView() {
   return (
@@ -22,18 +41,62 @@ export function DocumentsView() {
         if (membership === undefined) {
           return <p className="text-sm">You don&apos;t belong to a workspace yet.</p>;
         }
-        return (
-          <div className="flex flex-col gap-6">
-            <Panel>
-              <UploadDropzone workspaceId={membership.workspace.id} />
-            </Panel>
-            <Panel>
-              <DocumentList workspaceId={membership.workspace.id} />
-            </Panel>
-          </div>
-        );
+        return <Documents workspaceId={membership.workspace.id} />;
       }}
     </MeGate>
+  );
+}
+
+export function Documents({ workspaceId }: { workspaceId: string }) {
+  const [search, setSearch] = useState<SearchParams>(EMPTY_SEARCH);
+  const applied = useDebounced(search, SEARCH_DELAY_MS);
+  return (
+    <div className="flex flex-col gap-6">
+      <Panel>
+        <UploadDropzone workspaceId={workspaceId} />
+      </Panel>
+      <Panel className="flex flex-col gap-5">
+        <div className="flex items-start gap-2">
+          <div className="flex-1">
+            <SearchBar value={search} onChange={setSearch} />
+          </div>
+          <ExportMenu workspaceId={workspaceId} search={applied} />
+        </div>
+        {isSearching(applied) ? (
+          <SearchResultsList workspaceId={workspaceId} params={applied} />
+        ) : (
+          <DocumentList workspaceId={workspaceId} />
+        )}
+      </Panel>
+    </div>
+  );
+}
+
+function LoadError({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div role="alert" className="flex items-center gap-3 text-sm">
+      Couldn&apos;t load documents.
+      <Button variant="outline" size="sm" onClick={onRetry}>
+        Try again
+      </Button>
+    </div>
+  );
+}
+
+function LoadMore({
+  visible,
+  busy,
+  onClick,
+}: {
+  visible: boolean;
+  busy: boolean;
+  onClick: () => void;
+}) {
+  if (!visible) return null;
+  return (
+    <Button variant="outline" size="sm" className="self-start" disabled={busy} onClick={onClick}>
+      Load more
+    </Button>
   );
 }
 
@@ -51,14 +114,7 @@ export function DocumentList({ workspaceId }: { workspaceId: string }) {
     return <p className="text-sm text-muted-foreground">Loading documents…</p>;
   }
   if (documents.isError) {
-    return (
-      <div role="alert" className="flex items-center gap-3 text-sm">
-        Couldn&apos;t load documents.
-        <Button variant="outline" size="sm" onClick={() => void documents.refetch()}>
-          Try again
-        </Button>
-      </div>
-    );
+    return <LoadError onRetry={() => void documents.refetch()} />;
   }
   const items = documents.data.pages.flatMap((page) => page.items);
   if (items.length === 0) {
@@ -66,61 +122,58 @@ export function DocumentList({ workspaceId }: { workspaceId: string }) {
   }
   return (
     <div className="flex flex-col gap-3">
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm">
-          <thead className="text-xs tracking-wide text-muted-foreground uppercase">
-            <tr>
-              <th className="py-3 pr-4 font-medium">Name</th>
-              <th className="py-3 pr-4 font-medium">Status</th>
-              <th className="py-3 pr-4 font-medium">Type</th>
-              <th className="py-3 pr-4 font-medium">Vendor</th>
-              <th className="py-3 text-right font-medium">Total</th>
-              <th className="py-3 pl-6 font-medium">Uploaded</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((document) => (
-              <tr key={document.id} className="border-t transition-colors hover:bg-muted/50">
-                <td className="max-w-64 truncate py-3 pr-4">
-                  <Link
-                    href={`/app/documents/${document.id}`}
-                    className="font-medium underline-offset-4 hover:underline"
-                  >
-                    {document.filename}
-                  </Link>
-                </td>
-                <td className="py-3 pr-4">
-                  <DocumentStatusBadge status={document.status} />
-                </td>
-                <td className="py-3 pr-4">
-                  <DocTypeLabel
-                    docType={document.doc_type}
-                    confidence={document.doc_type_confidence}
-                  />
-                </td>
-                <td className="max-w-48 truncate py-3 pr-4">{document.vendor_name ?? "—"}</td>
-                <td className="py-3 text-right tabular-nums">
-                  {formatMoney(document.total_amount, document.currency)}
-                </td>
-                <td className="py-3 pl-6 whitespace-nowrap text-muted-foreground">
-                  {formatDateTime(document.created_at)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {documents.hasNextPage && (
-        <Button
-          variant="outline"
-          size="sm"
-          className="self-start"
-          disabled={documents.isFetchingNextPage}
-          onClick={() => void documents.fetchNextPage()}
-        >
-          Load more
-        </Button>
+      <DocumentTable rows={items.map((document) => ({ document }))} />
+      <LoadMore
+        visible={documents.hasNextPage}
+        busy={documents.isFetchingNextPage}
+        onClick={() => void documents.fetchNextPage()}
+      />
+    </div>
+  );
+}
+
+/** Search results: best match first, with why each matched (F8 AC1). */
+export function SearchResultsList({
+  workspaceId,
+  params,
+}: {
+  workspaceId: string;
+  params: SearchParams;
+}) {
+  // Live status updates invalidate everything under the list key, results included.
+  useDocumentEvents(workspaceId);
+  const results = useInfiniteQuery({
+    queryKey: [...documentKeys.list(workspaceId), "search", activeParams(params)],
+    queryFn: ({ pageParam }) => searchDocuments(workspaceId, params, pageParam),
+    initialPageParam: null as string | null,
+    getNextPageParam: (page) => page.next_cursor,
+  });
+
+  if (results.isPending) {
+    return <p className="text-sm text-muted-foreground">Searching…</p>;
+  }
+  if (results.isError) {
+    return <LoadError onRetry={() => void results.refetch()} />;
+  }
+  const hits = results.data.pages.flatMap((page) => page.items);
+  const keywordOnly = results.data.pages.some((page) => !page.semantic);
+  return (
+    <div className="flex flex-col gap-3">
+      {keywordOnly && (
+        <p className="rounded-xl bg-muted px-4 py-2 text-sm text-muted-foreground">
+          Showing keyword matches only. Matching by meaning needs a working Gemini key in Settings.
+        </p>
       )}
+      {hits.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No documents match.</p>
+      ) : (
+        <DocumentTable rows={hits} />
+      )}
+      <LoadMore
+        visible={results.hasNextPage}
+        busy={results.isFetchingNextPage}
+        onClick={() => void results.fetchNextPage()}
+      />
     </div>
   );
 }

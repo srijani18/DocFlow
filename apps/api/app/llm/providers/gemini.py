@@ -3,6 +3,7 @@ Google; everything else goes through the gateway (constitution §5.1)."""
 
 import base64
 import json
+import math
 import re
 from typing import Any
 
@@ -14,6 +15,8 @@ from app.llm.types import (
     CredentialRejectedError,
     FilePart,
     PermanentLlmError,
+    ProviderEmbedRequest,
+    ProviderEmbedResponse,
     ProviderRequest,
     ProviderResponse,
     TextPart,
@@ -72,12 +75,38 @@ class GeminiProvider:
                 "responseJsonSchema": adapt_schema(request.response_schema),
             },
         }
-        url = f"{self._base_url}/v1beta/models/{request.model}:generateContent"
+        payload = await self._post(f"{request.model}:generateContent", body, request.api_key)
+        return _parse(payload)
+
+    async def embed(self, request: ProviderEmbedRequest) -> ProviderEmbedResponse:
+        """`batchEmbedContents`, one entry per text, normalised (F8 D2: below 3072
+        dimensions gemini-embedding-001 returns vectors that aren't unit length)."""
+        task_type = "RETRIEVAL_DOCUMENT" if request.purpose == "document" else "RETRIEVAL_QUERY"
+        body = {
+            "requests": [
+                {
+                    "model": f"models/{request.model}",
+                    "content": {"parts": [{"text": text}]},
+                    "taskType": task_type,
+                    "outputDimensionality": request.dimensions,
+                }
+                for text in request.texts
+            ]
+        }
+        payload = await self._post(f"{request.model}:batchEmbedContents", body, request.api_key)
+        try:
+            vectors = [_unit(item["values"]) for item in payload["embeddings"]]
+        except (KeyError, TypeError) as exc:
+            raise TransientLlmError("Gemini returned embeddings in an unexpected shape") from exc
+        return ProviderEmbedResponse(vectors=vectors, model=request.model)
+
+    async def _post(self, method: str, body: dict[str, Any], api_key: str) -> Any:
+        url = f"{self._base_url}/v1beta/models/{method}"
         try:
             response = await self._http.post(
                 url,
                 json=body,
-                headers={"x-goog-api-key": request.api_key},
+                headers={"x-goog-api-key": api_key},
                 timeout=self._timeout_seconds,
             )
         except httpx.TimeoutException as exc:
@@ -101,7 +130,12 @@ class GeminiProvider:
             raise PermanentLlmError(
                 f"Gemini rejected the request ({response.status_code}): {message}"
             )
-        return _parse(payload)
+        return payload
+
+
+def _unit(values: list[float]) -> list[float]:
+    norm = math.sqrt(sum(value * value for value in values))
+    return [value / norm for value in values] if norm else values
 
 
 def _error_message(payload: Any) -> str:

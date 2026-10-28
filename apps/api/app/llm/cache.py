@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.llm.models import LlmCacheEntry
 from app.llm.routing import RouteEntry
-from app.llm.types import FilePart, LlmRequest, TextPart
+from app.llm.types import EmbedRequest, FilePart, LlmRequest, TextPart
 
 
 def cache_key(request: LlmRequest, route: Sequence[RouteEntry]) -> str:
@@ -32,6 +32,22 @@ def cache_key(request: LlmRequest, route: Sequence[RouteEntry]) -> str:
             digest.update(b"text:" + part.text.encode())
         elif isinstance(part, FilePart):
             digest.update(b"file:" + part.mime_type.encode() + hashlib.sha256(part.data).digest())
+    return digest.hexdigest()
+
+
+def embed_key(request: EmbedRequest, route: Sequence[RouteEntry]) -> str:
+    """Same workspace, purpose, dimensions, route and texts → same key (F8 D4)."""
+    digest = hashlib.sha256()
+    for piece in (
+        str(request.context.workspace_id),
+        request.task,
+        request.purpose,
+        str(request.dimensions),
+        ",".join(map(str, route)),
+        *request.texts,
+    ):
+        digest.update(piece.encode())
+        digest.update(b"\x00")
     return digest.hexdigest()
 
 

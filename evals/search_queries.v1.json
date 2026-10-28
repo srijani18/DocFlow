@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "dataset_version": 2,
+  "description": "Search queries over dataset v2 (F8 AC10) and every document a person would expect for each. Kinds: exact (numbers, names) and meaning (described in other words).",
+  "queries": [
+    {"q": "INV/2026-30/6763", "kind": "exact", "relevant": ["syn-invoice-02"]},
+    {"q": "PO-9830", "kind": "exact", "relevant": ["syn-purchase-order-06"]},
+    {"q": "51499", "kind": "exact", "relevant": ["syn-receipt-01"]},
+    {"q": "Kaveri", "kind": "exact", "relevant": ["syn-invoice-02", "syn-invoice-03", "syn-invoice-07", "syn-purchase-order-04"]},
+    {"q": "Godavari", "kind": "exact", "relevant": ["syn-purchase-order-06"]},
+    {"q": "tapti textiles", "kind": "exact", "relevant": ["syn-invoice-04", "syn-invoice-08", "syn-purchase-order-02", "syn-purchase-order-03"]},
+    {"q": "cotton fabric", "kind": "exact", "relevant": ["syn-invoice-04", "syn-purchase-order-01", "syn-purchase-order-02", "syn-purchase-order-06", "broken-invoice-wrong-total"]},
+    {"q": "copier paper", "kind": "exact", "relevant": ["syn-invoice-02", "syn-invoice-05", "syn-purchase-order-02", "syn-purchase-order-04", "syn-purchase-order-05", "broken-invoice-bad-gstin", "broken-invoice-tax-mix"]},
+    {"q": "Deccan Logistics", "kind": "exact", "relevant": ["syn-invoice-03", "syn-invoice-05", "syn-invoice-08", "syn-purchase-order-02", "syn-purchase-order-04", "broken-invoice-wrong-total", "broken-invoice-bad-gstin"]},
+    {"q": "Konkan Retail", "kind": "exact", "relevant": ["syn-invoice-01", "syn-invoice-04", "syn-purchase-order-03", "syn-purchase-order-05", "syn-purchase-order-06", "broken-invoice-duplicate"]},
+    {"q": "electrical supplier in Hyderabad", "kind": "meaning", "relevant": ["syn-purchase-order-06"]},
+    {"q": "packaging company in Delhi", "kind": "meaning", "relevant": ["syn-invoice-01", "syn-invoice-05", "broken-invoice-wrong-total", "broken-invoice-bad-gstin", "broken-invoice-tax-mix", "broken-invoice-duplicate"]},
+    {"q": "fasteners and hardware from Bangalore", "kind": "meaning", "relevant": ["syn-invoice-02", "syn-invoice-03", "syn-invoice-07", "syn-purchase-order-04"]},
+    {"q": "office stationery shop in Ahmedabad", "kind": "meaning", "relevant": ["syn-invoice-06", "syn-purchase-order-01", "syn-purchase-order-05", "syn-receipt-01", "syn-receipt-04", "syn-receipt-06"]},
+    {"q": "south indian breakfast", "kind": "meaning", "relevant": ["syn-receipt-01", "syn-receipt-02", "syn-receipt-03", "syn-receipt-04", "syn-receipt-05", "syn-receipt-06"]},
+    {"q": "tea and snacks", "kind": "meaning", "relevant": ["syn-receipt-03", "syn-receipt-04", "syn-receipt-05"]},
+    {"q": "coffee and pastries at a bakery", "kind": "meaning", "relevant": ["cord-test-003", "cord-test-004", "cord-test-006"]},
+    {"q": "yearly service agreement", "kind": "meaning", "relevant": ["syn-invoice-02", "syn-invoice-03", "syn-invoice-04", "syn-invoice-07", "syn-invoice-08", "syn-purchase-order-03", "syn-purchase-order-04", "syn-purchase-order-06"]},
+    {"q": "purchase order for textiles", "kind": "meaning", "relevant": ["syn-purchase-order-02", "syn-purchase-order-03"]},
+    {"q": "metal mounting hardware", "kind": "meaning", "relevant": ["syn-invoice-01", "syn-invoice-03", "syn-invoice-04", "syn-invoice-05", "syn-invoice-06", "syn-invoice-07", "syn-purchase-order-01", "syn-purchase-order-03", "broken-invoice-duplicate"]}
+  ]
+}

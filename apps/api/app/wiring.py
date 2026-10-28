@@ -24,6 +24,7 @@ from app.pipeline.runner import Pipeline
 from app.pipeline.steps.classify import ClassifyStep
 from app.pipeline.steps.extract import ExtractStep
 from app.pipeline.steps.validate import ValidateStep
+from app.search.indexer import EmbedRunner
 from app.storage.supabase import SupabaseStorage
 from app.worker.loop import Worker
 
@@ -38,6 +39,7 @@ class Services:
     events: EventBroker
     keybox: KeyBox | None
     worker: Worker | None
+    gateway: Gateway
 
     async def aclose(self) -> None:
         await self.http.aclose()
@@ -57,12 +59,11 @@ def build_services(settings: Settings) -> Services:
     )
     events = EventBroker()
     keybox = KeyBox.from_setting(settings.byok_master_keys) if settings.byok_master_keys else None
+    # The API embeds search queries (F8); the worker runs the pipeline and embeds documents.
+    credentials = WorkspaceCredentials(sessionmaker=sessionmaker, keybox=keybox)
+    gateway = build_gateway(settings, sessionmaker=sessionmaker, http=http, credentials=credentials)
     worker = None
     if settings.role.runs_worker:
-        credentials = WorkspaceCredentials(sessionmaker=sessionmaker, keybox=keybox)
-        gateway = build_gateway(
-            settings, sessionmaker=sessionmaker, http=http, credentials=credentials
-        )
         pipeline = Pipeline(
             sessionmaker=sessionmaker,
             storage=storage,
@@ -73,8 +74,13 @@ def build_services(settings: Settings) -> Services:
                 gateway, prompt_version=settings.llm_validate_prompt, clock=SystemClock()
             ),
         )
-        worker = Worker(sessionmaker=sessionmaker, pipeline=pipeline, events=events)
-    return Services(engine, sessionmaker, http, storage, events, keybox, worker)
+        worker = Worker(
+            sessionmaker=sessionmaker,
+            pipeline=pipeline,
+            events=events,
+            embedder=EmbedRunner(gateway, sessionmaker=sessionmaker),
+        )
+    return Services(engine, sessionmaker, http, storage, events, keybox, worker, gateway)
 
 
 def build_gateway(
@@ -99,6 +105,7 @@ def build_gateway(
             "extract": parse_route(settings.llm_route_extract),
             # Rereading uses the extraction route (F6 D4).
             "validate": parse_route(settings.llm_route_extract),
+            "embed": parse_route(settings.llm_route_embed),
         },
         credentials=credentials,
         cache_ttl=timedelta(days=settings.llm_cache_ttl_days),

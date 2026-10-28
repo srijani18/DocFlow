@@ -16,7 +16,7 @@ DEFAULT_MAX_ATTEMPTS = 5
 class Job(Base):
     __tablename__ = "jobs"
     __table_args__ = (
-        CheckConstraint("kind IN ('process_document')", name="kind"),
+        CheckConstraint("kind IN ('process_document', 'embed_document')", name="kind"),
         CheckConstraint("status IN ('queued', 'running', 'succeeded', 'dead')", name="status"),
         Index(
             "ix_jobs_claimable",

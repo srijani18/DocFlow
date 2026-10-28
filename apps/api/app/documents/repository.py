@@ -219,12 +219,14 @@ async def set_current_extraction(
     document_date: date | None,
     total_amount: Decimal | None,
     currency: str | None,
+    search_text: str,
 ) -> None:
     await session.execute(
         update(Document)
         .where(Document.workspace_id == scope.workspace_id, Document.id == document_id)
         .values(
             current_extraction_id=extraction_id,
+            search_text=search_text,
             vendor_name=vendor_name,
             document_date=document_date,
             total_amount=total_amount,

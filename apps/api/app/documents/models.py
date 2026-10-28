@@ -10,6 +10,7 @@ from sqlalchemy import (
     BigInteger,
     Boolean,
     CheckConstraint,
+    Computed,
     Date,
     DateTime,
     ForeignKey,
@@ -22,6 +23,7 @@ from sqlalchemy import (
     func,
     text,
 )
+from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base
@@ -108,6 +110,7 @@ class Document(Base):
         Index("ix_documents_workspace_created", "workspace_id", "created_at", "id"),
         Index("ix_documents_workspace_vendor", "workspace_id", "vendor_name"),
         Index("ix_documents_workspace_date", "workspace_id", "document_date"),
+        Index("ix_documents_search", "search_vector", postgresql_using="gin"),
     )
 
     id: Mapped[uuid.UUID] = _uuid_pk()
@@ -147,6 +150,18 @@ class Document(Base):
         ForeignKey(
             "docflow.extractions.id", use_alter=True, name="fk_documents_approved_extraction_id"
         )
+    )
+    # Search (F8): words from the current extraction, and the index over them plus the file
+    # name. Generated, so it can never disagree with the text it's built from.
+    search_text: Mapped[str] = mapped_column(Text, server_default=text("''"))
+    search_vector: Mapped[str] = mapped_column(
+        TSVECTOR,
+        Computed(
+            "to_tsvector('simple'::regconfig, "
+            "regexp_replace(filename, '[^[:alnum:]]+', ' ', 'g') || ' ' || search_text)",
+            persisted=True,
+        ),
+        deferred=True,
     )
     # Bumped by each retry, so each processing run has its own job key (F3 plan §3).
     processing_generation: Mapped[int] = mapped_column(Integer, server_default=text("1"))

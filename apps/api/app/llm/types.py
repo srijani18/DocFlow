@@ -5,7 +5,8 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
-Task = Literal["classify", "extract", "validate"]
+Task = Literal["classify", "extract", "validate", "embed"]
+EmbedPurpose = Literal["document", "query"]
 
 
 @dataclass(frozen=True)
@@ -76,6 +77,46 @@ class LlmResult:
     call_id: uuid.UUID
     model: str
     prompt_version: str
+
+
+@dataclass(frozen=True)
+class EmbedRequest:
+    """Texts to embed for search (F8): documents when indexing, a query when searching."""
+
+    texts: Sequence[str]
+    purpose: EmbedPurpose
+    dimensions: int
+    context: CallContext
+    use_cache: bool = True
+    task: Task = "embed"
+
+    @property
+    def prompt(self) -> Prompt:
+        # Embeddings have no prompt; the purpose stands in for its version in the call log.
+        return Prompt(task="embed", version=f"embed/{self.purpose}", text="")
+
+
+@dataclass(frozen=True)
+class ProviderEmbedRequest:
+    model: str
+    texts: Sequence[str]
+    purpose: EmbedPurpose
+    dimensions: int
+    api_key: str = field(default="", repr=False)
+
+
+@dataclass(frozen=True)
+class ProviderEmbedResponse:
+    vectors: list[list[float]]
+    model: str
+    input_tokens: int | None = None
+
+
+@dataclass(frozen=True)
+class EmbedResult:
+    vectors: list[list[float]]
+    model: str
+    call_id: uuid.UUID
 
 
 class LlmError(Exception):

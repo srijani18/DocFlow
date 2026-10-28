@@ -13,11 +13,14 @@ from app.core.tenancy import WorkspaceScope
 from app.jobs.models import Job
 
 LEASE = timedelta(minutes=5)  # F3 spec D2
+PROCESS_DOCUMENT = "process_document"
+EMBED_DOCUMENT = "embed_document"  # F8: search embedding of the current extraction
 
 
 @dataclass(frozen=True)
 class ClaimedJob:
     id: uuid.UUID
+    kind: str
     workspace_id: uuid.UUID
     document_id: uuid.UUID
     attempts: int
@@ -33,8 +36,30 @@ async def enqueue(
         .values(
             workspace_id=scope.workspace_id,
             document_id=document_id,
-            kind="process_document",
-            idempotency_key=f"process_document:{document_id}:{generation}",
+            kind=PROCESS_DOCUMENT,
+            idempotency_key=f"{PROCESS_DOCUMENT}:{document_id}:{generation}",
+        )
+        .on_conflict_do_nothing(index_elements=[Job.idempotency_key])
+        .returning(Job.id)
+    )
+    return job_id
+
+
+async def enqueue_embedding(
+    session: AsyncSession,
+    scope: WorkspaceScope,
+    *,
+    document_id: uuid.UUID,
+    extraction_id: uuid.UUID,
+) -> uuid.UUID | None:
+    """Queue embedding of one extraction version; None if it's already queued (F8 AC6)."""
+    job_id: uuid.UUID | None = await session.scalar(
+        pg_insert(Job)
+        .values(
+            workspace_id=scope.workspace_id,
+            document_id=document_id,
+            kind=EMBED_DOCUMENT,
+            idempotency_key=f"{EMBED_DOCUMENT}:{extraction_id}",
         )
         .on_conflict_do_nothing(index_elements=[Job.idempotency_key])
         .returning(Job.id)
@@ -72,12 +97,16 @@ async def claim(session: AsyncSession, *, worker_id: str) -> ClaimedJob | None:
                 locked_by=worker_id,
                 updated_at=func.now(),
             )
-            .returning(Job.id, Job.workspace_id, Job.document_id, Job.attempts, Job.max_attempts)
+            .returning(
+                Job.id, Job.kind, Job.workspace_id, Job.document_id, Job.attempts, Job.max_attempts
+            )
         )
     ).first()
     if row is None:
         return None
-    return ClaimedJob(row.id, row.workspace_id, row.document_id, row.attempts, row.max_attempts)
+    return ClaimedJob(
+        row.id, row.kind, row.workspace_id, row.document_id, row.attempts, row.max_attempts
+    )
 
 
 async def _finish(
