@@ -144,12 +144,16 @@ check-gen: gen ## Fail if generated code is out of date
 		test -z "$$(git ls-files --others --exclude-standard -- $(GENERATED))" || \
 		(echo "Generated code is out of date: run 'make gen' and commit the result." && exit 1)
 
-.PHONY: eval eval-dataset
+.PHONY: eval eval-dataset eval-import
 MODELS ?= gemini:gemini-flash-lite-latest
 LIMIT ?=
 PACE ?= 0
-eval: ## Run evals (F11): make eval MODELS=gemini:…,groq:… LIMIT=20 PACE=4 AGENT=1
-	cd $(API) && uv run python -m evals --models "$(MODELS)" $(if $(LIMIT),--limit $(LIMIT)) --pace $(PACE) $(if $(AGENT),--agent)
+eval: ## Run evals (F11): make eval MODELS=gemini:…,groq:… LIMIT=20 PACE=4 AGENT=1 [MANIFEST=…]
+	cd $(API) && uv run python -m evals --models "$(MODELS)" $(if $(LIMIT),--limit $(LIMIT)) --pace $(PACE) $(if $(AGENT),--agent) $(if $(MANIFEST),--manifest $(abspath $(MANIFEST)))
+
+eval-import: ## Approved documents of YOUR workspace → eval data (F7): make eval-import WORKSPACE=<id>
+	@test -n "$(WORKSPACE)" || (echo "usage: make eval-import WORKSPACE=<your workspace id>" && exit 1)
+	cd $(API) && uv run python -m evals.import_reviews --workspace "$(WORKSPACE)"
 
 eval-dataset: ## Rebuild evals/dataset v2 (synthetic + broken documents; CORD kept or downloaded)
 	cd $(API) && uv run python -m evals.build_dataset

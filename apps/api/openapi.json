@@ -87,6 +87,41 @@
         "title": "AiKeyStatus",
         "type": "object"
       },
+      "ApproveRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "accept_errors": {
+            "default": false,
+            "description": "Approve even though checks found errors",
+            "title": "Accept Errors",
+            "type": "boolean"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Unsaved corrections, saved before approving",
+            "title": "Data"
+          },
+          "version": {
+            "description": "The extraction version being approved",
+            "minimum": 1.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version"
+        ],
+        "title": "ApproveRequest",
+        "type": "object"
+      },
       "ContentType": {
         "enum": [
           "application/pdf",
@@ -573,6 +608,42 @@
         "title": "Provider",
         "type": "string"
       },
+      "ReviewMetrics": {
+        "properties": {
+          "approved": {
+            "title": "Approved",
+            "type": "integer"
+          },
+          "approved_by_agent": {
+            "title": "Approved By Agent",
+            "type": "integer"
+          },
+          "approved_without_edits": {
+            "title": "Approved Without Edits",
+            "type": "integer"
+          },
+          "approved_without_edits_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "approved_without_edits / approved; null when nothing is approved yet",
+            "title": "Approved Without Edits Rate"
+          }
+        },
+        "required": [
+          "approved",
+          "approved_without_edits",
+          "approved_by_agent",
+          "approved_without_edits_rate"
+        ],
+        "title": "ReviewMetrics",
+        "type": "object"
+      },
       "Role": {
         "enum": [
           "admin",
@@ -580,6 +651,29 @@
         ],
         "title": "Role",
         "type": "string"
+      },
+      "SaveCorrections": {
+        "additionalProperties": false,
+        "properties": {
+          "base_version": {
+            "description": "The extraction version the edits were made on",
+            "minimum": 1.0,
+            "title": "Base Version",
+            "type": "integer"
+          },
+          "data": {
+            "additionalProperties": true,
+            "description": "The whole corrected instance",
+            "title": "Data",
+            "type": "object"
+          }
+        },
+        "required": [
+          "base_version",
+          "data"
+        ],
+        "title": "SaveCorrections",
+        "type": "object"
       },
       "UploadDuplicate": {
         "description": "The same content is already a document in this workspace (AC3). Nothing to upload.",
@@ -974,6 +1068,66 @@
         "summary": "Get Me",
         "tags": [
           "identity"
+        ]
+      }
+    },
+    "/v1/schemas/{schema_id}": {
+      "get": {
+        "description": "A bundled document schema (no tenant data), for the review form (F7 plan \u00a73).",
+        "operationId": "getSchema",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "schema_id",
+            "required": true,
+            "schema": {
+              "title": "Schema Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Getschema",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not Found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get Schema",
+        "tags": [
+          "extractions"
         ]
       }
     },
@@ -1666,6 +1820,113 @@
         ]
       }
     },
+    "/v1/workspaces/{workspace_id}/documents/{document_id}/approve": {
+      "post": {
+        "description": "Approve the document, saving `data` first if given (AC5).",
+        "operationId": "approveDocument",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Document"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Approve Document",
+        "tags": [
+          "review"
+        ]
+      }
+    },
     "/v1/workspaces/{workspace_id}/documents/{document_id}/extraction": {
       "get": {
         "description": "The document's current extraction; 404 until one exists (F5 AC6).",
@@ -1740,6 +2001,111 @@
         "summary": "Get Current Extraction",
         "tags": [
           "extractions"
+        ]
+      },
+      "put": {
+        "description": "Save the reviewer's corrections as a new version (AC4). 409 when the document changed\nsince `base_version` (AC6); no new version when nothing changed.",
+        "operationId": "saveCorrections",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveCorrections"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Extraction"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Save Corrections",
+        "tags": [
+          "review"
         ]
       }
     },
@@ -2049,6 +2415,74 @@
         "summary": "Stream Events",
         "tags": [
           "events"
+        ]
+      }
+    },
+    "/v1/workspaces/{workspace_id}/metrics/review": {
+      "get": {
+        "description": "How many approved documents needed no corrections (AC8).",
+        "operationId": "getReviewMetrics",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewMetrics"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get Review Metrics",
+        "tags": [
+          "review"
         ]
       }
     },

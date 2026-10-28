@@ -358,12 +358,13 @@ async def approve(
     *,
     expected: Collection[str],
     by_user_id: uuid.UUID | None,
+    extraction_id: uuid.UUID,
     job_id: uuid.UUID | None = None,
     detail: str | None = None,
-) -> StatusEvent:
-    """Move the document to APPROVED and record who approved it: the agent (F6 AC6) when
-    `by_user_id` is None, otherwise a person (F7)."""
-    _, event = await transition(
+) -> tuple[Document, StatusEvent]:
+    """Move the document to APPROVED and record who approved it and which version: the agent
+    (F6 AC6) when `by_user_id` is None, otherwise a person (F7 AC5)."""
+    document, event = await transition(
         session,
         scope,
         document_id,
@@ -373,9 +374,23 @@ async def approve(
         detail=detail,
     )
     await repository.set_approval(
-        session, scope, document_id, by_user_id=by_user_id, by_agent=by_user_id is None
+        session,
+        scope,
+        document_id,
+        by_user_id=by_user_id,
+        by_agent=by_user_id is None,
+        extraction_id=extraction_id,
     )
-    return event
+    await session.refresh(document)
+    return document, event
+
+
+async def lock_document(session: AsyncSession, scope: WorkspaceScope, document_id: str) -> Document:
+    """The document, locked until the transaction ends, or 404 (F7: one save at a time)."""
+    document = await repository.lock_document(session, scope, _parse_id(document_id))
+    if document is None:
+        raise NotFoundError()
+    return document
 
 
 async def retry_failed_with_codes(

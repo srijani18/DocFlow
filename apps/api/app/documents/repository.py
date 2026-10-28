@@ -254,6 +254,7 @@ async def set_approval(
     *,
     by_user_id: uuid.UUID | None,
     by_agent: bool,
+    extraction_id: uuid.UUID,
 ) -> None:
     await session.execute(
         update(Document)
@@ -262,6 +263,7 @@ async def set_approval(
             approved_at=func.now(),
             approved_by_user_id=by_user_id,
             approved_by_agent=by_agent,
+            approved_extraction_id=extraction_id,
             updated_at=func.now(),
         )
     )

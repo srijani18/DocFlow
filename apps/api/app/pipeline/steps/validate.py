@@ -95,12 +95,13 @@ class ValidateStep:
                 fixed=result.resolved if result.changed else [],
             )
             if approve:
-                event = await documents.approve(
+                _, event = await documents.approve(
                     session,
                     ctx.scope,
                     ctx.document_id,
                     expected=[DocStatus.VALIDATING],
                     by_user_id=None,
+                    extraction_id=checked,
                     job_id=ctx.job_id,
                     detail="approved by the validation agent",
                 )

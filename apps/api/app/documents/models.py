@@ -142,6 +142,12 @@ class Document(Base):
     approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     approved_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("docflow.users.id"))
     approved_by_agent: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
+    # The extraction version that was approved (F7 AC5).
+    approved_extraction_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey(
+            "docflow.extractions.id", use_alter=True, name="fk_documents_approved_extraction_id"
+        )
+    )
     # Bumped by each retry, so each processing run has its own job key (F3 plan §3).
     processing_generation: Mapped[int] = mapped_column(Integer, server_default=text("1"))
     created_by_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("docflow.users.id"))

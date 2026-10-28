@@ -84,6 +84,34 @@ async def record_agent_fix(
     )
 
 
+async def record_human_version(
+    session: AsyncSession,
+    scope: WorkspaceScope,
+    *,
+    document_id: uuid.UUID,
+    doc_type: str,
+    schema_id: str,
+    data: dict[str, Any],
+    confidence: dict[str, Any],
+    generation: int,
+) -> Extraction:
+    """A reviewer's corrected version, made current (F7 AC4)."""
+    return await _record_version(
+        session,
+        scope,
+        document_id=document_id,
+        source="human",
+        doc_type=doc_type,
+        schema_id=schema_id,
+        data=data,
+        confidence=confidence,
+        prompt_version=None,
+        llm_call_id=None,
+        generation=generation,
+        created_by_user_id=scope.user_id,
+    )
+
+
 async def _record_version(
     session: AsyncSession,
     scope: WorkspaceScope,
@@ -94,9 +122,10 @@ async def _record_version(
     schema_id: str,
     data: dict[str, Any],
     confidence: dict[str, Any],
-    prompt_version: str,
+    prompt_version: str | None,
     llm_call_id: uuid.UUID | None,
     generation: int,
+    created_by_user_id: uuid.UUID | None = None,
 ) -> Extraction:
     extraction = await repository.insert_version(
         session,
@@ -109,7 +138,7 @@ async def _record_version(
         prompt_version=prompt_version,
         llm_call_id=llm_call_id,
         generation=generation,
-        created_by_user_id=None,
+        created_by_user_id=created_by_user_id,
     )
     summary = summarize(doc_type, data)
     await documents.set_current_extraction(
