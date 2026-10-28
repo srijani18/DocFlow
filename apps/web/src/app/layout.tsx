@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import { Providers } from "@/components/providers";
+import { THEME_SCRIPT } from "@/lib/theme";
 
 import "./globals.css";
 
@@ -22,7 +23,16 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${jakarta.variable} ${geistMono.variable} h-full antialiased`}>
+    // suppressHydrationWarning: THEME_SCRIPT sets the theme class before React hydrates.
+    <html
+      lang="en"
+      className={`${jakarta.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
+    >
+      <head>
+        {/* Before the first paint, so the page never flashes the wrong theme (F17 AC3). */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body className="min-h-full flex flex-col">
         <Providers>{children}</Providers>
       </body>

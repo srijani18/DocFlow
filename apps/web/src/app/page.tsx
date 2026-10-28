@@ -10,6 +10,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { ThemeSwitch } from "@/components/theme-switch";
+
 import { ApiStatus } from "@/components/api-status";
 import { InlineMark, Wordmark } from "@/components/brand";
 import { AppPreview } from "@/components/landing/app-preview";
@@ -59,13 +61,14 @@ const STEPS = [
 
 export default function Home() {
   return (
-    <main className="flex flex-1 flex-col bg-white">
+    <main className="flex flex-1 flex-col bg-background">
       {/* Hero */}
       <section className="px-3 pt-3 sm:px-4 sm:pt-4">
         <div className="bg-hero-glow relative overflow-hidden rounded-[2rem] px-5 pb-0 sm:rounded-[2.5rem] sm:px-10">
           <header className="mx-auto flex max-w-6xl items-center justify-between py-5">
             <Wordmark />
             <nav className="flex items-center gap-2 sm:gap-6">
+              <ThemeSwitch className="hidden sm:inline-flex" />
               <Link
                 href="/login"
                 className="text-sm font-medium text-foreground/80 hover:text-foreground"
@@ -140,13 +143,13 @@ export default function Home() {
                 className={`flex flex-col gap-6 rounded-3xl p-6 ${
                   featured
                     ? "bg-brand-gradient text-white shadow-xl shadow-primary/25"
-                    : "border bg-white"
+                    : "border bg-card"
                 }`}
               >
                 <div className="flex items-center gap-3">
                   <span
                     className={`inline-flex size-11 items-center justify-center rounded-xl ${
-                      featured ? "bg-white text-primary" : "bg-muted text-foreground"
+                      featured ? "bg-white text-indigo-600" : "bg-muted text-foreground"
                     }`}
                   >
                     <Icon className="size-5" />
@@ -169,7 +172,7 @@ export default function Home() {
             </h2>
             <ol className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
               {STEPS.map(({ icon: Icon, title, body }, index) => (
-                <li key={title} className="flex flex-col gap-4 rounded-3xl bg-white p-6 shadow-sm">
+                <li key={title} className="flex flex-col gap-4 rounded-3xl bg-card p-6 shadow-sm">
                   <div className="flex items-center justify-between">
                     <span className="inline-flex size-11 items-center justify-center rounded-xl bg-accent text-primary">
                       <Icon className="size-5" />

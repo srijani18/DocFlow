@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { AppNav, NavLinks } from "@/components/app-nav";
 import { Wordmark } from "@/components/brand";
 import { SignOutButton } from "@/components/sign-out-button";
+import { ThemeSwitch } from "@/components/theme-switch";
 
 // proxy.ts has already sent signed-out visitors to /login before anything here renders.
 export default function AppLayout({ children }: LayoutProps<"/app">) {
@@ -17,14 +18,18 @@ export default function AppLayout({ children }: LayoutProps<"/app">) {
             <AppNav />
           </Suspense>
         </div>
+        <ThemeSwitch className="mb-3 self-start" />
         <SignOutButton />
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between gap-3 border-b bg-white px-4 py-3 md:hidden">
+        <header className="flex items-center justify-between gap-3 border-b bg-card px-4 py-3 md:hidden">
           <Wordmark href="/app" size="sm" />
-          <SignOutButton />
+          <div className="flex items-center gap-2">
+            <ThemeSwitch />
+            <SignOutButton />
+          </div>
         </header>
-        <div className="border-b bg-white px-2 py-1 md:hidden">
+        <div className="border-b bg-card px-2 py-1 md:hidden">
           <Suspense fallback={<NavLinks pathname={null} orientation="horizontal" />}>
             <AppNav orientation="horizontal" />
           </Suspense>

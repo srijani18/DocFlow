@@ -136,7 +136,9 @@ export function SchemaForm({
             {rows.length === 0 ? (
               <p className="text-sm text-muted-foreground">None</p>
             ) : (
-              <div className="overflow-x-auto">
+              // relative: the cells' screen-reader labels are absolutely positioned, so the
+              // scroll box must be their containing block, or they stretch the page sideways.
+              <div className="relative overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead className="text-muted-foreground">
                     <tr>

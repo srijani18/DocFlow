@@ -297,7 +297,8 @@ function ReviewForm({
           Approved. Approved documents are read-only.
         </p>
       )}
-      <div className="grid gap-4 lg:grid-cols-2">
+      {/* minmax(0, 1fr): a wide line-items table scrolls inside its column, not the page. */}
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <Panel className="lg:sticky lg:top-4 lg:h-[calc(100vh-6rem)]">
           <DocumentViewer
             workspaceId={workspaceId}
