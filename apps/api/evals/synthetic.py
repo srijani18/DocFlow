@@ -1,18 +1,22 @@
 """Synthetic Indian invoices, receipts and purchase orders with exact ground truth (F11 D1).
 
-Every name, GSTIN, address and amount is invented. Documents are deterministic for a seed,
-so rebuilding the dataset gives the same files and truth.
+Every name, GSTIN, address and amount is invented. GSTINs carry a valid checksum (dataset v2,
+F6 D3). Documents are deterministic for a seed, so rebuilding the dataset gives the same
+files and truth. `invoice(seed, defect=…)` prints a deliberate mistake for the validation
+agent to catch.
 """
 
 import io
 import random
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from decimal import Decimal
 from typing import Any
 
 import pypdfium2 as pdfium
 from fpdf import FPDF
 from PIL import Image, ImageFilter
+
+from app.validation.gstin import GSTIN_CHARACTERS, with_valid_checksum
 
 TWO = Decimal("0.01")
 
@@ -133,6 +137,14 @@ MERCHANTS = [
         "24",
     ),
 ]
+
+
+def _checksummed(parties: list[Party]) -> list[Party]:
+    return [replace(p, gstin=with_valid_checksum(p.gstin[:14])) for p in parties]
+
+
+SELLERS, BUYERS, MERCHANTS = _checksummed(SELLERS), _checksummed(BUYERS), _checksummed(MERCHANTS)
+DEFECTS = ("wrong_total", "bad_gstin", "tax_mix")
 ITEMS = [
     ("Steel brackets, galvanised", "7326", Decimal("125.00")),
     ("Hex bolts M10 (box of 100)", "7318", Decimal("480.00")),
@@ -218,17 +230,31 @@ def _lines(rng: random.Random) -> list[tuple[str, str, Decimal, Decimal, Decimal
     ]
 
 
-def invoice(seed: int) -> tuple[bytes, dict[str, Any]]:
+def _misprinted(gstin: str) -> str:
+    """The same GSTIN with the wrong check character, as if mistyped on the invoice."""
+    wrong = GSTIN_CHARACTERS[(GSTIN_CHARACTERS.index(gstin[-1]) + 1) % len(GSTIN_CHARACTERS)]
+    return gstin[:-1] + wrong
+
+
+def invoice(seed: int, defect: str | None = None) -> tuple[bytes, dict[str, Any]]:
     rng = random.Random(seed)
     seller, buyer = rng.choice(SELLERS), rng.choice(BUYERS)
+    if defect == "bad_gstin":
+        seller = replace(seller, gstin=_misprinted(seller.gstin))
     iso, printed = _date(rng)
     number = f"INV/{rng.randint(2025, 2026)}-{rng.randint(10, 99)}/{rng.randint(100, 9999):04d}"
     lines = _lines(rng)
     subtotal = sum((line[4] for line in lines), Decimal(0))
     taxes = _tax_lines(
-        subtotal, seller.state_code == buyer.state_code, Decimal(rng.choice([12, 18]))
+        subtotal,
+        seller.state_code == buyer.state_code or defect == "tax_mix",
+        Decimal(rng.choice([12, 18])),
     )
+    if defect == "tax_mix":  # CGST with IGST instead of SGST: not allowed together
+        taxes = [taxes[0], ("IGST", *taxes[1][1:])]
     total = subtotal + sum((t[2] for t in taxes), Decimal(0))
+    if defect == "wrong_total":  # the printed total is ₹100 more than the sum
+        total += Decimal("100.00")
 
     pdf = _Doc()
     pdf.text_line("TAX INVOICE", bold=True, size=16)

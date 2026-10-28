@@ -1,4 +1,4 @@
-"""python -m evals --models gemini:gemini-flash-lite-latest,groq:… --limit 20
+"""python -m evals --models gemini:gemini-flash-lite-latest,groq:… --limit 20 [--agent]
 
 Uses the operator's own keys from the environment or the repo-root .env (F11 D0). Exits 0
 with a message when no key is available for any requested model (F11 AC7).
@@ -66,6 +66,9 @@ async def main(argv: list[str]) -> int:
     parser.add_argument(
         "--pace", type=float, default=0.0, help="seconds to wait between calls (free tiers)"
     )
+    parser.add_argument(
+        "--agent", action="store_true", help="also run the validation agent (before / after)"
+    )
     parser.add_argument("--out", default=str(REPORTS_DIR))
     args = parser.parse_args(argv)
 
@@ -100,6 +103,7 @@ async def main(argv: list[str]) -> int:
                     providers=providers,
                     credentials=StaticKeys(operator_keys),
                     pace_seconds=args.pace,
+                    agent=args.agent,
                 )
             )
     meta = {
@@ -108,7 +112,7 @@ async def main(argv: list[str]) -> int:
         "created_at": created.isoformat(timespec="seconds"),
         "dataset_version": version,
         "documents": len(sample),
-        "prompt_versions": ["classify/v1", "extract/v1"],
+        "prompt_versions": ["classify/v1", "extract/v1", *(["validate/v1"] if args.agent else [])],
         "models": [str(r) for r in runnable],
     }
     print(f"wrote {_write(Path(args.out), run_id, meta, runs)}")
