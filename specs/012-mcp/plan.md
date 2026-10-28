@@ -1,6 +1,6 @@
 # F12: MCP server (plan)
 
-**Status:** Approved (2026-10-28)
+**Status:** Implemented (2026-10-28)
 **Spec:** [spec.md](spec.md) · **Tasks:** [tasks.md](tasks.md)
 
 ## 1. Library
@@ -75,3 +75,27 @@ app/main.py             app.mount("/mcp", mcp_app); its session manager runs in 
   - logs contain no arguments (AC7).
 - **Web:** create (token shown once), list, revoke.
 - **Live:** Claude Code connected to the local server with a real token asks "how much did we spend per vendor?" and gets the dev workspace's figures. A screenshot goes in the PR.
+
+## 7. As built (2026-10-28)
+
+- **Our own bearer check, not the SDK's.** The SDK's `token_verifier` path requires `AuthSettings` with an OAuth `issuer_url`, which our tokens don't have. `app/mcp/http.py` `TokenAuth` checks the `dfw_` token in front of the SDK's app, answers 401 with `WWW-Authenticate: Bearer resource_metadata="…"`, and puts the verified token in the request state. Tools read it through `ctx.request_context.request`. FastAPI serves the RFC 9728 metadata at `/.well-known/oauth-protected-resource/mcp`, with no `authorization_servers`.
+- **Served as a route, not a mount:** a mount at `/mcp` answers `POST /mcp` with a redirect to `/mcp/`.
+- **The session manager runs in its own task.** It holds an anyio task group, which must be exited by the task that entered it. The test fixtures and the app lifespan don't guarantee that.
+- **DNS-rebinding protection is off.** The SDK's default allows only localhost hosts, so a Render host would be rejected. Every request needs a token, which a rebinding page can't have.
+- **New setting `WEB_BASE_URL`** for the document links; Render needs the Vercel URL there.
+- **Errors and logging.** Unexpected tool errors are reported to Sentry (F16) and answered with a generic tool error. Every call is logged with `tool`, `outcome`, `workspace_id`, `client_id` (the token id), duration and result count.
+
+## 8. Results
+
+- **Tests:**
+  - 10 integration tests, using the SDK's own client in process over `httpx2.ASGITransport`;
+  - 4 web tests;
+  - API 539 passed.
+- **Live check (dev stack, real data):**
+  - a token was created in Settings;
+  - the SDK client over HTTP against `localhost:8000/mcp` listed the 4 tools;
+  - `list_vendors` and `spend_summary` returned the dev workspace's vendors with per-currency totals;
+  - `search_documents("packaging company in Delhi")` found the Yamuna Packaging invoice;
+  - `get_document` returned its approved version;
+  - an unknown id gave "Not found in this workspace.";
+  - after revoking the token in Settings, the next request got 401.

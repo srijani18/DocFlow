@@ -116,6 +116,9 @@ class Settings(DatabaseSettings):
     langfuse_secret_key: str | None = None
     langfuse_host: str = "https://cloud.langfuse.com"
 
+    # The web app's address, for links to documents from the MCP tools (F12).
+    web_base_url: str = "http://localhost:3000"
+
     cors_allowed_origins: Annotated[list[str], NoDecode] = []
     cors_allowed_origin_regex: str | None = None
 

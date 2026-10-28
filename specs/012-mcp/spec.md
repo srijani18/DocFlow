@@ -1,6 +1,6 @@
 # F12: MCP server (spec)
 
-**Status:** Approved (2026-10-28)
+**Status:** Implemented (2026-10-28)
 **Phase:** 6
 **Plan:** [plan.md](plan.md) · **Tasks:** [tasks.md](tasks.md)
 

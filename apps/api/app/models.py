@@ -13,6 +13,7 @@ MODEL_MODULES: tuple[str, ...] = (
     "app.validation.models",
     "app.review.models",
     "app.search.models",
+    "app.mcp.models",
 )
 
 

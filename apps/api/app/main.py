@@ -25,6 +25,10 @@ from app.events import routes as event_routes
 from app.export import routes as export_routes
 from app.extractions import routes as extraction_routes
 from app.identity import routes as identity_routes
+from app.mcp import token_routes as api_token_routes
+from app.mcp.http import install_mcp
+from app.mcp.http import running as running_mcp
+from app.mcp.server import McpDeps
 from app.metrics import routes as metrics_routes
 from app.review import routes as review_routes
 from app.search import routes as search_routes
@@ -59,7 +63,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             worker_task = asyncio.create_task(app.state.worker.run(), name="worker")
         app.state.worker_task = worker_task
         try:
-            yield
+            async with running_mcp(mcp_server):
+                yield
         finally:
             if worker_task is not None:
                 worker_task.cancel()
@@ -82,6 +87,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.keybox = services.keybox
     app.state.http = services.http
     app.state.query_embedder = gateway_query_embedder(services.gateway)
+    # MCP server (F12): tools act in the workspace of the request's access token.
+    app.state.mcp_deps = mcp_deps = McpDeps(
+        open_session=services.sessionmaker,
+        query_embedder=app.state.query_embedder,
+        clock=SystemClock(),
+        web_base_url=settings.web_base_url.rstrip("/"),
+    )
+    app.state.mcp_server = mcp_server = install_mcp(app, mcp_deps)
+
     app.state.token_verifier = TokenVerifier(
         jwks, issuer=settings.auth_issuer, audience=settings.auth_jwt_audience
     )
@@ -110,6 +124,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(search_routes.router)
     app.include_router(export_routes.router)
     app.include_router(metrics_routes.router)
+    app.include_router(api_token_routes.router)
     app.include_router(validation_routes.router)
     app.include_router(aikey_routes.router)
     install_problem_openapi(app)
