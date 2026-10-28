@@ -8,6 +8,7 @@ from enum import StrEnum
 from sqlalchemy import (
     REAL,
     BigInteger,
+    Boolean,
     CheckConstraint,
     Date,
     DateTime,
@@ -37,12 +38,19 @@ class DocumentStatus(StrEnum):
     UPLOADED = "UPLOADED"
     CLASSIFYING = "CLASSIFYING"
     EXTRACTING = "EXTRACTING"
+    VALIDATING = "VALIDATING"
     NEEDS_REVIEW = "NEEDS_REVIEW"
+    APPROVED = "APPROVED"
     FAILED = "FAILED"
 
 
 PROCESSING_STATUSES = frozenset(
-    {DocumentStatus.UPLOADED, DocumentStatus.CLASSIFYING, DocumentStatus.EXTRACTING}
+    {
+        DocumentStatus.UPLOADED,
+        DocumentStatus.CLASSIFYING,
+        DocumentStatus.EXTRACTING,
+        DocumentStatus.VALIDATING,
+    }
 )
 _STATUS_LIST = ", ".join(f"'{status}'" for status in DocumentStatus)
 
@@ -130,6 +138,10 @@ class Document(Base):
     document_date: Mapped[date | None] = mapped_column(Date)
     total_amount: Mapped[Decimal | None] = mapped_column(Numeric(18, 2))
     currency: Mapped[str | None] = mapped_column(String(3))
+    # Approval (F6 auto-approval, F7 by a person).
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    approved_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("docflow.users.id"))
+    approved_by_agent: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
     # Bumped by each retry, so each processing run has its own job key (F3 plan §3).
     processing_generation: Mapped[int] = mapped_column(Integer, server_default=text("1"))
     created_by_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("docflow.users.id"))

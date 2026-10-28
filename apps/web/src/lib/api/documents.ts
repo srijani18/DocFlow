@@ -5,6 +5,7 @@ import { toApiError } from "@/lib/api/transient";
 export type DocumentSummary = components["schemas"]["Document"];
 export type DocumentPage = components["schemas"]["DocumentPage"];
 export type Extraction = components["schemas"]["Extraction"];
+export type ValidationIssue = components["schemas"]["ValidationIssue"];
 
 export const documentKeys = {
   list: (workspaceId: string) => ["documents", workspaceId] as const,
@@ -76,4 +77,18 @@ export async function fetchExtraction(
     throw toApiError(response, error);
   }
   return data;
+}
+
+export async function fetchIssues(
+  workspaceId: string,
+  documentId: string,
+): Promise<ValidationIssue[]> {
+  const { data, error, response } = await api.GET(
+    "/v1/workspaces/{workspace_id}/documents/{document_id}/issues",
+    { params: { path: { workspace_id: workspaceId, document_id: documentId } } },
+  );
+  if (data === undefined) {
+    throw toApiError(response, error);
+  }
+  return data.items;
 }

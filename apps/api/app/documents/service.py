@@ -351,6 +351,33 @@ async def set_current_extraction(
     )
 
 
+async def approve(
+    session: AsyncSession,
+    scope: WorkspaceScope,
+    document_id: uuid.UUID,
+    *,
+    expected: Collection[str],
+    by_user_id: uuid.UUID | None,
+    job_id: uuid.UUID | None = None,
+    detail: str | None = None,
+) -> StatusEvent:
+    """Move the document to APPROVED and record who approved it: the agent (F6 AC6) when
+    `by_user_id` is None, otherwise a person (F7)."""
+    _, event = await transition(
+        session,
+        scope,
+        document_id,
+        expected=expected,
+        to=DocumentStatus.APPROVED,
+        job_id=job_id,
+        detail=detail,
+    )
+    await repository.set_approval(
+        session, scope, document_id, by_user_id=by_user_id, by_agent=by_user_id is None
+    )
+    return event
+
+
 async def retry_failed_with_codes(
     session: AsyncSession, scope: WorkspaceScope, codes: Collection[str]
 ) -> list[StatusEvent]:

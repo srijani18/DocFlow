@@ -245,3 +245,23 @@ async def list_failed_with_codes(
         )
     )
     return list(rows)
+
+
+async def set_approval(
+    session: AsyncSession,
+    scope: WorkspaceScope,
+    document_id: uuid.UUID,
+    *,
+    by_user_id: uuid.UUID | None,
+    by_agent: bool,
+) -> None:
+    await session.execute(
+        update(Document)
+        .where(Document.workspace_id == scope.workspace_id, Document.id == document_id)
+        .values(
+            approved_at=func.now(),
+            approved_by_user_id=by_user_id,
+            approved_by_agent=by_agent,
+            updated_at=func.now(),
+        )
+    )

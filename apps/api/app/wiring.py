@@ -23,6 +23,7 @@ from app.llm.routing import parse_route
 from app.pipeline.runner import Pipeline
 from app.pipeline.steps.classify import ClassifyStep
 from app.pipeline.steps.extract import ExtractStep
+from app.pipeline.steps.validate import ValidateStep
 from app.storage.supabase import SupabaseStorage
 from app.worker.loop import Worker
 
@@ -68,6 +69,9 @@ def build_services(settings: Settings) -> Services:
             publish=events.publish,
             classify=ClassifyStep(gateway, prompt_version=settings.llm_classify_prompt),
             extract=ExtractStep(gateway, prompt_version=settings.llm_extract_prompt),
+            validate=ValidateStep(
+                gateway, prompt_version=settings.llm_validate_prompt, clock=SystemClock()
+            ),
         )
         worker = Worker(sessionmaker=sessionmaker, pipeline=pipeline, events=events)
     return Services(engine, sessionmaker, http, storage, events, keybox, worker)
@@ -93,6 +97,8 @@ def build_gateway(
         routes={
             "classify": parse_route(settings.llm_route_classify),
             "extract": parse_route(settings.llm_route_extract),
+            # Rereading uses the extraction route (F6 D4).
+            "validate": parse_route(settings.llm_route_extract),
         },
         credentials=credentials,
         cache_ttl=timedelta(days=settings.llm_cache_ttl_days),

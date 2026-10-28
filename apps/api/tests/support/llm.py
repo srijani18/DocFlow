@@ -39,6 +39,7 @@ def fake_gateway(
         routes={
             "classify": (RouteEntry("fake", "fake-model"),),
             "extract": (RouteEntry("fake", "fake-model"),),
+            "validate": (RouteEntry("fake", "fake-model"),),
         },
         credentials=credentials or StaticCredentials(),
     )

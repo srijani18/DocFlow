@@ -5,7 +5,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
-Task = Literal["classify", "extract"]
+Task = Literal["classify", "extract", "validate"]
 
 
 @dataclass(frozen=True)
