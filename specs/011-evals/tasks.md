@@ -1,6 +1,6 @@
 # F11: Eval suite (tasks)
 
-**Status:** Approved (2026-10-26)
+**Status:** Implemented (2026-10-26)
 **Prerequisite:** F10-T5 (gateway loop). Manual: GitHub secrets `GEMINI_API_KEY`, `GROQ_API_KEY` for CI evals.
 
 - [x] **F11-T1: Gateway hooks** (AC6, AC8): `CallRecorder` (DB and memory), `use_cache`, explicit routes.
@@ -13,4 +13,5 @@
   - Tests: `test_ac3_aggregates`, `test_ac4_comparison_table`, `test_ac5_run_id_and_files`, `test_ac6_report_records_versions`, `test_full_run_with_fake_provider`.
 - [x] **F11-T5: CI workflow** (AC7): `evals.yml`, `make eval`, skip without keys, PR comment.
   - **Done when:** a `workflow_dispatch` run produces an artifact (or skips cleanly without secrets).
-- [ ] **F11-T6: Baseline (Phase 2 done when)** (AC5): a real run of both models on the dataset, with the report committed; the README cites the run id with the baseline accuracy and the comparison table. Spec status `Implemented`.
+- [x] **F11-T6: Baseline (Phase 2 done when)** (AC5): a real run of both models on the dataset, with the report committed; the README cites the run id with the baseline accuracy and the comparison table. Spec status `Implemented`.
+  - **Done:** run [`20261026-1656-5e6f28f-acd5`](../../evals/reports/20261026-1656-5e6f28f-acd5.md): field accuracy 97.6% (Flash-Lite 3.5) vs 94.6% (3.1 Flash-Lite), cited in the README.

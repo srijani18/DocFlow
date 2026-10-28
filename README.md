@@ -8,7 +8,33 @@ AI document processing. Upload invoices, receipts and purchase orders, and DocFl
 - sends low-confidence fields to a human reviewer, and
 - exports the approved data.
 
-> **Status:** Phase 0 (foundations). The project is built spec-first: start with the [constitution](specs/constitution.md), the [architecture overview](specs/000-architecture/overview.md) and its [ADRs](specs/000-architecture/adr/).
+> **Status:** all features built (Phases 0–6: the processing pipeline, multi-provider LLM gateway and evals, validation agent and human review, search and export, metrics and observability, the MCP server, row-level security, dark mode); the production deploy is next. The project is built spec-first: start with the [constitution](specs/constitution.md), the [architecture overview](specs/000-architecture/overview.md) and its [ADRs](specs/000-architecture/adr/).
+
+## Accuracy
+
+Measured by the eval suite ([F11](specs/011-evals/spec.md)) on dataset v1: 30 labelled documents (20 synthetic invoices, receipts and purchase orders, half of them rendered as noisy photos, plus 10 real receipts from CORD v2). Baseline run [`20261026-1656-5e6f28f-acd5`](evals/reports/20261026-1656-5e6f28f-acd5.md):
+
+| Model | Classification | Field accuracy | Documents with every field right | Median latency | Cost / document* |
+|---|---|---|---|---|---|
+| Gemini Flash-Lite (`gemini-flash-lite-latest`, served as 3.5) | 100% | **97.6%** | 63% | 43 s | $0.0049 |
+| Gemini 3.1 Flash-Lite | 100% | 94.6% | 37% | 9 s | n/a |
+
+\*At list prices; on the free tier it costs nothing. The default route uses Flash-Lite 3.5. It's slower, but most accurate, especially on addresses. Real receipts are the hard part: 79–80% field accuracy on CORD against 96–99% on synthetic documents.
+
+An earlier run, scored before missing CORD labels were masked, measured 97.7% and 94.2%: on 30 documents, expect differences of up to about a point between runs. Run `make eval` to reproduce; reports land in [`evals/reports/`](evals/reports/).
+
+**With the validation agent** ([F6](specs/006-validation-agent/spec.md)), on dataset v2 (34 documents, including deliberately broken invoices and a duplicate pair), run [`20261027-1542-d7ecf71-ac5d`](evals/reports/20261027-1542-d7ecf71-ac5d.md):
+- field accuracy is 97.8%, and the agent's rereads broke nothing;
+- it caught all 6 expected issues, with no false alarms;
+- it auto-approved 11 of 34 documents, and none of those had a wrong amount, number, date or GSTIN (5 did before the checks were tightened).
+
+`make eval AGENT=1` reproduces it.
+
+**Search** ([F8](specs/008-search/spec.md)), 20 queries on dataset v2, half exact and half by meaning, run [`search-20261026-2006-4fa0ed0-2279`](evals/reports/search-20261026-2006-4fa0ed0-2279.md):
+- hybrid search finds 95% of the relevant documents in its top 5, with the best one first (MRR 1.00) and about 1 irrelevant result per query;
+- keyword search alone finds 50%.
+
+`make eval-search` reproduces it.
 
 ## Repository layout
 

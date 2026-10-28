@@ -1,6 +1,6 @@
 # F11: Eval suite (spec)
 
-**Status:** Approved (2026-10-26)
+**Status:** Implemented (2026-10-26)
 **Phase:** 2
 **Plan:** [plan.md](plan.md) · **Tasks:** [tasks.md](tasks.md)
 
